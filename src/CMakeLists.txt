@@ -42,6 +42,10 @@ target_link_libraries(appqanvas
         $<$<PLATFORM_ID:Android>:log>
 )
 
+if(QANVAS_AUTOMATION)
+    target_link_libraries(appqanvas PRIVATE app_automation)
+endif()
+
 install(TARGETS appqanvas
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib

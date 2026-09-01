@@ -52,10 +52,23 @@ add_compile_definitions(
     $<$<NOT:$<CONFIG:Debug>>:QT_NO_INFO_OUTPUT>
 )
 
+# In-process UI automation server (libs/automation): a localhost TCP server that
+# walks the QML object tree and drives it by objectName. Debug-only by default —
+# it is an unauthenticated remote-control channel, never ship it in a release.
+set(QANVAS_AUTOMATION_DEFAULT OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(QANVAS_AUTOMATION_DEFAULT ON)
+endif()
+option(QANVAS_AUTOMATION "Compile in the UI automation server" ${QANVAS_AUTOMATION_DEFAULT})
+
+if(QANVAS_AUTOMATION)
+    add_compile_definitions(QANVAS_AUTOMATION)
+    # The name libs/CMakeLists.txt gates the automation target on.
+    set(FILLIN_AUTOMATION ON)
+endif()
+
 # Shared component libraries (git submodule, github.com/dpietruchowski/app-libs).
-# Checked out but not built yet — uncomment once the app actually links against
-# dbtoolkit / eventbus / themed components.
-# add_subdirectory(libs)
+add_subdirectory(libs)
 
 add_subdirectory(src)
 

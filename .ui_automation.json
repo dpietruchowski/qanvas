@@ -1,0 +1,8 @@
+{
+    "binary": [
+        "build-desktop/src/appqanvas",
+        "build/src/appqanvas"
+    ],
+    "port": 49300,
+    "port_env": "QANVAS_AUTOMATION_PORT"
+}

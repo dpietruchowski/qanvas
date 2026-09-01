@@ -7,6 +7,10 @@ import Qanvas
 Window {
     id: root
 
+    // objectName on everything the UI automation server has to reach: it walks
+    // the object tree and dispatches by name, so an unnamed item is invisible
+    // to it. See libs/automation/ui_driver.py.
+    objectName: "mainWindow"
     visible: true
     width: 480
     height: 800
@@ -15,6 +19,8 @@ Window {
 
     Rectangle {
         id: stage
+
+        objectName: "stage"
 
         anchors {
             left: parent.left
@@ -30,11 +36,14 @@ Window {
 
         AppLoader {
             id: appLoader
+
+            objectName: "appLoader"
             anchors.fill: parent
             appId: "hello"
         }
 
         Text {
+            objectName: "placeholderText"
             anchors.centerIn: parent
             anchors.margins: 16
             width: parent.width - 32
@@ -59,6 +68,7 @@ Window {
         spacing: 8
 
         Text {
+            objectName: "appDirText"
             width: root.width - 32
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideMiddle
@@ -68,6 +78,7 @@ Window {
         }
 
         Button {
+            objectName: "runAppButton"
             anchors.horizontalCenter: parent.horizontalCenter
             text: qsTr("Run app")
             // Re-reads the files from disk. The stale-QML problem the old Loader

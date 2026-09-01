@@ -7,6 +7,10 @@
 #include <QQmlContext>
 #include <QUrl>
 
+#ifdef QANVAS_AUTOMATION
+#include "automation/uiautomationserver.h"
+#endif
+
 namespace
 {
 
@@ -75,6 +79,13 @@ int main(int argc, char* argv[])
 
     if (engine.rootObjects().isEmpty())
         return -1;
+
+#ifdef QANVAS_AUTOMATION
+    // Only listens when the port is compiled in; tools/ui_automation drives it.
+    const QByteArray automationPort = qgetenv("QANVAS_AUTOMATION_PORT");
+    const quint16 port = automationPort.isEmpty() ? 49300 : automationPort.toUShort();
+    new UiAutomationServer(&engine, port, &app);
+#endif
 
     return app.exec();
 }
