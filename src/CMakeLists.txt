@@ -20,11 +20,15 @@ qt_add_qml_module(appqanvas
     QML_FILES
         qml/Main.qml
     SOURCES
-        appcontext.h
-        appcontext.cpp
-        apploader.h
-        apploader.cpp
+        runtime/appcontext.h
+        runtime/appcontext.cpp
+        runtime/apploader.h
+        runtime/apploader.cpp
 )
+
+# The QML type registration file Qt generates includes the headers by base name,
+# so the directory they live in has to be on the include path.
+target_include_directories(appqanvas PRIVATE runtime)
 
 target_compile_definitions(appqanvas PRIVATE
     APP_VERSION="${QT_ANDROID_VERSION_NAME}"
