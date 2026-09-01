@@ -19,6 +19,11 @@ namespace
 // something to load on a fresh install.
 void seedDemoApp()
 {
+    // Not when appsRoot() is pointed at a checked-in app directory (test/): the
+    // placeholder belongs in the user's data directory, not in the repo.
+    if (!qEnvironmentVariableIsEmpty("QANVAS_APPS_ROOT"))
+        return;
+
     const QString dir = AppLoader::appsRoot() + QStringLiteral("/hello");
     const QString entry = dir + QStringLiteral("/Main.qml");
     if (QFile::exists(entry) || !QDir().mkpath(dir))

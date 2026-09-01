@@ -78,3 +78,9 @@ CMakeLists.txt.user
 # Android
 android/*.keystore
 logcat*
+
+# App databases: AppContext writes app.db next to the app it belongs to, so a
+# checked-in test app (test/app/) grows one as soon as it is run.
+*.db
+*.db-shm
+*.db-wal

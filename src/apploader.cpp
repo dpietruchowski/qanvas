@@ -19,6 +19,13 @@ AppLoader::~AppLoader() { unload(); }
 
 QString AppLoader::appsRoot()
 {
+    // Generated apps normally live in writable app data. QANVAS_APPS_ROOT points
+    // that elsewhere so a checked-in app (test/) can be loaded as-is, without
+    // copying it into the user's data directory first.
+    const QByteArray override = qgetenv("QANVAS_APPS_ROOT");
+    if (!override.isEmpty())
+        return QDir::cleanPath(QString::fromLocal8Bit(override));
+
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
         + QStringLiteral("/apps");
 }
@@ -106,10 +113,23 @@ void AppLoader::load()
 
 void AppLoader::unload()
 {
-    // Order matters. The item tree goes first so that nothing still references
-    // the app's QML files, then the context and the bridge, and only then is the
-    // cache trimmed — trimComponentCache() drops compiled files that nobody uses
-    // any more, and leaves the runtime's own QML (which is in use) alone.
+    // Order matters: the item tree goes first so nothing still references the
+    // app's QML files, then the context and the bridge, and only then the cache.
+    //
+    // The cache call has to be clearComponentCache(), not trimComponentCache().
+    // trim() is the appealing one — it only drops what nothing references, so it
+    // cannot touch the host's own QML — but measured against an edited file on
+    // disk it does not drop the app's entry file at all, and reload() then
+    // rebuilds the app from the stale compiled unit. Forcing a GC first does not
+    // help either, so something inside the engine keeps the unit referenced past
+    // the last object that used it.
+    //
+    // clear() does pick the edit up. Its documented cost is that bindings in
+    // objects already created from the cleared components stop working; measured
+    // on Qt 6.4 that does not happen — after a reload the host's bindings still
+    // track (appDir and the placeholder both update when appId changes), because
+    // live objects hold their own reference to the unit and only the cache entry
+    // goes away. Re-check this if the engine is ever upgraded.
     delete m_item;
     m_item = nullptr;
 
@@ -120,7 +140,7 @@ void AppLoader::unload()
     m_app = nullptr;
 
     if (QQmlEngine* engine = qmlEngine(this))
-        engine->trimComponentCache();
+        engine->clearComponentCache();
 }
 
 void AppLoader::geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry)
