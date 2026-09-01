@@ -1,4 +1,4 @@
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Sql)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -19,6 +19,11 @@ qt_add_qml_module(appqanvas
     RESOURCE_PREFIX "/"
     QML_FILES
         qml/Main.qml
+    SOURCES
+        appcontext.h
+        appcontext.cpp
+        apploader.h
+        apploader.cpp
 )
 
 target_compile_definitions(appqanvas PRIVATE
@@ -32,6 +37,8 @@ target_link_libraries(appqanvas
         Qt6::Gui
         Qt6::Qml
         Qt6::Quick
+        Qt6::QuickControls2
+        Qt6::Sql
         $<$<PLATFORM_ID:Android>:log>
 )
 
