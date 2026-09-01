@@ -21,7 +21,7 @@ void seedDemoApp()
 {
     // Not when appsRoot() is pointed at a checked-in app directory (test/): the
     // placeholder belongs in the user's data directory, not in the repo.
-    if (!qEnvironmentVariableIsEmpty("QANVAS_APPS_ROOT"))
+    if (AppLoader::appsRootIsOverridden())
         return;
 
     const QString dir = AppLoader::appsRoot() + QStringLiteral("/hello");

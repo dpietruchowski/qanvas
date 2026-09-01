@@ -39,7 +39,8 @@ Window {
 
             objectName: "appLoader"
             anchors.fill: parent
-            appId: "hello"
+            // A dev build resolves this under test/; a release, under app data.
+            appId: "app"
         }
 
         Text {

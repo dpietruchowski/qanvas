@@ -44,6 +44,13 @@ target_link_libraries(appqanvas
 
 if(QANVAS_AUTOMATION)
     target_link_libraries(appqanvas PRIVATE app_automation)
+
+    # A dev build loads the checked-in app under test/ from the source tree, so
+    # the files you edit are the files the automation tests drive. Tied to the
+    # automation option because both are development-only.
+    target_compile_definitions(appqanvas PRIVATE
+        QANVAS_DEV_APPS_ROOT="${CMAKE_SOURCE_DIR}/test"
+    )
 endif()
 
 install(TARGETS appqanvas

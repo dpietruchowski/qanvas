@@ -52,8 +52,13 @@ public:
     // so this is what the runtime calls after the agent rewrites the files.
     Q_INVOKABLE void reload();
 
-    // <writable app data>/apps — the one place generated apps live.
+    // <writable app data>/apps — the one place generated apps live, unless a dev
+    // build or QANVAS_APPS_ROOT points it at a source directory instead.
     static QString appsRoot();
+
+    // True when appsRoot() is not the user's data directory, so callers that
+    // write into it (the demo seeding) can stay out of a source tree.
+    static bool appsRootIsOverridden();
 
 signals:
     void appIdChanged();

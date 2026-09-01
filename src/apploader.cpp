@@ -19,15 +19,29 @@ AppLoader::~AppLoader() { unload(); }
 
 QString AppLoader::appsRoot()
 {
-    // Generated apps normally live in writable app data. QANVAS_APPS_ROOT points
-    // that elsewhere so a checked-in app (test/) can be loaded as-is, without
-    // copying it into the user's data directory first.
+    // QANVAS_APPS_ROOT wins, so one build can be pointed at a scratch directory.
     const QByteArray override = qgetenv("QANVAS_APPS_ROOT");
     if (!override.isEmpty())
         return QDir::cleanPath(QString::fromLocal8Bit(override));
 
+#ifdef QANVAS_DEV_APPS_ROOT
+    // A dev build loads the checked-in app under test/ straight from the source
+    // tree, so editing those files and pressing Run app is the whole loop — no
+    // copy into the user's data directory, and what you edit is what the tests
+    // drive. Compiled in only alongside the automation server (see the root
+    // CMakeLists), never in a release.
+    return QStringLiteral(QANVAS_DEV_APPS_ROOT);
+#else
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
         + QStringLiteral("/apps");
+#endif
+}
+
+bool AppLoader::appsRootIsOverridden()
+{
+    const QString userData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+        + QStringLiteral("/apps");
+    return appsRoot() != userData;
 }
 
 QString AppLoader::appDir() const
