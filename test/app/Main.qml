@@ -45,11 +45,34 @@ Rectangle {
             color: "#8b98a5"
             font.pixelSize: 14
         }
+
+        Badge {
+            objectName: "badge"
+            text: "v2"
+        }
+
+        NoteList {
+            objectName: "noteList"
+        }
+
+        ActionButton {
+            objectName: "addNoteButton"
+            text: "Add note"
+            onClicked: App.exec("INSERT INTO notes (text) VALUES (?)",
+                                ["note " + (root.noteCount + 1)])
+        }
+
+        ActionButton {
+            objectName: "clearNotesButton"
+            text: "Clear"
+            onClicked: App.exec("DELETE FROM notes")
+        }
     }
 
     MouseArea {
         objectName: "addNoteArea"
         anchors.fill: parent
+        z: -1
         onClicked: App.exec("INSERT INTO notes (text) VALUES (?)", ["tap"])
     }
 }
