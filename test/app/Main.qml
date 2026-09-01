@@ -1,5 +1,10 @@
 import QtQuick
 
+// The host's own QML module. An app's sibling files need no import at all, so
+// this line is the whole question: can a loaded app reach a type the runtime
+// registered, or only its own directory?
+import Qanvas
+
 // A checked-in stand-in for a generated app: the same shape as anything the
 // agent writes into apps/<id>/, but stable enough to assert against.
 //
@@ -63,6 +68,26 @@ Rectangle {
         }
     }
 
+    Panel {
+        id: hostPanel
+
+        objectName: "hostPanel"
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: header.bottom
+            margins: theme.pad
+        }
+        title: "FROM THE HOST MODULE"
+
+        Text {
+            objectName: "hostPanelText"
+            text: "Panel comes from Qanvas, not from this directory"
+            color: theme.textDim
+            font.pixelSize: 12
+        }
+    }
+
     Card {
         id: notesCard
 
@@ -70,7 +95,7 @@ Rectangle {
         anchors {
             left: parent.left
             right: parent.right
-            top: header.bottom
+            top: hostPanel.bottom
             bottom: actions.top
             margins: theme.pad
             bottomMargin: theme.gap

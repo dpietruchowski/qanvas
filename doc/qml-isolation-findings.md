@@ -125,7 +125,35 @@ Android gives one usable top-level window (a single Activity/surface), so
   next) removes the "app A reads app B" case, since two apps are never in the
   tree together.
 
-## 5. What none of the above closes
+## 5. The host's QML module is on the app's import path
+
+*Measured.* `qt_add_qml_module` registers the runtime's own types into the
+`Qanvas` module. A loaded app is created on the host's engine, so that module is
+on its import path too: `import Qanvas` from `apps/<id>/Main.qml` resolves, and a
+host component (`Panel`) instantiates inside the app's subtree exactly as the
+app's own sibling files do.
+
+Read one way this is a feature — it is how the runtime would offer apps a shared
+component library, without each generated app carrying a copy.
+
+Read the other way it is a hole, because **every** type in the module is
+reachable, `AppLoader` included:
+
+```qml
+import Qanvas
+AppLoader { appId: "some-other-app" }   // status Ready, inside the app's subtree
+```
+
+*Measured:* the nested loader loads, which means an app can name another app and
+get that app's subtree — and with it the `AppContext` bound to that app's
+database. The bridge stops being "the only way out of the app".
+
+Nothing about the engine closes this; the module has to be kept off the app's
+import path, or the types in it have to refuse to be built from an app's context.
+A cheap version of the second: `AppLoader` refuses to load when the context it
+was created in is not the engine's root context.
+
+## 6. What none of the above closes
 
 - `Qt.exit()` / `Qt.quit()` from generated QML.
 - `Qt.createComponent("file:///absolute/path.qml")` — import paths do not
@@ -136,7 +164,7 @@ Android gives one usable top-level window (a single Activity/surface), so
 
 All of these are process-scoped; only a process per app bounds them.
 
-## 6. Mechanisms not evaluated
+## 7. Mechanisms not evaluated
 
 - **`QQuickRenderControl`** — the app gets its own `QQuickWindow` that is never
   shown, rendered to a texture that the host composites into the single real

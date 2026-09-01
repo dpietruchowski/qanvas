@@ -12,6 +12,7 @@ qt_add_executable(appqanvas
 # Alias keeps the QML file at the module root in the resource system, so it is
 # reachable as qrc:/Qanvas/Main.qml regardless of where it lives on disk.
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
+set_source_files_properties(qml/Panel.qml PROPERTIES QT_RESOURCE_ALIAS Panel.qml)
 
 qt_add_qml_module(appqanvas
     URI Qanvas
@@ -19,6 +20,7 @@ qt_add_qml_module(appqanvas
     RESOURCE_PREFIX "/"
     QML_FILES
         qml/Main.qml
+        qml/Panel.qml
     SOURCES
         runtime/appcontext.h
         runtime/appcontext.cpp
