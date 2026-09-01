@@ -67,3 +67,14 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Qt Creator / IDE
+*.user
+*.autosave
+CMakeLists.txt.user
+.vscode/
+.idea/
+
+# Android
+android/*.keystore
+logcat*

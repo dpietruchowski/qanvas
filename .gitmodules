@@ -1,0 +1,6 @@
+[submodule "libs"]
+	path = libs
+	url = git@github.com:dpietruchowski/app-libs.git
+[submodule "third_party/android_openssl"]
+	path = third_party/android_openssl
+	url = https://github.com/KDAB/android_openssl.git
