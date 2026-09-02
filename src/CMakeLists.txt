@@ -43,6 +43,8 @@ qt_add_qml_module(appqanvas
         runtime/apptools.cpp
         runtime/appcompiler.h
         runtime/appcompiler.cpp
+        runtime/appwarnings.h
+        runtime/appwarnings.cpp
 )
 
 target_include_directories(appqanvas PRIVATE runtime)

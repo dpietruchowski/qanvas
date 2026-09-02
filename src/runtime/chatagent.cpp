@@ -73,8 +73,9 @@ const char* kSystemPrompt
       "Create the tables the app needs with CREATE TABLE IF NOT EXISTS in Component.onCompleted. "
       "App.revision changes after every exec, so bind models as "
       "model: (App.revision, App.query(\"SELECT ...\")) to keep them fresh.\n"
-      "When a tool answers that the app does not load, read the file and line it names and fix "
-      "it before you answer; never leave the user with an app that does not load.\n"
+      "When a tool answers that the app does not load or raised errors, read the file and line "
+      "it names and fix it before you answer; never leave the user with a broken app. When the "
+      "user says something in the app misbehaves, read_log shows the errors it raised.\n"
       "After the call, say in one sentence what the app does.";
 
 const char* kOpenAiProvider = "OpenAI";

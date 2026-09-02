@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <memory>
+#include <optional>
 
 #include <QObject>
 #include <QString>
@@ -13,6 +15,7 @@
 class App;
 class AppFiles;
 class AppRegistry;
+class AppWarnings;
 class QQmlEngine;
 
 class AppTools : public QObject
@@ -21,6 +24,7 @@ class AppTools : public QObject
 
 public:
     AppTools(AgentController& controller, AppRegistry& registry, QObject* parent = nullptr);
+    ~AppTools() override;
 
     void setEngine(QQmlEngine* engine);
 
@@ -44,9 +48,12 @@ private:
 
     void registerTools();
     void addCreateAppTool();
+    void addReadLogTool();
     void addFileTool(const char* docstring, const Activity& activity, bool reloads,
                      const FileOperation& operation);
-    Result<QString> show(const App& app, const QString& result);
+    std::optional<QString> refusal(const App& app) const;
+    void finish(int index, const Result<QString>& result, const ToolDone& done);
+    void show(const App& app, const QString& result, int index, const ToolDone& done);
     int beginActivity(const Activity& activity, const QVariantMap& arguments);
     void endActivity(int index, bool ok);
     QString unknownApp(const QString& id) const;
@@ -54,5 +61,6 @@ private:
     AgentController& m_controller;
     AppRegistry& m_registry;
     QQmlEngine* m_engine = nullptr;
+    std::unique_ptr<AppWarnings> m_warnings;
     QVariantList m_activities;
 };

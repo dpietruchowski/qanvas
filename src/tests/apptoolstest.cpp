@@ -3,10 +3,13 @@
 #include <memory>
 #include <vector>
 
+#include <QEventLoop>
 #include <QFile>
+#include <QQmlComponent>
 #include <QQmlEngine>
 #include <QStringList>
 #include <QTemporaryDir>
+#include <QUrl>
 #include <QVariantMap>
 
 #include "agent/agentcontroller.h"
@@ -47,18 +50,39 @@ protected:
     {
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         registry = std::make_unique<AppRegistry>(nullptr);
+        engine.setOutputWarningsToStandardError(false);
         tools = std::make_unique<AppTools>(controller, *registry);
         tools->setEngine(&engine);
         QObject::connect(tools.get(), &AppTools::appShown,
-                         [this](const QString& id) { shown.append(id); });
+                         [this](const QString& id)
+                         {
+                             shown.append(id);
+                             load(id);
+                         });
     }
 
     void TearDown() override { qunsetenv("QANVAS_APPS_ROOT"); }
 
+    void load(const QString& id)
+    {
+        running.reset();
+        QQmlComponent component(&engine, QUrl::fromLocalFile(App(id).entryPath()));
+        running.reset(component.create());
+    }
+
     void run(std::vector<Completion> script)
     {
         client.script = std::move(script);
+        QEventLoop loop;
+        QObject::connect(&controller, &AgentController::busyChanged, &loop,
+                         [this, &loop]
+                         {
+                             if (!controller.isBusy())
+                                 loop.quit();
+                         });
         controller.request(client, QStringLiteral("go"));
+        if (controller.isBusy())
+            loop.exec();
     }
 
     QVariantMap activity(int index) const { return tools->activities().at(index).toMap(); }
@@ -68,6 +92,7 @@ protected:
     AgentController controller { QStringLiteral("test-model"), QStringLiteral("system") };
     std::unique_ptr<AppRegistry> registry;
     std::unique_ptr<AppTools> tools;
+    std::unique_ptr<QObject> running;
     ScriptedClient client;
     QStringList shown;
 };
@@ -237,4 +262,72 @@ TEST_F(AppToolsTest, WritingTheMissingComponentMakesTheAppLoad)
     EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
     EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
     EXPECT_FALSE(client.lastToolResult().contains(QStringLiteral("does not load")));
+}
+
+TEST_F(AppToolsTest, AnErrorRaisedWhileLoadingComesBackWithTheWriteResult)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")]
+        = QStringLiteral("import QtQuick\nItem {\n    Component.onCompleted: undefined.foo\n}\n");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    const QString result = client.lastToolResult();
+    EXPECT_TRUE(result.contains(QStringLiteral("the app raised"))) << qPrintable(result);
+    EXPECT_TRUE(result.contains(QStringLiteral("Main.qml:3"))) << qPrintable(result);
+    EXPECT_TRUE(result.contains(QStringLiteral("TypeError"))) << qPrintable(result);
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, ReadLogListsTheErrorsRaisedSinceTheLastLoad)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")]
+        = QStringLiteral("import QtQuick\nItem {\n    Component.onCompleted: undefined.foo\n}\n");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::toolCall(
+              QStringLiteral("read_log"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    const QString result = client.lastToolResult();
+    EXPECT_TRUE(result.contains(QStringLiteral("TypeError"))) << qPrintable(result);
+    ASSERT_EQ(tools->activities().size(), 2);
+    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(), QStringLiteral("checked"));
+    EXPECT_EQ(activity(1).value(QStringLiteral("detail")).toString(), QStringLiteral("notes"));
+}
+
+TEST_F(AppToolsTest, ReadLogSaysSoWhenTheAppRaisedNothing)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("read_log"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No errors")));
+}
+
+TEST_F(AppToolsTest, FixingTheErrorClearsTheLog)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")]
+        = QStringLiteral("import QtQuick\nItem {\n    Component.onCompleted: undefined.foo\n}\n");
+    QVariantMap edit = fileArguments(QStringLiteral("notes"), QStringLiteral("Main.qml"));
+    edit[QStringLiteral("before")] = QStringLiteral("undefined.foo");
+    edit[QStringLiteral("after")] = QStringLiteral("console.log(1)");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::toolCall(QStringLiteral("edit_file"), edit),
+          ScriptedClient::toolCall(
+              QStringLiteral("read_log"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No errors")));
+    ASSERT_EQ(tools->activities().size(), 3);
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
 }

@@ -4,11 +4,15 @@
 #include "appcompiler.h"
 #include "appfiles.h"
 #include "appregistry.h"
+#include "appwarnings.h"
 
 #include <QStringList>
+#include <QTimer>
 
 namespace
 {
+const int kSettleMs = 300;
+
 const char* kCreateAppDocstring
     = "@brief create_app\n"
       "@details Creates an app from its Main.qml and runs it at once, replacing an app of the same "
@@ -16,7 +20,8 @@ const char* kCreateAppDocstring
       "@param id (string) lowercase slug naming the app, 1-32 characters of a-z, 0-9 and -\n"
       "@param title (string) short human name for the app list\n"
       "@param qml (string) the complete Main.qml source\n"
-      "@return ok, or the reason the app was rejected or does not load";
+      "@return ok, or the reason the app was rejected, does not load, or raised errors while "
+      "loading";
 
 const char* kListFilesDocstring = "@brief list_files\n"
                                   "@details Lists the source files of an app with their lengths\n"
@@ -44,7 +49,8 @@ const char* kWriteFileDocstring
       "@param app (string) app id\n"
       "@param path (string) Name.qml for a component, or name.js\n"
       "@param content (string) the complete file\n"
-      "@return the file and its length, or the reason it was rejected or the app does not load";
+      "@return the file and its length, or the reason it was rejected, the app does not load, or "
+      "the errors it raised while loading";
 
 const char* kEditFileDocstring
     = "@brief edit_file\n"
@@ -53,15 +59,23 @@ const char* kEditFileDocstring
       "@param path (string) file name\n"
       "@param before (string) the exact text to replace, long enough to occur once in the file\n"
       "@param after (string) the text to put in its place\n"
-      "@return the changed lines, the lines where the fragment repeats, or why the app does not "
-      "load";
+      "@return the changed lines, the lines where the fragment repeats, why the app does not "
+      "load, or the errors it raised while loading";
 
 const char* kDeleteFileDocstring
     = "@brief delete_file\n"
       "@details Deletes a source file of an app and reloads it; Main.qml cannot be deleted\n"
       "@param app (string) app id\n"
       "@param path (string) file name\n"
-      "@return confirmation, or the reason it was refused or the app does not load";
+      "@return confirmation, or the reason it was refused, the app does not load, or the errors "
+      "it raised while loading";
+
+const char* kReadLogDocstring
+    = "@brief read_log\n"
+      "@details Lists the runtime errors an app has raised since it last loaded: failed bindings, "
+      "exceptions in handlers and timers, including ones the user triggered by using the app\n"
+      "@param app (string) app id\n"
+      "@return one \"File.qml:line:column: message\" line per error, oldest first";
 
 QString argument(const QVariantMap& arguments, const char* name)
 {
@@ -77,6 +91,19 @@ QString doesNotLoad(const QString& error)
 {
     return QStringLiteral("Saved, but the app does not load:\n%1").arg(error);
 }
+
+QString raisedWhileLoading(const QStringList& lines)
+{
+    return QStringLiteral("Saved and loaded, but the app raised:\n%1")
+        .arg(lines.join(QLatin1Char('\n')));
+}
+
+QString logText(const QStringList& lines)
+{
+    if (lines.isEmpty())
+        return QStringLiteral("No errors since the app last loaded");
+    return lines.join(QLatin1Char('\n'));
+}
 }
 
 AppTools::AppTools(AgentController& controller, AppRegistry& registry, QObject* parent)
@@ -87,7 +114,13 @@ AppTools::AppTools(AgentController& controller, AppRegistry& registry, QObject* 
     registerTools();
 }
 
-void AppTools::setEngine(QQmlEngine* engine) { m_engine = engine; }
+AppTools::~AppTools() = default;
+
+void AppTools::setEngine(QQmlEngine* engine)
+{
+    m_engine = engine;
+    m_warnings = engine ? std::make_unique<AppWarnings>(*engine) : nullptr;
+}
 
 void AppTools::clearActivities()
 {
@@ -130,6 +163,8 @@ void AppTools::registerTools()
     addFileTool(kDeleteFileDocstring, { "deleting", "deleted", "could not delete", "path" }, true,
                 [](AppFiles& files, const QVariantMap& arguments)
                 { return files.remove(argument(arguments, "path")); });
+
+    addReadLogTool();
 }
 
 void AppTools::addCreateAppTool()
@@ -145,8 +180,7 @@ void AppTools::addCreateAppTool()
             const App app(id);
             if (!app.isValid())
             {
-                endActivity(index, false);
-                done(invalidId(id));
+                finish(index, Result<QString>::failure(invalidId(id)), done);
                 return;
             }
 
@@ -154,16 +188,32 @@ void AppTools::addCreateAppTool()
                 = AppFiles(app.dir()).write(QStringLiteral("Main.qml"), argument(arguments, "qml"));
             if (written.isFailure())
             {
-                endActivity(index, false);
-                done(written.error());
+                finish(index, written, done);
                 return;
             }
 
             m_registry.record(id, argument(arguments, "title"));
+            show(app, QStringLiteral("ok"), index, done);
+        });
+}
 
-            const Result<QString> shown = show(app, QStringLiteral("ok"));
-            endActivity(index, shown.isSuccess());
-            done(shown.isSuccess() ? shown.value() : shown.error());
+void AppTools::addReadLogTool()
+{
+    m_controller.addTool(
+        QString::fromLatin1(kReadLogDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "checking", "checked", "could not check", "app" };
+            const int index = beginActivity(activity, arguments);
+            const App app(argument(arguments, "app"));
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
+
+            const QStringList lines = m_warnings ? m_warnings->lines(app.id()) : QStringList();
+            finish(index, Result<QString>::success(logText(lines)), done);
         });
 }
 
@@ -174,53 +224,70 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
                          [this, activity, reloads, operation](QVariantMap arguments, ToolDone done)
                          {
                              const int index = beginActivity(activity, arguments);
-                             const QString id = argument(arguments, "app");
-                             const App app(id);
-                             if (!app.isValid())
+                             const App app(argument(arguments, "app"));
+                             if (const std::optional<QString> refused = refusal(app))
                              {
-                                 endActivity(index, false);
-                                 done(invalidId(id));
-                                 return;
-                             }
-
-                             if (!app.exists())
-                             {
-                                 endActivity(index, false);
-                                 done(unknownApp(id));
+                                 finish(index, Result<QString>::failure(*refused), done);
                                  return;
                              }
 
                              AppFiles files(app.dir());
                              const Result<QString> result = operation(files, arguments);
-                             if (result.isFailure())
+                             if (result.isFailure() || !reloads)
                              {
-                                 endActivity(index, false);
-                                 done(result.error());
+                                 finish(index, result, done);
                                  return;
                              }
 
-                             if (!reloads)
-                             {
-                                 endActivity(index, true);
-                                 done(result.value());
-                                 return;
-                             }
-
-                             const Result<QString> shown = show(app, result.value());
-                             endActivity(index, shown.isSuccess());
-                             done(shown.isSuccess() ? shown.value() : shown.error());
+                             show(app, result.value(), index, done);
                          });
 }
 
-Result<QString> AppTools::show(const App& app, const QString& result)
+std::optional<QString> AppTools::refusal(const App& app) const
+{
+    if (!app.isValid())
+        return invalidId(app.id());
+    if (!app.exists())
+        return unknownApp(app.id());
+    return std::nullopt;
+}
+
+void AppTools::finish(int index, const Result<QString>& result, const ToolDone& done)
+{
+    endActivity(index, result.isSuccess());
+    done(result.isSuccess() ? result.value() : result.error());
+}
+
+void AppTools::show(const App& app, const QString& result, int index, const ToolDone& done)
 {
     const Result<void> compiled
         = m_engine ? AppCompiler(*m_engine).compile(app) : Result<void>::success();
+    if (m_warnings)
+        m_warnings->clear(app.id());
     emit appShown(app.id());
 
     if (compiled.isFailure())
-        return Result<QString>::failure(doesNotLoad(compiled.error()));
-    return Result<QString>::success(result);
+    {
+        finish(index, Result<QString>::failure(doesNotLoad(compiled.error())), done);
+        return;
+    }
+
+    if (!m_warnings)
+    {
+        finish(index, Result<QString>::success(result), done);
+        return;
+    }
+
+    QTimer::singleShot(kSettleMs, this,
+                       [this, id = app.id(), result, index, done]
+                       {
+                           const QStringList raised = m_warnings->lines(id);
+                           if (raised.isEmpty())
+                               finish(index, Result<QString>::success(result), done);
+                           else
+                               finish(index, Result<QString>::failure(raisedWhileLoading(raised)),
+                                      done);
+                       });
 }
 
 int AppTools::beginActivity(const Activity& activity, const QVariantMap& arguments)
