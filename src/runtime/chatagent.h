@@ -4,6 +4,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
@@ -16,6 +17,7 @@ class ChatAgent : public QObject
     Q_OBJECT
     QML_ELEMENT
 
+    Q_PROPERTY(QStringList providers READ providers CONSTANT)
     Q_PROPERTY(QString provider READ provider WRITE setProvider NOTIFY providerChanged)
     Q_PROPERTY(QString model READ model WRITE setModel NOTIFY modelChanged)
     Q_PROPERTY(QString reasoning READ reasoning WRITE setReasoning NOTIFY reasoningChanged)
@@ -28,6 +30,7 @@ class ChatAgent : public QObject
 public:
     explicit ChatAgent(QObject* parent = nullptr);
 
+    QStringList providers() const;
     QString provider() const { return m_provider; }
     QString model() const { return m_model; }
     QString reasoning() const { return m_reasoning; }

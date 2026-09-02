@@ -28,6 +28,7 @@ AppShell {
     SettingsPanel {
         id: settingsPanel
 
+        providers: agent.providers
         provider: agent.provider
         modelName: agent.model
         reasoning: agent.reasoning

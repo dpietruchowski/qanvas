@@ -67,6 +67,18 @@ if(QANVAS_AUTOMATION)
     set(FILLIN_AUTOMATION ON)
 endif()
 
+# Debug-only escape hatch: talk to the local `claude` binary instead of a
+# provider API, so the agent loop can be exercised without an API key.
+set(QANVAS_CLAUDE_CLI_DEFAULT OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT ANDROID)
+    set(QANVAS_CLAUDE_CLI_DEFAULT ON)
+endif()
+option(QANVAS_CLAUDE_CLI "Offer the local claude CLI as a provider" ${QANVAS_CLAUDE_CLI_DEFAULT})
+
+if(QANVAS_CLAUDE_CLI)
+    add_compile_definitions(QANVAS_CLAUDE_CLI)
+endif()
+
 set(QANVAS_TESTS_DEFAULT OFF)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT ANDROID)
     set(QANVAS_TESTS_DEFAULT ON)

@@ -1,6 +1,9 @@
 #include "chatagent.h"
 
 #include "appwriter.h"
+#ifdef QANVAS_CLAUDE_CLI
+#include "claudecliclient.h"
+#endif
 
 #include <QCoreApplication>
 #include <QHash>
@@ -33,9 +36,21 @@ const char* kCreateAppDocstring
       "@param qml (string) the complete Main.qml source\n"
       "@return ok, or the reason the app was rejected";
 
+const char* kOpenAiProvider = "OpenAI";
+const char* kClaudeCliProvider = "Claude CLI";
 const char* kDefaultProvider = "OpenAI";
 const char* kDefaultModel = "gpt-5-mini";
 const char* kDefaultReasoning = "Minimal";
+
+bool isClaudeCli(const QString& provider)
+{
+#ifdef QANVAS_CLAUDE_CLI
+    return provider == QLatin1String(kClaudeCliProvider);
+#else
+    Q_UNUSED(provider);
+    return false;
+#endif
+}
 
 QString providerUrl(const QString& provider)
 {
@@ -115,6 +130,16 @@ void ChatAgent::registerTools()
                          });
 }
 
+QStringList ChatAgent::providers() const
+{
+    QStringList providers { QString::fromLatin1(kOpenAiProvider), QStringLiteral("OpenRouter") };
+#ifdef QANVAS_CLAUDE_CLI
+    if (ClaudeCliClient::isAvailable())
+        providers.append(QString::fromLatin1(kClaudeCliProvider));
+#endif
+    return providers;
+}
+
 QVariantList ChatAgent::messages() const
 {
     QVariantList messages = m_controller.messages();
@@ -186,7 +211,7 @@ void ChatAgent::send(const QString& text)
 
     m_error.clear();
 
-    if (effectiveApiKey().isEmpty())
+    if (!isClaudeCli(m_provider) && effectiveApiKey().isEmpty())
     {
         m_error = QStringLiteral("Add an API key in settings first.");
         emit messagesChanged();
@@ -216,6 +241,8 @@ void ChatAgent::load()
 
 QString ChatAgent::apiKeyHint() const
 {
+    if (isClaudeCli(m_provider))
+        return QStringLiteral("Not used by the CLI");
     if (!m_apiKey.isEmpty())
         return QString();
     if (!environmentApiKey(m_provider).isEmpty())
@@ -242,6 +269,15 @@ const Client& ChatAgent::client()
     const QString key = effectiveApiKey();
     if (!m_client || m_clientProvider != m_provider || m_clientApiKey != key)
     {
+#ifdef QANVAS_CLAUDE_CLI
+        if (isClaudeCli(m_provider))
+        {
+            m_client = std::make_unique<ClaudeCliClient>();
+            m_clientProvider = m_provider;
+            m_clientApiKey = key;
+            return *m_client;
+        }
+#endif
         m_client = std::make_unique<Client>(providerUrl(m_provider), key);
         m_client->setReasoningNested(providerNestsReasoning(m_provider));
         m_clientProvider = m_provider;
