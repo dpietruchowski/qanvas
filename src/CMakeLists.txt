@@ -9,18 +9,20 @@ qt_add_executable(appqanvas
     main.cpp
 )
 
-# Alias keeps the QML file at the module root in the resource system, so it is
-# reachable as qrc:/Qanvas/Main.qml regardless of where it lives on disk.
-set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
-set_source_files_properties(qml/Panel.qml PROPERTIES QT_RESOURCE_ALIAS Panel.qml)
+file(GLOB_RECURSE QANVAS_QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "qml/*.qml")
+foreach(qml_file ${QANVAS_QML_FILES})
+    get_filename_component(qml_name ${qml_file} NAME)
+    set_source_files_properties(${qml_file} PROPERTIES QT_RESOURCE_ALIAS ${qml_name})
+endforeach()
+
+set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(appqanvas
     URI Qanvas
     VERSION 1.0
     RESOURCE_PREFIX "/"
     QML_FILES
-        qml/Main.qml
-        qml/Panel.qml
+        ${QANVAS_QML_FILES}
     SOURCES
         runtime/appcontext.h
         runtime/appcontext.cpp
@@ -45,6 +47,10 @@ target_link_libraries(appqanvas
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql
+        themed_components_qml
+        app_components_qml
+        themed_icons
+        app_utils
         $<$<PLATFORM_ID:Android>:log>
 )
 

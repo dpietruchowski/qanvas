@@ -5,7 +5,11 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQuickStyle>
 #include <QUrl>
+
+#include "utils/coloredsvgprovider.h"
+#include "utils/qmlregistrator.h"
 
 #ifdef QANVAS_AUTOMATION
 #include "automation/uiautomationserver.h"
@@ -79,8 +83,22 @@ int main(int argc, char* argv[])
 
     seedDemoApp();
 
+    QQuickStyle::setStyle(QStringLiteral("Basic"));
+
     QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("qrc:/Qanvas/Main.qml")));
+
+    engine.addImportPath(QCoreApplication::applicationDirPath() + QStringLiteral("/.."));
+
+    QmlRegistrator registrator(engine, QStringLiteral("qrc:/Qanvas"), QStringLiteral("Qanvas"));
+
+    registrator.registerSingletonType(QStringLiteral("Theme.qml"), QStringLiteral("Theme"));
+    registrator.registerSingletonType(QStringLiteral("Themed.Components"),
+                                      QStringLiteral("Theme.qml"), QStringLiteral("Theme"));
+    registrator.registerSingletonType(QStringLiteral("App.Components"), QStringLiteral("Theme.qml"),
+                                      QStringLiteral("Theme"));
+    registrator.registerType<ColoredSvgProvider>("Themed.Components", "ColoredSvgProvider");
+
+    engine.load(registrator.getMainQmlUrl());
 
     if (engine.rootObjects().isEmpty())
         return -1;
