@@ -166,6 +166,22 @@ QtObject {
         property int headerHeight: 48
     }
 
+    property var activity: QtObject {
+        property int spacing: theme.spacing.small
+        property int markerSpacing: theme.spacing.small
+        property int markerSize: 8
+        property int markerRadius: 2
+        property int fontSize: theme.fontSize.small
+        property string fontFamily: "monospace"
+        property color runningMarker: theme.colors.primary
+        property color doneMarker: theme.colors.textDisabled
+        property color failedMarker: theme.colors.danger
+        property color runningText: theme.colors.textPrimary
+        property color doneText: theme.colors.textDisabled
+        property color runningDetail: theme.colors.primary
+        property color doneDetail: theme.colors.textSecondary
+    }
+
     property var chatBubble: QtObject {
         property var user: QtObject {
             property color background: theme.colors.surface

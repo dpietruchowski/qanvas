@@ -29,6 +29,7 @@ class ChatAgent : public QObject
     Q_PROPERTY(QString apiKey READ apiKey WRITE setApiKey NOTIFY apiKeyChanged)
     Q_PROPERTY(QString apiKeyHint READ apiKeyHint NOTIFY apiKeyHintChanged)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY messagesChanged)
+    Q_PROPERTY(QVariantList activities READ activities NOTIFY activitiesChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
     Q_PROPERTY(QString lastAppId READ lastAppId NOTIFY lastAppIdChanged)
 
@@ -42,6 +43,7 @@ public:
     QString apiKey() const { return m_apiKey; }
     QString apiKeyHint() const;
     QVariantList messages() const;
+    QVariantList activities() const { return m_activities; }
     bool busy() const { return m_controller.isBusy(); }
     QString lastAppId() const { return m_lastAppId; }
 
@@ -60,15 +62,28 @@ signals:
     void apiKeyChanged();
     void apiKeyHintChanged();
     void messagesChanged();
+    void activitiesChanged();
     void busyChanged();
     void lastAppIdChanged();
     void appCreated(const QString& id);
 
 private:
+    struct Activity
+    {
+        const char* running;
+        const char* done;
+        const char* failed;
+        const char* detail;
+    };
+
     using FileOperation = std::function<Result<QString>(AppFiles&, const QVariantMap&)>;
 
     void registerTools();
-    void addFileTool(const char* docstring, bool reloads, const FileOperation& operation);
+    void addFileTool(const char* docstring, const Activity& activity, bool reloads,
+                     const FileOperation& operation);
+    int beginActivity(const Activity& activity, const QVariantMap& arguments);
+    void endActivity(int index, bool ok);
+    void clearActivities();
     void showApp(const QString& id);
     void load();
     void store(const QString& key, const QString& value);
@@ -83,6 +98,7 @@ private:
     QString m_reasoning;
     QString m_apiKey;
     QString m_lastAppId;
+    QVariantList m_activities;
     QString m_clientProvider;
     QString m_clientApiKey;
     QString m_error;

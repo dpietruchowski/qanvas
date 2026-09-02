@@ -228,6 +228,9 @@ void ChatAgent::registerTools()
     m_controller.addTool(QString::fromLatin1(kCreateAppDocstring),
                          [this](QVariantMap arguments, ToolDone done)
                          {
+                             const Activity activity { "building", "built", "could not build",
+                                                       "title" };
+                             const int index = beginActivity(activity, arguments);
                              const QString id = argument(arguments, "id");
                              const QString title = argument(arguments, "title");
                              const QString qml = argument(arguments, "qml");
@@ -235,6 +238,7 @@ void ChatAgent::registerTools()
                              const App app(id);
                              if (!app.isValid())
                              {
+                                 endActivity(index, false);
                                  done(invalidId(id));
                                  return;
                              }
@@ -243,6 +247,7 @@ void ChatAgent::registerTools()
                                  = AppFiles(app.dir()).write(QStringLiteral("Main.qml"), qml);
                              if (written.isFailure())
                              {
+                                 endActivity(index, false);
                                  done(written.error());
                                  return;
                              }
@@ -250,49 +255,59 @@ void ChatAgent::registerTools()
                              AppRegistry::instance().record(id, title);
 
                              showApp(id);
+                             endActivity(index, true);
                              done(QStringLiteral("ok"));
                          });
 
-    addFileTool(kListFilesDocstring, false,
+    addFileTool(kListFilesDocstring,
+                { "listing files in", "listed files in", "could not list files in", "app" }, false,
                 [](AppFiles& files, const QVariantMap&) { return files.list(); });
 
-    addFileTool(kReadFileDocstring, false, [](AppFiles& files, const QVariantMap& arguments)
+    addFileTool(kReadFileDocstring, { "reading", "read", "could not read", "path" }, false,
+                [](AppFiles& files, const QVariantMap& arguments)
                 { return files.read(argument(arguments, "path")); });
 
-    addFileTool(kSearchFilesDocstring, false, [](AppFiles& files, const QVariantMap& arguments)
+    addFileTool(kSearchFilesDocstring,
+                { "searching for", "searched for", "could not search for", "text" }, false,
+                [](AppFiles& files, const QVariantMap& arguments)
                 { return files.grep(argument(arguments, "text")); });
 
-    addFileTool(kWriteFileDocstring, true,
+    addFileTool(kWriteFileDocstring, { "writing", "wrote", "could not write", "path" }, true,
                 [](AppFiles& files, const QVariantMap& arguments) {
                     return files.write(argument(arguments, "path"), argument(arguments, "content"));
                 });
 
-    addFileTool(kEditFileDocstring, true,
+    addFileTool(kEditFileDocstring, { "editing", "edited", "could not edit", "path" }, true,
                 [](AppFiles& files, const QVariantMap& arguments)
                 {
                     return files.replace(argument(arguments, "path"), argument(arguments, "before"),
                                          argument(arguments, "after"));
                 });
 
-    addFileTool(kDeleteFileDocstring, true, [](AppFiles& files, const QVariantMap& arguments)
+    addFileTool(kDeleteFileDocstring, { "deleting", "deleted", "could not delete", "path" }, true,
+                [](AppFiles& files, const QVariantMap& arguments)
                 { return files.remove(argument(arguments, "path")); });
 }
 
-void ChatAgent::addFileTool(const char* docstring, bool reloads, const FileOperation& operation)
+void ChatAgent::addFileTool(const char* docstring, const Activity& activity, bool reloads,
+                            const FileOperation& operation)
 {
     m_controller.addTool(QString::fromLatin1(docstring),
-                         [this, reloads, operation](QVariantMap arguments, ToolDone done)
+                         [this, activity, reloads, operation](QVariantMap arguments, ToolDone done)
                          {
+                             const int index = beginActivity(activity, arguments);
                              const QString id = argument(arguments, "app");
                              const App app(id);
                              if (!app.isValid())
                              {
+                                 endActivity(index, false);
                                  done(invalidId(id));
                                  return;
                              }
 
                              if (!app.exists())
                              {
+                                 endActivity(index, false);
                                  done(unknownApp(id));
                                  return;
                              }
@@ -301,14 +316,52 @@ void ChatAgent::addFileTool(const char* docstring, bool reloads, const FileOpera
                              const Result<QString> result = operation(files, arguments);
                              if (result.isFailure())
                              {
+                                 endActivity(index, false);
                                  done(result.error());
                                  return;
                              }
 
                              if (reloads)
                                  showApp(id);
+                             endActivity(index, true);
                              done(result.value());
                          });
+}
+
+int ChatAgent::beginActivity(const Activity& activity, const QVariantMap& arguments)
+{
+    m_activities.append(QVariantMap {
+        { QStringLiteral("text"), QString::fromLatin1(activity.running) },
+        { QStringLiteral("done"), QString::fromLatin1(activity.done) },
+        { QStringLiteral("failedText"), QString::fromLatin1(activity.failed) },
+        { QStringLiteral("detail"), argument(arguments, activity.detail).simplified() },
+        { QStringLiteral("running"), true },
+        { QStringLiteral("failed"), false } });
+    emit activitiesChanged();
+    return int(m_activities.size()) - 1;
+}
+
+void ChatAgent::endActivity(int index, bool ok)
+{
+    if (index < 0 || index >= m_activities.size())
+        return;
+
+    QVariantMap entry = m_activities.at(index).toMap();
+    entry[QStringLiteral("text")]
+        = ok ? entry.value(QStringLiteral("done")) : entry.value(QStringLiteral("failedText"));
+    entry[QStringLiteral("running")] = false;
+    entry[QStringLiteral("failed")] = !ok;
+    m_activities[index] = entry;
+    emit activitiesChanged();
+}
+
+void ChatAgent::clearActivities()
+{
+    if (m_activities.isEmpty())
+        return;
+
+    m_activities.clear();
+    emit activitiesChanged();
 }
 
 void ChatAgent::showApp(const QString& id)
@@ -398,6 +451,7 @@ void ChatAgent::send(const QString& text)
         return;
 
     m_error.clear();
+    clearActivities();
 
     if (!isClaudeCli(m_provider) && effectiveApiKey().isEmpty())
     {
@@ -412,6 +466,7 @@ void ChatAgent::send(const QString& text)
 void ChatAgent::clear()
 {
     m_error.clear();
+    clearActivities();
     m_controller.clear(QString());
 }
 

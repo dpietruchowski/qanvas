@@ -7,6 +7,7 @@ ThemedPage {
     id: root
 
     property alias messages: messageList.messages
+    property alias activities: messageList.activities
     property alias busy: messageList.busy
     property string userRole: "user"
 

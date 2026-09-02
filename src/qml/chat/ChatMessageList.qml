@@ -6,6 +6,7 @@ ListView {
     id: root
 
     property var messages: []
+    property var activities: []
     property bool busy: false
     property string userRole: "user"
 
@@ -13,6 +14,7 @@ ListView {
     spacing: Theme.chat.messageSpacing
     clip: true
     onCountChanged: Qt.callLater(positionViewAtEnd)
+    onActivitiesChanged: Qt.callLater(positionViewAtEnd)
 
     delegate: ChatBubble {
         objectName: "chatMessage" + index
@@ -23,18 +25,22 @@ ListView {
         maxWidth: root.width * Theme.chat.bubbleMaxWidthRatio
     }
 
-    footer: Item {
+    footer: Column {
         width: root.width
-        height: root.busy ? dots.height + Theme.chat.messageSpacing : 0
-        visible: root.busy
+        height: visible ? implicitHeight : 0
+        spacing: Theme.chat.messageSpacing
+        topPadding: Theme.chat.messageSpacing
+        visible: root.busy || root.activities.length > 0
+
+        ChatActivityLog {
+            objectName: "chatActivityLog"
+            width: parent.width
+            activities: root.activities
+        }
 
         TypingDots {
-            id: dots
-
             objectName: "typingDots"
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.topMargin: Theme.chat.messageSpacing
+            visible: root.busy
             running: root.busy
         }
     }

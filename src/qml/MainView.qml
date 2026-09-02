@@ -9,6 +9,7 @@ AppShell {
 
     property Component chatPage: ChatPage {
         messages: agent.messages
+        activities: agent.activities
         busy: agent.busy
 
         onSent: function (text) { agent.send(text) }
