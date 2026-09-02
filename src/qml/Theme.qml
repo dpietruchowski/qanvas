@@ -100,6 +100,16 @@ QtObject {
         property string chat: "qrc:/Themed/Icons/chat.svg"
         property string shelf: "qrc:/Themed/Icons/deck.svg"
         property string close: "qrc:/Themed/Icons/close.svg"
+        property string app: "qrc:/Themed/Icons/ai-app.svg"
+    }
+
+    property var appStage: QtObject {
+        property color background: theme.colors.surfaceSunken
+        property color border: theme.colors.border
+        property int radius: theme.radius.medium
+        property color placeholderText: theme.colors.textMuted
+        property int placeholderFontSize: theme.fontSize.normal
+        property int placeholderPadding: theme.padding.large
     }
 
     property var chat: QtObject {

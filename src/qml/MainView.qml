@@ -15,14 +15,34 @@ AppShell {
         onSettingsClicked: settingsPanel.open()
     }
 
+    property Component appPage: AppPage {
+        id: appView
+
+        appId: agent.lastAppId
+
+        Connections {
+            target: agent
+
+            function onAppCreated(id) {
+                appView.reload()
+            }
+        }
+    }
+
     pages: [
-        { name: "navChat", icon: Theme.icons.chat, screen: root.chatPage }
+        { name: "navChat", icon: Theme.icons.chat, screen: root.chatPage },
+        { name: "navApp", icon: Theme.icons.app, screen: root.appPage }
     ]
 
     ChatAgent {
         id: agent
 
         objectName: "chatAgent"
+
+        onAppCreated: {
+            if (root.currentName !== "navApp")
+                root.selectNext()
+        }
     }
 
     SettingsPanel {
