@@ -33,8 +33,10 @@ qt_add_qml_module(appqanvas
         runtime/apploader.cpp
         runtime/chatagent.h
         runtime/chatagent.cpp
-        runtime/appwriter.h
-        runtime/appwriter.cpp
+        runtime/app.h
+        runtime/app.cpp
+        runtime/appfiles.h
+        runtime/appfiles.cpp
         runtime/appregistry.h
         runtime/appregistry.cpp
 )

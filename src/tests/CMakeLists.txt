@@ -2,13 +2,18 @@ find_package(Qt6 REQUIRED COMPONENTS Core Qml Sql)
 
 add_executable(qanvas_tests
     main.cpp
-    appwritertest.cpp
+    apptest.cpp
+    appfilestest.cpp
     appregistrytest.cpp
-    ../runtime/appwriter.cpp
+    ../runtime/app.cpp
+    ../runtime/appfiles.cpp
     ../runtime/appregistry.cpp
 )
 
-target_include_directories(qanvas_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(qanvas_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${CMAKE_SOURCE_DIR}/libs
+)
 
 target_link_libraries(qanvas_tests PRIVATE
     Qt6::Core

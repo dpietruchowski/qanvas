@@ -1,7 +1,7 @@
 #include "apploader.h"
 
+#include "app.h"
 #include "appcontext.h"
-#include "appwriter.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -18,9 +18,9 @@ AppLoader::AppLoader(QQuickItem* parent)
 
 AppLoader::~AppLoader() { unload(); }
 
-QString AppLoader::appsRoot() { return AppWriter::appsRoot(); }
+QString AppLoader::appsRoot() { return App::root(); }
 
-QString AppLoader::appDir() const { return AppWriter::appDir(m_appId); }
+QString AppLoader::appDir() const { return App(m_appId).dir(); }
 
 void AppLoader::setAppId(const QString& id)
 {
@@ -51,8 +51,9 @@ void AppLoader::load()
         return;
     }
 
-    const QString dir = appDir();
-    const QString entry = dir + QStringLiteral("/Main.qml");
+    const App app(m_appId);
+    const QString dir = app.dir();
+    const QString entry = app.entryPath();
     if (!QFileInfo::exists(entry))
     {
         fail(QStringLiteral("No such app: %1").arg(entry));

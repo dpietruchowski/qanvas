@@ -1,7 +1,8 @@
 #include "chatagent.h"
 
+#include "app.h"
+#include "appfiles.h"
 #include "appregistry.h"
-#include "appwriter.h"
 #ifdef QANVAS_CLAUDE_CLI
 #include "agent/claudecliclient.h"
 #endif
@@ -20,15 +21,28 @@ const char* kSystemPrompt
       "When the user wants an app, write it and call create_app; the runtime loads it at once. "
       "Give it a short title in the language the user writes in — it names the app in the "
       "runtime's app list.\n"
-      "The app is one file with exactly three imports: QtQuick, QtQuick.Layouts and "
-      "Qanvas.Components. Its root object is a QanvasPage. Every visible thing on the screen is one "
+      "An app is a directory of QML files. Main.qml is the entry point; any other Name.qml beside "
+      "it is a component used by its name, with no import. Split a screen into components once "
+      "Main.qml outgrows a screenful.\n"
+      "To change an app that already exists, go through its files: search_files to find the place, "
+      "read_file to see it, edit_file to change a fragment, write_file for a new or fully "
+      "rewritten "
+      "file, delete_file to drop one. Prefer an anchored edit_file over rewriting a whole file, "
+      "and "
+      "never rewrite a file you have not read.\n"
+      "Every file has exactly three imports: QtQuick, QtQuick.Layouts and "
+      "Qanvas.Components. Main.qml's root object is a QanvasPage. Every visible thing on the "
+      "screen "
+      "is one "
       "of the Qanvas components listed below — no Rectangle, Text, Item, Image, ListView, no "
-      "QtQuick.Controls, no import of anything else. QtQuick is there for the invisible parts only: "
+      "QtQuick.Controls, no import of anything else. QtQuick is there for the invisible parts "
+      "only: "
       "Timer, Repeater, QtObject, property, function, Component.onCompleted. The components carry "
       "the runtime's look, so never set colours, fonts, sizes, radii, paddings or spacing on them; "
       "pick a variant by writing words in type instead. Children of QanvasPage and of the layout "
       "components stack in a column; place them with Layout.fillWidth, Layout.fillHeight and "
-      "Layout.preferredHeight. If the catalogue has no component for what you want, build it out of "
+      "Layout.preferredHeight. If the catalogue has no component for what you want, build it out "
+      "of "
       "the ones it does have — a card with a row inside covers most of it. There is no C++, no "
       "network and no filesystem.\n"
       "QanvasPage{title scrollable showBack onBack} QanvasPanel{title open() close()} "
@@ -64,12 +78,78 @@ const char* kSystemPrompt
 
 const char* kCreateAppDocstring
     = "@brief create_app\n"
-      "@details Saves a single-file QML app and runs it immediately, replacing an app of the same "
+      "@details Creates an app from its Main.qml and runs it at once, replacing an app of the same "
       "id\n"
       "@param id (string) lowercase slug naming the app, 1-32 characters of a-z, 0-9 and -\n"
       "@param title (string) short human name for the app list\n"
       "@param qml (string) the complete Main.qml source\n"
       "@return ok, or the reason the app was rejected";
+
+const char* kListFilesDocstring = "@brief list_files\n"
+                                  "@details Lists the source files of an app with their lengths\n"
+                                  "@param app (string) app id\n"
+                                  "@return one \"Name.qml 12L\" line per file";
+
+const char* kReadFileDocstring
+    = "@brief read_file\n"
+      "@details Reads one source file of an app, numbered by line\n"
+      "@param app (string) app id\n"
+      "@param path (string) file name, such as Main.qml\n"
+      "@return the numbered file, or the names of the files the app does have";
+
+const char* kSearchFilesDocstring
+    = "@brief search_files\n"
+      "@details Finds literal text across the source files of an app\n"
+      "@param app (string) app id\n"
+      "@param text (string) exact text to find, not a regular expression\n"
+      "@return every matching line with the two lines around it";
+
+const char* kWriteFileDocstring
+    = "@brief write_file\n"
+      "@details Writes a whole source file of an app, creating or overwriting it, and reloads the "
+      "app\n"
+      "@param app (string) app id\n"
+      "@param path (string) Name.qml for a component, or name.js\n"
+      "@param content (string) the complete file\n"
+      "@return the file and its length, or the reason it was rejected";
+
+const char* kEditFileDocstring
+    = "@brief edit_file\n"
+      "@details Replaces one exact fragment of a source file and reloads the app\n"
+      "@param app (string) app id\n"
+      "@param path (string) file name\n"
+      "@param before (string) the exact text to replace, long enough to occur once in the file\n"
+      "@param after (string) the text to put in its place\n"
+      "@return the changed lines, or the lines where the fragment repeats";
+
+const char* kDeleteFileDocstring
+    = "@brief delete_file\n"
+      "@details Deletes a source file of an app and reloads it; Main.qml cannot be deleted\n"
+      "@param app (string) app id\n"
+      "@param path (string) file name\n"
+      "@return confirmation, or the reason it was refused";
+
+QString argument(const QVariantMap& arguments, const char* name)
+{
+    return arguments.value(QString::fromLatin1(name)).toString();
+}
+
+QString invalidId(const QString& id)
+{
+    return QStringLiteral("Invalid app id \"%1\": use 1-32 characters of a-z, 0-9 and -").arg(id);
+}
+
+QString unknownApp(const QString& id)
+{
+    QStringList ids;
+    const QVariantList apps = AppRegistry::instance().apps();
+    for (const QVariant& app : apps)
+        ids.append(app.toMap().value(QStringLiteral("id")).toString());
+
+    if (ids.isEmpty())
+        return QStringLiteral("No app \"%1\", and there are no apps yet").arg(id);
+    return QStringLiteral("No app \"%1\" — apps: %2").arg(id, ids.join(QLatin1Char(' ')));
+}
 
 const char* kOpenAiProvider = "OpenAI";
 const char* kClaudeCliProvider = "Claude CLI";
@@ -148,25 +228,94 @@ void ChatAgent::registerTools()
     m_controller.addTool(QString::fromLatin1(kCreateAppDocstring),
                          [this](QVariantMap arguments, ToolDone done)
                          {
-                             const QString id = arguments.value(QStringLiteral("id")).toString();
-                             const QString title
-                                 = arguments.value(QStringLiteral("title")).toString();
-                             const QString qml = arguments.value(QStringLiteral("qml")).toString();
+                             const QString id = argument(arguments, "id");
+                             const QString title = argument(arguments, "title");
+                             const QString qml = argument(arguments, "qml");
 
-                             QString error;
-                             if (AppWriter::write(id, qml, &error).isEmpty())
+                             const App app(id);
+                             if (!app.isValid())
                              {
-                                 done(error);
+                                 done(invalidId(id));
+                                 return;
+                             }
+
+                             const Result<QString> written
+                                 = AppFiles(app.dir()).write(QStringLiteral("Main.qml"), qml);
+                             if (written.isFailure())
+                             {
+                                 done(written.error());
                                  return;
                              }
 
                              AppRegistry::instance().record(id, title);
 
-                             m_lastAppId = id;
-                             emit lastAppIdChanged();
-                             emit appCreated(id);
+                             showApp(id);
                              done(QStringLiteral("ok"));
                          });
+
+    addFileTool(kListFilesDocstring, false,
+                [](AppFiles& files, const QVariantMap&) { return files.list(); });
+
+    addFileTool(kReadFileDocstring, false, [](AppFiles& files, const QVariantMap& arguments)
+                { return files.read(argument(arguments, "path")); });
+
+    addFileTool(kSearchFilesDocstring, false, [](AppFiles& files, const QVariantMap& arguments)
+                { return files.grep(argument(arguments, "text")); });
+
+    addFileTool(kWriteFileDocstring, true,
+                [](AppFiles& files, const QVariantMap& arguments) {
+                    return files.write(argument(arguments, "path"), argument(arguments, "content"));
+                });
+
+    addFileTool(kEditFileDocstring, true,
+                [](AppFiles& files, const QVariantMap& arguments)
+                {
+                    return files.replace(argument(arguments, "path"), argument(arguments, "before"),
+                                         argument(arguments, "after"));
+                });
+
+    addFileTool(kDeleteFileDocstring, true, [](AppFiles& files, const QVariantMap& arguments)
+                { return files.remove(argument(arguments, "path")); });
+}
+
+void ChatAgent::addFileTool(const char* docstring, bool reloads, const FileOperation& operation)
+{
+    m_controller.addTool(QString::fromLatin1(docstring),
+                         [this, reloads, operation](QVariantMap arguments, ToolDone done)
+                         {
+                             const QString id = argument(arguments, "app");
+                             const App app(id);
+                             if (!app.isValid())
+                             {
+                                 done(invalidId(id));
+                                 return;
+                             }
+
+                             if (!app.exists())
+                             {
+                                 done(unknownApp(id));
+                                 return;
+                             }
+
+                             AppFiles files(app.dir());
+                             const Result<QString> result = operation(files, arguments);
+                             if (result.isFailure())
+                             {
+                                 done(result.error());
+                                 return;
+                             }
+
+                             if (reloads)
+                                 showApp(id);
+                             done(result.value());
+                         });
+}
+
+void ChatAgent::showApp(const QString& id)
+{
+    m_lastAppId = id;
+    emit lastAppIdChanged();
+    emit appCreated(id);
 }
 
 QStringList ChatAgent::providers() const

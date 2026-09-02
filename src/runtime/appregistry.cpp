@@ -1,6 +1,6 @@
 #include "appregistry.h"
 
-#include "appwriter.h"
+#include "app.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -54,7 +54,7 @@ AppRegistry* AppRegistry::create(QQmlEngine*, QJSEngine*)
 
 bool AppRegistry::open()
 {
-    const QString root = AppWriter::appsRoot();
+    const QString root = App::root();
     if (!QDir().mkpath(root))
         return false;
 
@@ -94,7 +94,7 @@ QVariantList AppRegistry::apps() const
 
 bool AppRegistry::record(const QString& id, const QString& title)
 {
-    if (!m_open || !AppWriter::isValidId(id))
+    if (!m_open || !App::isValidId(id))
         return false;
 
     QSqlQuery q(QSqlDatabase::database(m_connectionName, false));

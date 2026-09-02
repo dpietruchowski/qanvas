@@ -1,16 +1,21 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 
 #include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
+#include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
 #include "agent/agentcontroller.h"
 #include "agent/client.h"
+#include "utils/result.h"
 #include "utils/securestorage.h"
+
+class AppFiles;
 
 class ChatAgent : public QObject
 {
@@ -60,7 +65,11 @@ signals:
     void appCreated(const QString& id);
 
 private:
+    using FileOperation = std::function<Result<QString>(AppFiles&, const QVariantMap&)>;
+
     void registerTools();
+    void addFileTool(const char* docstring, bool reloads, const FileOperation& operation);
+    void showApp(const QString& id);
     void load();
     void store(const QString& key, const QString& value);
     QString effectiveApiKey() const;
