@@ -9,12 +9,23 @@ qt_add_executable(appqanvas
     main.cpp
 )
 
-add_subdirectory(qml)
+add_subdirectory(components)
+
+file(GLOB_RECURSE SHELL_QML_FULL "${CMAKE_CURRENT_SOURCE_DIR}/qml/*.qml")
+
+set(SHELL_QML "")
+foreach(qml_file ${SHELL_QML_FULL})
+    file(RELATIVE_PATH rel_path "${CMAKE_CURRENT_SOURCE_DIR}/qml" ${qml_file})
+    set_source_files_properties(${qml_file} PROPERTIES QT_RESOURCE_ALIAS ${rel_path})
+    list(APPEND SHELL_QML ${qml_file})
+endforeach()
 
 qt_add_qml_module(appqanvas
     URI Qanvas
     VERSION 1.0
+    RESOURCE_PREFIX "/"
     OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Qanvas
+    QML_FILES ${SHELL_QML}
     SOURCES
         runtime/appcontext.h
         runtime/appcontext.cpp
@@ -43,7 +54,7 @@ target_link_libraries(appqanvas
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql
-        qanvas_qml
+        qanvas_components_qml
         themed_components_qml
         app_components_qml
         themed_icons
@@ -64,4 +75,9 @@ install(TARGETS appqanvas
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
+)
+
+install(DIRECTORY ${CMAKE_BINARY_DIR}/Qanvas
+    DESTINATION lib/qt6/qml
+    FILES_MATCHING PATTERN "*.qml" PATTERN "*.qmltypes" PATTERN "qmldir"
 )

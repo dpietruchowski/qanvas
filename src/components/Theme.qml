@@ -37,6 +37,13 @@ QtObject {
         property color dialogSurface: "#221D17"
         property color overlay: "#000000B3"
         property color overlayLight: "#0000008C"
+
+        property color danger: "#C4553D"
+        property color dangerVariant: "#D46A52"
+        property color dangerDark: "#A8462F"
+        property color success: "#6E9E5B"
+        property color successVariant: "#82B36E"
+        property color successDark: "#5C8549"
     }
 
     property var fontSize: QtObject {
@@ -105,6 +112,11 @@ QtObject {
         property string shelf: "qrc:/Themed/Icons/deck.svg"
         property string close: "qrc:/Themed/Icons/close.svg"
         property string app: "qrc:/Themed/Icons/ai-app.svg"
+        property string remove: "qrc:/Themed/Icons/remove.svg"
+        property string plus: "qrc:/Themed/Icons/plus.svg"
+        property string check: "qrc:/Themed/Icons/check.svg"
+        property string edit: "qrc:/Themed/Icons/edit.svg"
+        property string search: "qrc:/Themed/Icons/search.svg"
     }
 
     property var card: QtObject {
@@ -247,6 +259,30 @@ QtObject {
             property color border: "#00000000"
             property color text: theme.colors.textSecondary
         }
+
+        property var secondary: QtObject {
+            property color background: theme.colors.surface
+            property color hovered: theme.colors.surfaceRaised
+            property color pressed: theme.colors.surfaceSunken
+            property color border: theme.colors.border
+            property color text: theme.colors.textPrimary
+        }
+
+        property var danger: QtObject {
+            property color background: theme.colors.danger
+            property color hovered: theme.colors.dangerVariant
+            property color pressed: theme.colors.dangerDark
+            property color border: theme.colors.danger
+            property color text: theme.colors.textPrimary
+        }
+
+        property var success: QtObject {
+            property color background: theme.colors.success
+            property color hovered: theme.colors.successVariant
+            property color pressed: theme.colors.successDark
+            property color border: theme.colors.success
+            property color text: theme.colors.textPrimary
+        }
     }
 
     property var input: QtObject {
@@ -275,5 +311,145 @@ QtObject {
         property int fieldPadding: theme.padding.medium
         property string fontFamily: Qt.application.font.family
         property string monoFamily: "monospace"
+    }
+
+    property var text: QtObject {
+        property var title: QtObject {
+            property int fontSize: theme.fontSize.xLarge
+            property color color: theme.colors.textPrimary
+            property bool bold: true
+            property real lineHeight: 1.0
+        }
+
+        property var subtitle: QtObject {
+            property int fontSize: theme.fontSize.medium
+            property color color: theme.colors.textPrimary
+            property bool bold: true
+            property real lineHeight: 1.0
+        }
+
+        property var body: QtObject {
+            property int fontSize: theme.fontSize.normal
+            property color color: theme.colors.textPrimary
+            property bool bold: false
+            property real lineHeight: 1.15
+        }
+
+        property var caption: QtObject {
+            property int fontSize: theme.fontSize.small
+            property color color: theme.colors.textSecondary
+            property bool bold: false
+            property real lineHeight: 1.15
+        }
+
+        property var muted: QtObject {
+            property int fontSize: theme.fontSize.normal
+            property color color: theme.colors.textMuted
+            property bool bold: false
+            property real lineHeight: 1.15
+        }
+    }
+
+    property var page: QtObject {
+        property var title: theme.text.title
+        property int contentSpacing: theme.spacing.medium
+    }
+
+    property var section: QtObject {
+        property int spacing: theme.spacing.small
+        property int contentSpacing: theme.spacing.small
+    }
+
+    property var separator: QtObject {
+        property int thickness: theme.border.thin
+        property color color: theme.colors.divider
+    }
+
+    property var list: QtObject {
+        property int spacing: theme.spacing.small
+        property int itemHeight: 56
+        property int itemPadding: theme.padding.medium
+        property int iconSize: theme.icon.medium
+        property color iconColor: theme.colors.textSecondary
+        property int lineSpacing: theme.spacing.xSmall
+    }
+
+    property var grid: QtObject {
+        property int columns: 2
+        property int spacing: theme.spacing.small
+    }
+
+    property var scroll: QtObject {
+        property int barWidth: 6
+        property int barRadius: theme.radius.small
+        property color barColor: theme.colors.borderStrong
+        property real barIdleOpacity: 0.4
+    }
+
+    property var empty: QtObject {
+        property int spacing: theme.spacing.medium
+        property int iconSize: theme.icon.large
+        property color iconColor: theme.colors.textMuted
+        property int maxWidth: 280
+    }
+
+    property var slider: QtObject {
+        property int width: 200
+        property int trackHeight: 6
+        property int handleSize: 22
+        property color trackColor: theme.colors.divider
+        property color fillColor: theme.colors.primary
+        property color handleColor: theme.colors.surfaceRaised
+        property color handlePressedColor: theme.colors.primarySurface
+    }
+
+    property var busy: QtObject {
+        property int size: 32
+        property int dotSize: 5
+        property int dotCount: 8
+        property int duration: 900
+        property color color: theme.colors.primary
+    }
+
+    function iconSource(name) {
+        return name ? "qrc:/Themed/Icons/" + name + ".svg" : ""
+    }
+
+    function hasType(type, token) {
+        return (" " + String(type).toLowerCase() + " ").indexOf(" " + token + " ") !== -1
+    }
+
+    function buttonStyle(type) {
+        if (theme.hasType(type, "danger"))
+            return theme.button.danger
+        if (theme.hasType(type, "success"))
+            return theme.button.success
+        if (theme.hasType(type, "secondary"))
+            return theme.button.secondary
+        if (theme.hasType(type, "ghost"))
+            return theme.button.ghost
+        return theme.button.primary
+    }
+
+    function buttonSize(type) {
+        if (theme.hasType(type, "circle"))
+            return theme.button.circle
+        if (theme.hasType(type, "small"))
+            return theme.button.small
+        if (theme.hasType(type, "large"))
+            return theme.button.large
+        return theme.button.medium
+    }
+
+    function textStyle(type) {
+        if (theme.hasType(type, "title"))
+            return theme.text.title
+        if (theme.hasType(type, "subtitle"))
+            return theme.text.subtitle
+        if (theme.hasType(type, "caption"))
+            return theme.text.caption
+        if (theme.hasType(type, "muted"))
+            return theme.text.muted
+        return theme.text.body
     }
 }

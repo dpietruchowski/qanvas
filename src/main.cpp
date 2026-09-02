@@ -23,12 +23,13 @@ int main(int argc, char* argv[])
 
     engine.addImportPath(QCoreApplication::applicationDirPath() + QStringLiteral("/.."));
 
-    QmlRegistrator registrator(engine, QStringLiteral("qrc:/Qanvas/Components"),
-                               QStringLiteral("Qanvas.Components"));
+    QmlRegistrator registrator(engine, QStringLiteral("qrc:/Qanvas"), QStringLiteral("Qanvas"));
 
     registrator.registerSingletonType(QStringLiteral("Themed.Components"),
-                                      QStringLiteral("Theme.qml"), QStringLiteral("Theme"));
-    registrator.registerSingletonType(QStringLiteral("App.Components"), QStringLiteral("Theme.qml"),
+                                      QStringLiteral("Components/Theme.qml"),
+                                      QStringLiteral("Theme"));
+    registrator.registerSingletonType(QStringLiteral("App.Components"),
+                                      QStringLiteral("Components/Theme.qml"),
                                       QStringLiteral("Theme"));
     registrator.registerType<ColoredSvgProvider>("Themed.Components", "ColoredSvgProvider");
 

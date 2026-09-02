@@ -1,11 +1,11 @@
-set(LIBRARY_NAME qanvas_qml)
+set(LIBRARY_NAME qanvas_components_qml)
 
-file(GLOB_RECURSE QML_FILES_FULL "${CMAKE_CURRENT_SOURCE_DIR}/*.qml")
+file(GLOB QML_FILES_FULL "${CMAKE_CURRENT_SOURCE_DIR}/*.qml")
 
 set(QML_FILES "")
 foreach(qml_file ${QML_FILES_FULL})
-    file(RELATIVE_PATH rel_path ${CMAKE_CURRENT_SOURCE_DIR} ${qml_file})
-    list(APPEND QML_FILES ${rel_path})
+    get_filename_component(file_name ${qml_file} NAME)
+    list(APPEND QML_FILES ${file_name})
 endforeach()
 
 set_source_files_properties(Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -27,15 +27,9 @@ target_link_libraries(${LIBRARY_NAME}
         Qt6::Quick
         Qt6::Qml
         themed_components_qml
-        app_components_qml
 )
 
 install(TARGETS ${LIBRARY_NAME}
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-)
-
-install(DIRECTORY ${CMAKE_BINARY_DIR}/Qanvas
-    DESTINATION lib/qt6/qml
-    FILES_MATCHING PATTERN "*.qml" PATTERN "*.qmltypes" PATTERN "qmldir"
 )
