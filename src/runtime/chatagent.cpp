@@ -1,5 +1,7 @@
 #include "chatagent.h"
 
+#include "appwriter.h"
+
 #include <QCoreApplication>
 #include <QHash>
 #include <QSettings>
@@ -7,9 +9,29 @@
 
 namespace
 {
-const char* kSystemPrompt = "You are the assistant of Qanvas, a runtime that builds small QML apps "
-                            "on request. Keep answers short and concrete, and ask for the one "
-                            "detail you are missing instead of guessing.";
+const char* kSystemPrompt
+    = "You are the assistant of Qanvas, a runtime that builds small QML apps on request. "
+      "Keep answers short and concrete, and ask for the one detail you are missing instead of "
+      "guessing.\n"
+      "When the user wants an app, write it and call create_app; the runtime loads it at once.\n"
+      "The app is one file. Its root object is an Item that fills whatever it is placed in. "
+      "Import only QtQuick, QtQuick.Controls and QtQuick.Layouts, and define every helper "
+      "component inline. There is no C++, no network and no filesystem.\n"
+      "Data lives in the app's own SQLite database, reached through the App object: "
+      "App.exec(sql, params) runs CREATE TABLE / INSERT / UPDATE / DELETE and App.query(sql, "
+      "params) returns a list of maps, one per row. params is a list for ? placeholders. "
+      "Create the tables the app needs with CREATE TABLE IF NOT EXISTS in Component.onCompleted. "
+      "App.revision changes after every exec, so bind models as "
+      "model: (App.revision, App.query(\"SELECT ...\")) to keep them fresh.\n"
+      "After the call, say in one sentence what the app does.";
+
+const char* kCreateAppDocstring
+    = "@brief create_app\n"
+      "@details Saves a single-file QML app and runs it immediately, replacing an app of the same "
+      "id\n"
+      "@param id (string) lowercase slug naming the app, 1-32 characters of a-z, 0-9 and -\n"
+      "@param qml (string) the complete Main.qml source\n"
+      "@return ok, or the reason the app was rejected";
 
 const char* kDefaultProvider = "OpenAI";
 const char* kDefaultModel = "gpt-5-mini";
@@ -67,7 +89,30 @@ ChatAgent::ChatAgent(QObject* parent)
                 emit messagesChanged();
             });
 
+    registerTools();
     load();
+}
+
+void ChatAgent::registerTools()
+{
+    m_controller.addTool(QString::fromLatin1(kCreateAppDocstring),
+                         [this](QVariantMap arguments, ToolDone done)
+                         {
+                             const QString id = arguments.value(QStringLiteral("id")).toString();
+                             const QString qml = arguments.value(QStringLiteral("qml")).toString();
+
+                             QString error;
+                             if (AppWriter::write(id, qml, &error).isEmpty())
+                             {
+                                 done(error);
+                                 return;
+                             }
+
+                             m_lastAppId = id;
+                             emit lastAppIdChanged();
+                             emit appCreated(id);
+                             done(QStringLiteral("ok"));
+                         });
 }
 
 QVariantList ChatAgent::messages() const

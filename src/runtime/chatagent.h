@@ -23,6 +23,7 @@ class ChatAgent : public QObject
     Q_PROPERTY(QString apiKeyHint READ apiKeyHint NOTIFY apiKeyHintChanged)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY messagesChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
+    Q_PROPERTY(QString lastAppId READ lastAppId NOTIFY lastAppIdChanged)
 
 public:
     explicit ChatAgent(QObject* parent = nullptr);
@@ -34,6 +35,7 @@ public:
     QString apiKeyHint() const;
     QVariantList messages() const;
     bool busy() const { return m_controller.isBusy(); }
+    QString lastAppId() const { return m_lastAppId; }
 
     void setProvider(const QString& provider);
     void setModel(const QString& model);
@@ -51,8 +53,11 @@ signals:
     void apiKeyHintChanged();
     void messagesChanged();
     void busyChanged();
+    void lastAppIdChanged();
+    void appCreated(const QString& id);
 
 private:
+    void registerTools();
     void load();
     void store(const QString& key, const QString& value);
     QString effectiveApiKey() const;
@@ -65,6 +70,7 @@ private:
     QString m_model;
     QString m_reasoning;
     QString m_apiKey;
+    QString m_lastAppId;
     QString m_clientProvider;
     QString m_clientApiKey;
     QString m_error;
