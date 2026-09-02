@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <QObject>
+#include <QQmlParserStatus>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -13,9 +14,10 @@
 #include "apptools.h"
 #include "utils/securestorage.h"
 
-class ChatAgent : public QObject
+class ChatAgent : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
 
     Q_PROPERTY(QStringList providers READ providers CONSTANT)
@@ -50,6 +52,9 @@ public:
 
     Q_INVOKABLE void send(const QString& text);
     Q_INVOKABLE void clear();
+
+    void classBegin() override { }
+    void componentComplete() override;
 
 signals:
     void providerChanged();

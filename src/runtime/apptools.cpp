@@ -1,6 +1,7 @@
 #include "apptools.h"
 
 #include "app.h"
+#include "appcompiler.h"
 #include "appfiles.h"
 #include "appregistry.h"
 
@@ -15,7 +16,7 @@ const char* kCreateAppDocstring
       "@param id (string) lowercase slug naming the app, 1-32 characters of a-z, 0-9 and -\n"
       "@param title (string) short human name for the app list\n"
       "@param qml (string) the complete Main.qml source\n"
-      "@return ok, or the reason the app was rejected";
+      "@return ok, or the reason the app was rejected or does not load";
 
 const char* kListFilesDocstring = "@brief list_files\n"
                                   "@details Lists the source files of an app with their lengths\n"
@@ -43,7 +44,7 @@ const char* kWriteFileDocstring
       "@param app (string) app id\n"
       "@param path (string) Name.qml for a component, or name.js\n"
       "@param content (string) the complete file\n"
-      "@return the file and its length, or the reason it was rejected";
+      "@return the file and its length, or the reason it was rejected or the app does not load";
 
 const char* kEditFileDocstring
     = "@brief edit_file\n"
@@ -52,14 +53,15 @@ const char* kEditFileDocstring
       "@param path (string) file name\n"
       "@param before (string) the exact text to replace, long enough to occur once in the file\n"
       "@param after (string) the text to put in its place\n"
-      "@return the changed lines, or the lines where the fragment repeats";
+      "@return the changed lines, the lines where the fragment repeats, or why the app does not "
+      "load";
 
 const char* kDeleteFileDocstring
     = "@brief delete_file\n"
       "@details Deletes a source file of an app and reloads it; Main.qml cannot be deleted\n"
       "@param app (string) app id\n"
       "@param path (string) file name\n"
-      "@return confirmation, or the reason it was refused";
+      "@return confirmation, or the reason it was refused or the app does not load";
 
 QString argument(const QVariantMap& arguments, const char* name)
 {
@@ -70,6 +72,11 @@ QString invalidId(const QString& id)
 {
     return QStringLiteral("Invalid app id \"%1\": use 1-32 characters of a-z, 0-9 and -").arg(id);
 }
+
+QString doesNotLoad(const QString& error)
+{
+    return QStringLiteral("Saved, but the app does not load:\n%1").arg(error);
+}
 }
 
 AppTools::AppTools(AgentController& controller, AppRegistry& registry, QObject* parent)
@@ -79,6 +86,8 @@ AppTools::AppTools(AgentController& controller, AppRegistry& registry, QObject* 
 {
     registerTools();
 }
+
+void AppTools::setEngine(QQmlEngine* engine) { m_engine = engine; }
 
 void AppTools::clearActivities()
 {
@@ -151,9 +160,10 @@ void AppTools::addCreateAppTool()
             }
 
             m_registry.record(id, argument(arguments, "title"));
-            emit appShown(id);
-            endActivity(index, true);
-            done(QStringLiteral("ok"));
+
+            const Result<QString> shown = show(app, QStringLiteral("ok"));
+            endActivity(index, shown.isSuccess());
+            done(shown.isSuccess() ? shown.value() : shown.error());
         });
 }
 
@@ -189,11 +199,28 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
                                  return;
                              }
 
-                             if (reloads)
-                                 emit appShown(id);
-                             endActivity(index, true);
-                             done(result.value());
+                             if (!reloads)
+                             {
+                                 endActivity(index, true);
+                                 done(result.value());
+                                 return;
+                             }
+
+                             const Result<QString> shown = show(app, result.value());
+                             endActivity(index, shown.isSuccess());
+                             done(shown.isSuccess() ? shown.value() : shown.error());
                          });
+}
+
+Result<QString> AppTools::show(const App& app, const QString& result)
+{
+    const Result<void> compiled
+        = m_engine ? AppCompiler(*m_engine).compile(app) : Result<void>::success();
+    emit appShown(app.id());
+
+    if (compiled.isFailure())
+        return Result<QString>::failure(doesNotLoad(compiled.error()));
+    return Result<QString>::success(result);
 }
 
 int AppTools::beginActivity(const Activity& activity, const QVariantMap& arguments)

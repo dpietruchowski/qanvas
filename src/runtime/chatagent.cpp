@@ -7,6 +7,7 @@
 
 #include <QCoreApplication>
 #include <QHash>
+#include <QQmlEngine>
 #include <QSettings>
 #include <QVariantMap>
 
@@ -72,6 +73,8 @@ const char* kSystemPrompt
       "Create the tables the app needs with CREATE TABLE IF NOT EXISTS in Component.onCompleted. "
       "App.revision changes after every exec, so bind models as "
       "model: (App.revision, App.query(\"SELECT ...\")) to keep them fresh.\n"
+      "When a tool answers that the app does not load, read the file and line it names and fix "
+      "it before you answer; never leave the user with an app that does not load.\n"
       "After the call, say in one sentence what the app does.";
 
 const char* kOpenAiProvider = "OpenAI";
@@ -147,6 +150,8 @@ ChatAgent::ChatAgent(QObject* parent)
 
     load();
 }
+
+void ChatAgent::componentComplete() { m_tools.setEngine(qmlEngine(this)); }
 
 void ChatAgent::showApp(const QString& id)
 {

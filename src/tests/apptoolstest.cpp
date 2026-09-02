@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <QFile>
+#include <QQmlEngine>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QVariantMap>
@@ -47,6 +48,7 @@ protected:
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         registry = std::make_unique<AppRegistry>(nullptr);
         tools = std::make_unique<AppTools>(controller, *registry);
+        tools->setEngine(&engine);
         QObject::connect(tools.get(), &AppTools::appShown,
                          [this](const QString& id) { shown.append(id); });
     }
@@ -62,6 +64,7 @@ protected:
     QVariantMap activity(int index) const { return tools->activities().at(index).toMap(); }
 
     QTemporaryDir root;
+    QQmlEngine engine;
     AgentController controller { QStringLiteral("test-model"), QStringLiteral("system") };
     std::unique_ptr<AppRegistry> registry;
     std::unique_ptr<AppTools> tools;
@@ -178,4 +181,60 @@ TEST_F(AppToolsTest, ClearingTheLogDropsEveryStep)
 
     EXPECT_TRUE(tools->activities().isEmpty());
     EXPECT_EQ(changes, 1);
+}
+
+TEST_F(AppToolsTest, CreateAppWithQmlThatDoesNotLoadTellsTheModelWhereAndKeepsTheApp)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")] = QStringLiteral("import QtQuick\nItem {\n");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    const QString result = client.lastToolResult();
+    EXPECT_TRUE(result.contains(QStringLiteral("does not load"))) << qPrintable(result);
+    EXPECT_TRUE(result.contains(QStringLiteral("Main.qml:3"))) << qPrintable(result);
+    EXPECT_TRUE(App(QStringLiteral("notes")).exists());
+    EXPECT_EQ(registry->apps().size(), 1);
+    EXPECT_EQ(shown, QStringList { QStringLiteral("notes") });
+    EXPECT_EQ(activity(0).value(QStringLiteral("text")).toString(),
+              QStringLiteral("could not build"));
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, EditingTheFileIntoShapeReportsSuccess)
+{
+    QVariantMap broken = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    broken[QStringLiteral("qml")] = QStringLiteral("import QtQuick\nItem {\n");
+    QVariantMap edit = fileArguments(QStringLiteral("notes"), QStringLiteral("Main.qml"));
+    edit[QStringLiteral("before")] = QStringLiteral("Item {\n");
+    edit[QStringLiteral("after")] = QStringLiteral("Item {}\n");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), broken),
+          ScriptedClient::toolCall(QStringLiteral("edit_file"), edit),
+          ScriptedClient::reply(QStringLiteral("fixed")) });
+
+    const QString result = client.lastToolResult();
+    EXPECT_FALSE(result.contains(QStringLiteral("does not load"))) << qPrintable(result);
+    ASSERT_EQ(tools->activities().size(), 2);
+    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(), QStringLiteral("edited"));
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
+    EXPECT_EQ(shown, (QStringList { QStringLiteral("notes"), QStringLiteral("notes") }));
+}
+
+TEST_F(AppToolsTest, WritingTheMissingComponentMakesTheAppLoad)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")] = QStringLiteral("import QtQuick\nItem { Card {} }\n");
+    QVariantMap write = fileArguments(QStringLiteral("notes"), QStringLiteral("Card.qml"));
+    write[QStringLiteral("content")] = kMainQml;
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::toolCall(QStringLiteral("write_file"), write),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    ASSERT_EQ(tools->activities().size(), 2);
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
+    EXPECT_FALSE(client.lastToolResult().contains(QStringLiteral("does not load")));
 }
