@@ -22,6 +22,8 @@ qt_add_qml_module(appqanvas
         runtime/apploader.cpp
         runtime/chatagent.h
         runtime/chatagent.cpp
+        runtime/appwriter.h
+        runtime/appwriter.cpp
 )
 
 target_include_directories(appqanvas PRIVATE runtime)
@@ -54,6 +56,10 @@ if(QANVAS_AUTOMATION)
     target_compile_definitions(appqanvas PRIVATE
         QANVAS_DEV_APPS_ROOT="${CMAKE_SOURCE_DIR}/test"
     )
+endif()
+
+if(QANVAS_TESTS)
+    add_subdirectory(tests)
 endif()
 
 install(TARGETS appqanvas

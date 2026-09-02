@@ -1,6 +1,7 @@
 #include "apploader.h"
 
 #include "appcontext.h"
+#include "appwriter.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -17,25 +18,7 @@ AppLoader::AppLoader(QQuickItem* parent)
 
 AppLoader::~AppLoader() { unload(); }
 
-QString AppLoader::appsRoot()
-{
-    // QANVAS_APPS_ROOT wins, so one build can be pointed at a scratch directory.
-    const QByteArray override = qgetenv("QANVAS_APPS_ROOT");
-    if (!override.isEmpty())
-        return QDir::cleanPath(QString::fromLocal8Bit(override));
-
-#ifdef QANVAS_DEV_APPS_ROOT
-    // A dev build loads the checked-in app under test/ straight from the source
-    // tree, so editing those files and pressing Run app is the whole loop — no
-    // copy into the user's data directory, and what you edit is what the tests
-    // drive. Compiled in only alongside the automation server (see the root
-    // CMakeLists), never in a release.
-    return QStringLiteral(QANVAS_DEV_APPS_ROOT);
-#else
-    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-        + QStringLiteral("/apps");
-#endif
-}
+QString AppLoader::appsRoot() { return AppWriter::appsRoot(); }
 
 bool AppLoader::appsRootIsOverridden()
 {
@@ -44,12 +27,7 @@ bool AppLoader::appsRootIsOverridden()
     return appsRoot() != userData;
 }
 
-QString AppLoader::appDir() const
-{
-    if (m_appId.isEmpty())
-        return QString();
-    return appsRoot() + QLatin1Char('/') + m_appId;
-}
+QString AppLoader::appDir() const { return AppWriter::appDir(m_appId); }
 
 void AppLoader::setAppId(const QString& id)
 {

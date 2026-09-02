@@ -67,8 +67,21 @@ if(QANVAS_AUTOMATION)
     set(FILLIN_AUTOMATION ON)
 endif()
 
+set(QANVAS_TESTS_DEFAULT OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT ANDROID)
+    set(QANVAS_TESTS_DEFAULT ON)
+endif()
+option(QANVAS_TESTS "Build the runtime unit tests" ${QANVAS_TESTS_DEFAULT})
+
 # Shared component libraries (git submodule, github.com/dpietruchowski/app-libs).
 add_subdirectory(libs)
+
+if(QANVAS_TESTS)
+    if(NOT TARGET gtest)
+        add_subdirectory(libs/third_party/googletest)
+    endif()
+    enable_testing()
+endif()
 
 add_subdirectory(src)
 
