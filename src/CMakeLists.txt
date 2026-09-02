@@ -52,10 +52,6 @@ target_link_libraries(appqanvas
 
 if(QANVAS_AUTOMATION)
     target_link_libraries(appqanvas PRIVATE app_automation)
-
-    target_compile_definitions(appqanvas PRIVATE
-        QANVAS_DEV_APPS_ROOT="${CMAKE_SOURCE_DIR}/test"
-    )
 endif()
 
 if(QANVAS_TESTS)

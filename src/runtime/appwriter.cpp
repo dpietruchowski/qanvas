@@ -1,5 +1,6 @@
 #include "appwriter.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QRegularExpression>
 #include <QSaveFile>
@@ -26,11 +27,11 @@ QString AppWriter::appsRoot()
     if (!override.isEmpty())
         return QDir::cleanPath(QString::fromLocal8Bit(override));
 
-#ifdef QANVAS_DEV_APPS_ROOT
-    return QStringLiteral(QANVAS_DEV_APPS_ROOT);
-#else
+#ifdef Q_OS_ANDROID
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
         + QStringLiteral("/apps");
+#else
+    return QCoreApplication::applicationDirPath() + QStringLiteral("/apps");
 #endif
 }
 

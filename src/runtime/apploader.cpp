@@ -20,13 +20,6 @@ AppLoader::~AppLoader() { unload(); }
 
 QString AppLoader::appsRoot() { return AppWriter::appsRoot(); }
 
-bool AppLoader::appsRootIsOverridden()
-{
-    const QString userData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-        + QStringLiteral("/apps");
-    return appsRoot() != userData;
-}
-
 QString AppLoader::appDir() const { return AppWriter::appDir(m_appId); }
 
 void AppLoader::setAppId(const QString& id)

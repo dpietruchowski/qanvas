@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QTemporaryDir>
@@ -33,6 +34,14 @@ TEST_F(AppWriterTest, RootFollowsTheEnvironment)
 {
     EXPECT_EQ(AppWriter::appsRoot(), root.path());
     EXPECT_EQ(AppWriter::appDir(QStringLiteral("notes")), root.path() + QStringLiteral("/notes"));
+}
+
+TEST_F(AppWriterTest, RootSitsNextToTheBinaryWithoutTheEnvironment)
+{
+    qunsetenv("QANVAS_APPS_ROOT");
+
+    EXPECT_EQ(AppWriter::appsRoot(),
+              QCoreApplication::applicationDirPath() + QStringLiteral("/apps"));
 }
 
 TEST_F(AppWriterTest, WritesTheAppUnderItsOwnDirectory)
