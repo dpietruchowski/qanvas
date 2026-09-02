@@ -5,10 +5,6 @@ set(CMAKE_AUTORCC ON)
 
 qt_standard_project_setup()
 
-if(QANVAS_CLAUDE_CLI)
-    set(QANVAS_CLAUDE_CLI_SOURCES runtime/claudecliclient.h runtime/claudecliclient.cpp)
-endif()
-
 qt_add_executable(appqanvas
     main.cpp
 )
@@ -28,7 +24,6 @@ qt_add_qml_module(appqanvas
         runtime/chatagent.cpp
         runtime/appwriter.h
         runtime/appwriter.cpp
-        ${QANVAS_CLAUDE_CLI_SOURCES}
 )
 
 target_include_directories(appqanvas PRIVATE runtime)

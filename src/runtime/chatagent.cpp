@@ -2,7 +2,7 @@
 
 #include "appwriter.h"
 #ifdef QANVAS_CLAUDE_CLI
-#include "claudecliclient.h"
+#include "agent/claudecliclient.h"
 #endif
 
 #include <QCoreApplication>
