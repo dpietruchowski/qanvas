@@ -1,21 +1,17 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 
 #include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
-#include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
 #include "agent/agentcontroller.h"
 #include "agent/client.h"
-#include "utils/result.h"
+#include "apptools.h"
 #include "utils/securestorage.h"
-
-class AppFiles;
 
 class ChatAgent : public QObject
 {
@@ -43,7 +39,7 @@ public:
     QString apiKey() const { return m_apiKey; }
     QString apiKeyHint() const;
     QVariantList messages() const;
-    QVariantList activities() const { return m_activities; }
+    QVariantList activities() const { return m_tools.activities(); }
     bool busy() const { return m_controller.isBusy(); }
     QString lastAppId() const { return m_lastAppId; }
 
@@ -65,25 +61,9 @@ signals:
     void activitiesChanged();
     void busyChanged();
     void lastAppIdChanged();
-    void appCreated(const QString& id);
+    void appShown(const QString& id);
 
 private:
-    struct Activity
-    {
-        const char* running;
-        const char* done;
-        const char* failed;
-        const char* detail;
-    };
-
-    using FileOperation = std::function<Result<QString>(AppFiles&, const QVariantMap&)>;
-
-    void registerTools();
-    void addFileTool(const char* docstring, const Activity& activity, bool reloads,
-                     const FileOperation& operation);
-    int beginActivity(const Activity& activity, const QVariantMap& arguments);
-    void endActivity(int index, bool ok);
-    void clearActivities();
     void showApp(const QString& id);
     void load();
     void store(const QString& key, const QString& value);
@@ -91,6 +71,7 @@ private:
     const Client& client();
 
     AgentController m_controller;
+    AppTools m_tools;
     SecureStorage m_secrets;
     std::unique_ptr<Client> m_client;
     QString m_provider;
@@ -98,7 +79,6 @@ private:
     QString m_reasoning;
     QString m_apiKey;
     QString m_lastAppId;
-    QVariantList m_activities;
     QString m_clientProvider;
     QString m_clientApiKey;
     QString m_error;

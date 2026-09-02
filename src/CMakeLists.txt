@@ -39,6 +39,8 @@ qt_add_qml_module(appqanvas
         runtime/appfiles.cpp
         runtime/appregistry.h
         runtime/appregistry.cpp
+        runtime/apptools.h
+        runtime/apptools.cpp
 )
 
 target_include_directories(appqanvas PRIVATE runtime)

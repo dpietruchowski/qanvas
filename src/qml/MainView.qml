@@ -24,7 +24,7 @@ AppShell {
         Connections {
             target: agent
 
-            function onAppCreated(id) {
+            function onAppShown(id) {
                 appsView.open(id)
             }
         }
@@ -40,7 +40,7 @@ AppShell {
 
         objectName: "chatAgent"
 
-        onAppCreated: {
+        onAppShown: {
             if (root.currentName !== "navApp")
                 root.selectNext()
         }

@@ -2,12 +2,16 @@ find_package(Qt6 REQUIRED COMPONENTS Core Qml Sql)
 
 add_executable(qanvas_tests
     main.cpp
+    scriptedclient.h
     apptest.cpp
     appfilestest.cpp
     appregistrytest.cpp
+    apptoolstest.cpp
     ../runtime/app.cpp
     ../runtime/appfiles.cpp
     ../runtime/appregistry.cpp
+    ../runtime/apptools.h
+    ../runtime/apptools.cpp
 )
 
 target_include_directories(qanvas_tests PRIVATE
@@ -19,6 +23,7 @@ target_link_libraries(qanvas_tests PRIVATE
     Qt6::Core
     Qt6::Qml
     Qt6::Sql
+    app_agent
     gtest
 )
 
