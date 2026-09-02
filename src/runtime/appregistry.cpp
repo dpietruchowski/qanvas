@@ -115,3 +115,26 @@ bool AppRegistry::record(const QString& id, const QString& title)
     emit appsChanged();
     return true;
 }
+
+bool AppRegistry::remove(const QString& id)
+{
+    if (!m_open || !App::isValidId(id))
+        return false;
+
+    emit appRemoving(id);
+
+    QDir directory(App(id).dir());
+    if (directory.exists() && !directory.removeRecursively())
+        return false;
+
+    QSqlQuery q(QSqlDatabase::database(m_connectionName, false));
+    if (!q.prepare(QStringLiteral("DELETE FROM apps WHERE id = :id")))
+        return false;
+
+    q.bindValue(QStringLiteral(":id"), id);
+    if (!q.exec())
+        return false;
+
+    emit appsChanged();
+    return true;
+}

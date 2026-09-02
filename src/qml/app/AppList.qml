@@ -8,6 +8,7 @@ ListView {
     property var apps: []
 
     signal appActivated(string id)
+    signal appRemoveRequested(string id, string title)
 
     objectName: "appList"
     model: root.apps
@@ -22,5 +23,6 @@ ListView {
         subtitle: modelData.id
 
         onClicked: root.appActivated(modelData.id)
+        onRemoveClicked: root.appRemoveRequested(modelData.id, modelData.title)
     }
 }

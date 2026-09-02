@@ -139,6 +139,7 @@ QtObject {
         property int subtitleFontSize: theme.fontSize.small
         property color subtitleColor: theme.colors.textMuted
         property int lineSpacing: theme.spacing.xSmall
+        property int actionSpacing: theme.spacing.medium
         property int emptyFontSize: theme.fontSize.normal
         property color emptyColor: theme.colors.textMuted
     }

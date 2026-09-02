@@ -331,3 +331,32 @@ TEST_F(AppToolsTest, FixingTheErrorClearsTheLog)
     ASSERT_EQ(tools->activities().size(), 3);
     EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
 }
+
+TEST_F(AppToolsTest, DeleteAppRemovesTheFilesAndTheListEntry)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("delete_app"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("gone")) });
+
+    EXPECT_FALSE(App(QStringLiteral("notes")).exists());
+    EXPECT_TRUE(registry->apps().isEmpty());
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("Deleted")));
+    ASSERT_EQ(tools->activities().size(), 2);
+    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(), QStringLiteral("deleted"));
+    EXPECT_EQ(activity(1).value(QStringLiteral("detail")).toString(), QStringLiteral("notes"));
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, DeleteAppRefusesAnAppThatIsNotThere)
+{
+    run({ ScriptedClient::toolCall(
+              QStringLiteral("delete_app"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No app")));
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}

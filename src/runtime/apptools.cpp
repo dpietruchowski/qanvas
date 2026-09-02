@@ -70,6 +70,13 @@ const char* kDeleteFileDocstring
       "@return confirmation, or the reason it was refused, the app does not load, or the errors "
       "it raised while loading";
 
+const char* kDeleteAppDocstring
+    = "@brief delete_app\n"
+      "@details Deletes an app for good: its files, its database and its place in the app list; "
+      "only when the user asked to remove that app\n"
+      "@param app (string) app id\n"
+      "@return confirmation, or the reason it was refused";
+
 const char* kReadLogDocstring
     = "@brief read_log\n"
       "@details Lists the runtime errors an app has raised since it last loaded: failed bindings, "
@@ -164,7 +171,37 @@ void AppTools::registerTools()
                 [](AppFiles& files, const QVariantMap& arguments)
                 { return files.remove(argument(arguments, "path")); });
 
+    addDeleteAppTool();
     addReadLogTool();
+}
+
+void AppTools::addDeleteAppTool()
+{
+    m_controller.addTool(
+        QString::fromLatin1(kDeleteAppDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "deleting", "deleted", "could not delete", "app" };
+            const int index = beginActivity(activity, arguments);
+            const App app(argument(arguments, "app"));
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
+
+            if (!m_registry.remove(app.id()))
+            {
+                finish(index,
+                       Result<QString>::failure(
+                           QStringLiteral("Could not delete \"%1\"").arg(app.id())),
+                       done);
+                return;
+            }
+
+            finish(index, Result<QString>::success(QStringLiteral("Deleted \"%1\"").arg(app.id())),
+                   done);
+        });
 }
 
 void AppTools::addCreateAppTool()

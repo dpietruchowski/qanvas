@@ -75,7 +75,8 @@ const char* kSystemPrompt
       "model: (App.revision, App.query(\"SELECT ...\")) to keep them fresh.\n"
       "When a tool answers that the app does not load or raised errors, read the file and line "
       "it names and fix it before you answer; never leave the user with a broken app. When the "
-      "user says something in the app misbehaves, read_log shows the errors it raised.\n"
+      "user says something in the app misbehaves, read_log shows the errors it raised. "
+      "delete_app removes an app for good, so call it only when the user asks to remove one.\n"
       "After the call, say in one sentence what the app does.";
 
 const char* kOpenAiProvider = "OpenAI";
@@ -148,6 +149,15 @@ ChatAgent::ChatAgent(QObject* parent)
             });
     connect(&m_tools, &AppTools::activitiesChanged, this, &ChatAgent::activitiesChanged);
     connect(&m_tools, &AppTools::appShown, this, &ChatAgent::showApp);
+    connect(&AppRegistry::instance(), &AppRegistry::appRemoving, this,
+            [this](const QString& id)
+            {
+                if (id != m_lastAppId)
+                    return;
+
+                m_lastAppId.clear();
+                emit lastAppIdChanged();
+            });
 
     load();
 }

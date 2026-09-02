@@ -8,8 +8,6 @@
 class QJSEngine;
 class QQmlEngine;
 
-// The runtime's own record of the apps it wrote — system.db next to the app
-// directories. Apps never reach it: they only ever see their own app.db.
 class AppRegistry : public QObject
 {
     Q_OBJECT
@@ -19,8 +17,6 @@ class AppRegistry : public QObject
     Q_PROPERTY(QVariantList apps READ apps NOTIFY appsChanged)
 
 public:
-    // No default argument: a default-constructible singleton makes the QML
-    // engine build its own instance instead of calling create().
     explicit AppRegistry(QObject* parent);
     ~AppRegistry() override;
 
@@ -29,9 +25,11 @@ public:
 
     QVariantList apps() const;
     bool record(const QString& id, const QString& title);
+    Q_INVOKABLE bool remove(const QString& id);
 
 signals:
     void appsChanged();
+    void appRemoving(const QString& id);
 
 private:
     bool open();

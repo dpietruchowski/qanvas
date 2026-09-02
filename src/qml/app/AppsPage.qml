@@ -7,6 +7,7 @@ ThemedPage {
     id: root
 
     property string openedId: ""
+    property string removingId: ""
 
     function open(id) {
         root.openedId = id
@@ -18,6 +19,15 @@ ThemedPage {
 
     onBackClicked: root.openedId = ""
 
+    Connections {
+        target: AppRegistry
+
+        function onAppRemoving(id) {
+            if (root.openedId === id)
+                root.openedId = ""
+        }
+    }
+
     AppList {
         objectName: "appList"
         anchors.fill: parent
@@ -25,6 +35,11 @@ ThemedPage {
         apps: AppRegistry.apps
 
         onAppActivated: function (id) { root.open(id) }
+        onAppRemoveRequested: function (id, title) {
+            root.removingId = id
+            removeDialog.message = qsTr("Delete \"%1\" with everything it stored?").arg(title)
+            removeDialog.open()
+        }
     }
 
     Text {
@@ -42,5 +57,17 @@ ThemedPage {
         anchors.fill: parent
         visible: root.openedId !== ""
         appId: root.openedId
+    }
+
+    ThemedDialog {
+        id: removeDialog
+
+        objectName: "appRemoveDialog"
+        dialogTitle: qsTr("Delete app")
+        dialogType: "danger"
+        acceptText: qsTr("Delete")
+        showRejectButton: true
+
+        onAccepted: AppRegistry.remove(root.removingId)
     }
 }
