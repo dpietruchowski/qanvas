@@ -30,7 +30,9 @@ QtObject {
         property color textDisabled: "#5A534B"
         property color textInverse: "#17130F"
 
+        property color dialogSurface: "#221D17"
         property color overlay: "#000000B3"
+        property color overlayLight: "#0000008C"
     }
 
     property var fontSize: QtObject {
@@ -72,6 +74,13 @@ QtObject {
         property int thin: 1
         property int medium: 2
         property int thick: 3
+    }
+
+    property var panel: QtObject {
+        property real maxHeightRatio: 0.9
+        property int handleWidth: 38
+        property int handleHeight: 4
+        property int titleSize: theme.fontSize.large
     }
 
     property var navigation: QtObject {
@@ -132,11 +141,7 @@ QtObject {
     property var button: QtObject {
         property int radius: theme.radius.medium
 
-        property var navigation: QtObject {
-        property int barHeight: 58
-    }
-
-    property var icon: QtObject {
+        property var icon: QtObject {
             property int size: 40
             property int width: size
             property int height: size
@@ -189,6 +194,14 @@ QtObject {
             property color text: theme.colors.textSecondary
         }
 
+        property var accent: QtObject {
+            property color background: theme.colors.primarySurface
+            property color hovered: "#3A2D1C"
+            property color pressed: "#251D12"
+            property color border: "#00000000"
+            property color text: theme.colors.primary
+        }
+
         property var ghost: QtObject {
             property color background: "#00000000"
             property color hovered: "#14FFFFFF"
@@ -206,5 +219,23 @@ QtObject {
         property int height: theme.chat.composerHeight
         property int fontSize: theme.fontSize.normal
         property int paddingH: theme.padding.medium
+    }
+
+    property var settings: QtObject {
+        property color labelColor: theme.colors.textMuted
+        property int labelSize: theme.fontSize.xSmall
+        property real labelSpacing: 1.4
+        property int labelBottomSpacing: theme.spacing.small
+        property int sectionSpacing: theme.spacing.xLarge
+        property int optionSpacing: theme.spacing.small
+        property color fieldBackground: theme.colors.background
+        property color fieldBorder: theme.colors.border
+        property color fieldBorderFocused: theme.colors.borderStrong
+        property int fieldHeight: 48
+        property int fieldRadius: theme.radius.medium
+        property int fieldFontSize: theme.fontSize.normal
+        property int fieldPadding: theme.padding.medium
+        property string fontFamily: Qt.application.font.family
+        property string monoFamily: "monospace"
     }
 }
