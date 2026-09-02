@@ -74,6 +74,10 @@ QtObject {
         property int thick: 3
     }
 
+    property var navigation: QtObject {
+        property int barHeight: 58
+    }
+
     property var icon: QtObject {
         property int small: 16
         property int medium: 22
@@ -85,6 +89,7 @@ QtObject {
         property string settings: "qrc:/Themed/Icons/sliders.svg"
         property string send: "qrc:/Themed/Icons/send.svg"
         property string chat: "qrc:/Themed/Icons/chat.svg"
+        property string shelf: "qrc:/Themed/Icons/deck.svg"
         property string close: "qrc:/Themed/Icons/close.svg"
     }
 
@@ -127,7 +132,11 @@ QtObject {
     property var button: QtObject {
         property int radius: theme.radius.medium
 
-        property var icon: QtObject {
+        property var navigation: QtObject {
+        property int barHeight: 58
+    }
+
+    property var icon: QtObject {
             property int size: 40
             property int width: size
             property int height: size

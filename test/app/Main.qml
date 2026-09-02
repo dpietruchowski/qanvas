@@ -3,7 +3,7 @@ import QtQuick
 // The host's own QML module. An app's sibling files need no import at all, so
 // this line is the whole question: can a loaded app reach a type the runtime
 // registered, or only its own directory?
-import Qanvas
+import Qanvas.Components
 
 // A checked-in stand-in for a generated app: the same shape as anything the
 // agent writes into apps/<id>/, but stable enough to assert against.

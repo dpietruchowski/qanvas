@@ -9,20 +9,12 @@ qt_add_executable(appqanvas
     main.cpp
 )
 
-file(GLOB_RECURSE QANVAS_QML_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "qml/*.qml")
-foreach(qml_file ${QANVAS_QML_FILES})
-    get_filename_component(qml_name ${qml_file} NAME)
-    set_source_files_properties(${qml_file} PROPERTIES QT_RESOURCE_ALIAS ${qml_name})
-endforeach()
-
-set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+add_subdirectory(qml)
 
 qt_add_qml_module(appqanvas
     URI Qanvas
     VERSION 1.0
-    RESOURCE_PREFIX "/"
-    QML_FILES
-        ${QANVAS_QML_FILES}
+    OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Qanvas
     SOURCES
         runtime/appcontext.h
         runtime/appcontext.cpp
@@ -30,8 +22,6 @@ qt_add_qml_module(appqanvas
         runtime/apploader.cpp
 )
 
-# The QML type registration file Qt generates includes the headers by base name,
-# so the directory they live in has to be on the include path.
 target_include_directories(appqanvas PRIVATE runtime)
 
 target_compile_definitions(appqanvas PRIVATE
@@ -47,6 +37,7 @@ target_link_libraries(appqanvas
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql
+        qanvas_qml
         themed_components_qml
         app_components_qml
         themed_icons
@@ -57,9 +48,6 @@ target_link_libraries(appqanvas
 if(QANVAS_AUTOMATION)
     target_link_libraries(appqanvas PRIVATE app_automation)
 
-    # A dev build loads the checked-in app under test/ from the source tree, so
-    # the files you edit are the files the automation tests drive. Tied to the
-    # automation option because both are development-only.
     target_compile_definitions(appqanvas PRIVATE
         QANVAS_DEV_APPS_ROOT="${CMAKE_SOURCE_DIR}/test"
     )
