@@ -1,29 +1,17 @@
 import QtQuick
 
 import App.Components
+import Qanvas
 import Themed.Components
 
 AppShell {
     id: root
 
-    property string provider: "OpenRouter"
-    property string modelName: "google/gemma-4-31b-it:free"
-    property string reasoning: "Medium"
-    property string apiKey: "sk-or-v1-2f6c9b1de4"
-
     property Component chatPage: ChatPage {
-        messages: [
-            { sender: "user", text: qsTr("something to track which plants I watered") },
-            { sender: "agent", text: qsTr("Which plants do you have?") },
-            { sender: "user", text: qsTr("monstera, ficus, two basils on the sill") },
-            { sender: "agent", text: qsTr("Building it now.") }
-        ]
-        busy: true
+        messages: agent.messages
+        busy: agent.busy
 
-        onSent: function (text) {
-            messages = messages.concat([{ sender: "user", text: text }])
-        }
-
+        onSent: function (text) { agent.send(text) }
         onSettingsClicked: settingsPanel.open()
     }
 
@@ -31,16 +19,25 @@ AppShell {
         { name: "navChat", icon: Theme.icons.chat, screen: root.chatPage }
     ]
 
+    ChatAgent {
+        id: agent
+
+        objectName: "chatAgent"
+    }
+
     SettingsPanel {
         id: settingsPanel
 
-        provider: root.provider
-        modelName: root.modelName
-        reasoning: root.reasoning
-        apiKey: root.apiKey
+        provider: agent.provider
+        modelName: agent.model
+        reasoning: agent.reasoning
+        apiKey: agent.apiKey
+        apiKeyHint: agent.apiKeyHint
 
-        onProviderSelected: function (provider) { root.provider = provider }
-        onModelNameEdited: function (modelName) { root.modelName = modelName }
-        onReasoningSelected: function (reasoning) { root.reasoning = reasoning }
+        onProviderSelected: function (provider) { agent.provider = provider }
+        onModelNameEdited: function (modelName) { agent.model = modelName }
+        onReasoningSelected: function (reasoning) { agent.reasoning = reasoning }
+        onApiKeyEdited: function (apiKey) { agent.apiKey = apiKey }
+        onApiKeyReplaceRequested: agent.apiKey = ""
     }
 }

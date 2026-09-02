@@ -20,6 +20,8 @@ qt_add_qml_module(appqanvas
         runtime/appcontext.cpp
         runtime/apploader.h
         runtime/apploader.cpp
+        runtime/chatagent.h
+        runtime/chatagent.cpp
 )
 
 target_include_directories(appqanvas PRIVATE runtime)
@@ -42,6 +44,7 @@ target_link_libraries(appqanvas
         app_components_qml
         themed_icons
         app_utils
+        app_agent
         $<$<PLATFORM_ID:Android>:log>
 )
 

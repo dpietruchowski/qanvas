@@ -12,10 +12,12 @@ ThemedPanel {
     property var reasoningLevels: ["Minimal", "Low", "Medium", "High"]
     property string reasoning: ""
     property string apiKey: ""
+    property string apiKeyHint: ""
 
     signal providerSelected(string provider)
     signal modelNameEdited(string modelName)
     signal reasoningSelected(string reasoning)
+    signal apiKeyEdited(string apiKey)
     signal apiKeyReplaceRequested()
 
     objectName: "settingsPanel"
@@ -69,9 +71,11 @@ ThemedPanel {
             objectName: "settingsApiKey"
             Layout.fillWidth: true
             text: root.apiKey
+            placeholder: root.apiKeyHint
             masked: true
             actionText: qsTr("Replace")
 
+            onEdited: function (text) { root.apiKeyEdited(text) }
             onActionTriggered: root.apiKeyReplaceRequested()
         }
     }
