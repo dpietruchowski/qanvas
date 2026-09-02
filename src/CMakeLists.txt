@@ -24,6 +24,8 @@ qt_add_qml_module(appqanvas
         runtime/chatagent.cpp
         runtime/appwriter.h
         runtime/appwriter.cpp
+        runtime/appregistry.h
+        runtime/appregistry.cpp
 )
 
 target_include_directories(appqanvas PRIVATE runtime)

@@ -15,16 +15,16 @@ AppShell {
         onSettingsClicked: settingsPanel.open()
     }
 
-    property Component appPage: AppPage {
-        id: appView
+    property Component appPage: AppsPage {
+        id: appsView
 
-        appId: agent.lastAppId
+        openedId: agent.lastAppId
 
         Connections {
             target: agent
 
             function onAppCreated(id) {
-                appView.reload()
+                appsView.open(id)
             }
         }
     }

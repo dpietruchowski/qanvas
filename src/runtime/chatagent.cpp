@@ -1,5 +1,6 @@
 #include "chatagent.h"
 
+#include "appregistry.h"
 #include "appwriter.h"
 #ifdef QANVAS_CLAUDE_CLI
 #include "agent/claudecliclient.h"
@@ -16,7 +17,9 @@ const char* kSystemPrompt
     = "You are the assistant of Qanvas, a runtime that builds small QML apps on request. "
       "Keep answers short and concrete, and ask for the one detail you are missing instead of "
       "guessing.\n"
-      "When the user wants an app, write it and call create_app; the runtime loads it at once.\n"
+      "When the user wants an app, write it and call create_app; the runtime loads it at once. "
+      "Give it a short title in the language the user writes in — it names the app in the "
+      "runtime's app list.\n"
       "The app is one file. Its root object is an Item that fills whatever it is placed in. "
       "Import only QtQuick, QtQuick.Controls and QtQuick.Layouts, and define every helper "
       "component inline. There is no C++, no network and no filesystem.\n"
@@ -33,6 +36,7 @@ const char* kCreateAppDocstring
       "@details Saves a single-file QML app and runs it immediately, replacing an app of the same "
       "id\n"
       "@param id (string) lowercase slug naming the app, 1-32 characters of a-z, 0-9 and -\n"
+      "@param title (string) short human name for the app list\n"
       "@param qml (string) the complete Main.qml source\n"
       "@return ok, or the reason the app was rejected";
 
@@ -114,6 +118,8 @@ void ChatAgent::registerTools()
                          [this](QVariantMap arguments, ToolDone done)
                          {
                              const QString id = arguments.value(QStringLiteral("id")).toString();
+                             const QString title
+                                 = arguments.value(QStringLiteral("title")).toString();
                              const QString qml = arguments.value(QStringLiteral("qml")).toString();
 
                              QString error;
@@ -122,6 +128,8 @@ void ChatAgent::registerTools()
                                  done(error);
                                  return;
                              }
+
+                             AppRegistry::instance().record(id, title);
 
                              m_lastAppId = id;
                              emit lastAppIdChanged();

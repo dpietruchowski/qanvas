@@ -7,6 +7,7 @@ QtObject {
     property int applicationWidth: 400
     property int applicationHeight: 800
     property int contentMaxWidth: 600
+    property bool isNightMode: true
 
     property var colors: QtObject {
         property color background: "#17130F"
@@ -29,6 +30,9 @@ QtObject {
         property color textPlaceholder: "#7A7167"
         property color textDisabled: "#5A534B"
         property color textInverse: "#17130F"
+
+        property color cardBackground: "#241F19"
+        property color cardBorder: "#2E2820"
 
         property color dialogSurface: "#221D17"
         property color overlay: "#000000B3"
@@ -101,6 +105,30 @@ QtObject {
         property string shelf: "qrc:/Themed/Icons/deck.svg"
         property string close: "qrc:/Themed/Icons/close.svg"
         property string app: "qrc:/Themed/Icons/ai-app.svg"
+    }
+
+    property var card: QtObject {
+        property int sizeSmall: 56
+    }
+
+    property var elevation: QtObject {
+        property int shadowSteps: 3
+        property int shadowBlur: 6
+        property int shadowOffset: 2
+        property color shadowColor: "#000000"
+        property real shadowLayerOpacity: 0.14
+    }
+
+    property var appList: QtObject {
+        property int spacing: theme.spacing.medium
+        property int cardPadding: theme.padding.medium
+        property int titleFontSize: theme.fontSize.medium
+        property color titleColor: theme.colors.textPrimary
+        property int subtitleFontSize: theme.fontSize.small
+        property color subtitleColor: theme.colors.textMuted
+        property int lineSpacing: theme.spacing.xSmall
+        property int emptyFontSize: theme.fontSize.normal
+        property color emptyColor: theme.colors.textMuted
     }
 
     property var appStage: QtObject {
