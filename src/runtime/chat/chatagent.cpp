@@ -16,6 +16,7 @@
 namespace
 {
 const char* kOpenAiProvider = "OpenAI";
+const char* kClaudeProvider = "Claude";
 #ifdef QANVAS_CLAUDE_CLI
 const char* kClaudeCliProvider = "Claude CLI";
 #endif
@@ -33,22 +34,28 @@ bool isClaudeCli(const QString& provider)
 #endif
 }
 
+bool isClaude(const QString& provider) { return provider == QLatin1String(kClaudeProvider); }
+
 QString providerUrl(const QString& provider)
 {
-    if (provider == QStringLiteral("OpenAI"))
+    if (provider == QLatin1String(kOpenAiProvider))
         return QStringLiteral("https://api.openai.com/v1/chat/completions");
+    if (isClaude(provider))
+        return QStringLiteral("https://api.anthropic.com/v1/chat/completions");
     return QStringLiteral("https://openrouter.ai/api/v1/chat/completions");
 }
 
 bool providerNestsReasoning(const QString& provider)
 {
-    return provider != QStringLiteral("OpenAI");
+    return provider != QLatin1String(kOpenAiProvider) && !isClaude(provider);
 }
 
 QString environmentVariableName(const QString& provider)
 {
-    return provider == QStringLiteral("OpenAI") ? QStringLiteral("OPENAI_API_KEY")
-                                                : QStringLiteral("OPENROUTER_API_KEY");
+    if (isClaude(provider))
+        return QStringLiteral("CLAUDE_API_KEY");
+    return provider == QLatin1String(kOpenAiProvider) ? QStringLiteral("OPENAI_API_KEY")
+                                                      : QStringLiteral("OPENROUTER_API_KEY");
 }
 
 QString environmentApiKey(const QString& provider)
@@ -119,7 +126,8 @@ void ChatAgent::openApp(const QString& id)
 
 QStringList ChatAgent::providers() const
 {
-    QStringList providers { QString::fromLatin1(kOpenAiProvider), QStringLiteral("OpenRouter") };
+    QStringList providers { QString::fromLatin1(kOpenAiProvider), QStringLiteral("OpenRouter"),
+                            QString::fromLatin1(kClaudeProvider) };
 #ifdef QANVAS_CLAUDE_CLI
     if (ClaudeCliClient::isAvailable())
         providers.append(QString::fromLatin1(kClaudeCliProvider));
