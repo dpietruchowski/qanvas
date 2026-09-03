@@ -40,7 +40,7 @@ ThemedPage {
             Layout.alignment: Qt.AlignVCenter
             buttonSize: Theme.button.icon
             buttonStyle: Theme.button.ghost
-            iconSource: Theme.icons.settings
+            iconSource: Theme.icons.sliders
 
             onClicked: root.settingsClicked()
         }

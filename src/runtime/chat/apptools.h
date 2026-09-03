@@ -10,7 +10,7 @@
 #include <QVariantMap>
 
 #include "agent/agentcontroller.h"
-#include "utils/result.h"
+#include "async/result.h"
 
 class App;
 class AppFiles;

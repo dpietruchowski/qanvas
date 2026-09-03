@@ -326,9 +326,9 @@ void AppTools::addCreateAppTool()
             }
 
             const QString data = argument(arguments, "data");
-            const Result<QString> dataWritten
-                = data.trimmed().isEmpty() ? Result<QString>::success(QString())
-                                           : files.write(QStringLiteral("Data.qml"), data);
+            const Result<QString> dataWritten = data.trimmed().isEmpty()
+                ? Result<QString>::success(QString())
+                : files.write(QStringLiteral("Data.qml"), data);
             if (dataWritten.isFailure())
             {
                 finish(index, dataWritten, done);

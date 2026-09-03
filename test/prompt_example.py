@@ -18,7 +18,7 @@ import textwrap
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, REPO + "/libs/automation")
+sys.path.insert(0, REPO + "/libs/tools")
 from ui_driver import UiDriver
 
 BINARY = REPO + "/build-desktop/src/appqanvas"

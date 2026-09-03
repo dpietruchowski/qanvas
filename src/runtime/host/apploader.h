@@ -2,7 +2,6 @@
 
 #include <QQuickItem>
 #include <QString>
-#include <QtQml/qqmlregistration.h>
 
 class AppContext;
 class NotesBridge;
@@ -12,7 +11,6 @@ class TasksBridge;
 class AppLoader : public QQuickItem
 {
     Q_OBJECT
-    QML_ELEMENT
 
     Q_PROPERTY(QString appId READ appId WRITE setAppId NOTIFY appIdChanged)
     Q_PROPERTY(Status status READ status NOTIFY statusChanged)

@@ -7,20 +7,18 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
-#include <QtQml/qqmlregistration.h>
 
 #include "agent/agentcontroller.h"
 #include "agent/client.h"
+#include "platform/securestorage.h"
 #include "runtime/chat/apptools.h"
 #include "runtime/chat/chatthread.h"
 #include "runtime/storage/chatstore.h"
-#include "utils/securestorage.h"
 
 class ChatAgent : public QObject, public QQmlParserStatus
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
-    QML_ELEMENT
 
     Q_PROPERTY(QStringList providers READ providers CONSTANT)
     Q_PROPERTY(QString provider READ provider WRITE setProvider NOTIFY providerChanged)

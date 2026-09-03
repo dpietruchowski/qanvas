@@ -4,7 +4,6 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
-#include <QtQml/qqmlregistration.h>
 
 #include "runtime/storage/systemdatabase.h"
 
@@ -14,8 +13,6 @@ class QQmlEngine;
 class AppRegistry : public QObject
 {
     Q_OBJECT
-    QML_ELEMENT
-    QML_SINGLETON
 
     Q_PROPERTY(QVariantList apps READ apps NOTIFY appsChanged)
 

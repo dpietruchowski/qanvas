@@ -16,7 +16,9 @@
 namespace
 {
 const char* kOpenAiProvider = "OpenAI";
+#ifdef QANVAS_CLAUDE_CLI
 const char* kClaudeCliProvider = "Claude CLI";
+#endif
 const char* kDefaultProvider = "OpenAI";
 const char* kDefaultModel = "gpt-5-mini";
 const char* kDefaultReasoning = "Minimal";

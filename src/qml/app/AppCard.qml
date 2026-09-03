@@ -14,7 +14,7 @@ ThemedCard {
     objectName: "appCard"
     clickable: true
     margins: Theme.appList.cardPadding
-    implicitHeight: Math.max(row.implicitHeight + root.margins * 2, Theme.card.sizeSmall)
+    implicitHeight: Math.max(row.implicitHeight + root.margins * 2, Theme.appList.cardMinHeight)
 
     RowLayout {
         id: row

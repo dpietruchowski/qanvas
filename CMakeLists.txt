@@ -1,126 +1,36 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(qanvas VERSION 1.0 LANGUAGES CXX)
+project(qanvas VERSION 0.1 LANGUAGES CXX)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+include(libs/cmake/AppProject.cmake)
 
-# Android packaging — consumed by the if(ANDROID) block at the bottom and by
-# build.sh / sign.sh, which grep the version out of this file.
-set(ANDROID_PACKAGE_NAME "com.qanvas.app")
-set(ANDROID_KEYSTORE_PATH "${CMAKE_SOURCE_DIR}/android/qanvas.keystore")
-set(ANDROID_KEY_ALIAS "qanvas_key")
-set(QT_ANDROID_VERSION_CODE 1)
-set(QT_ANDROID_VERSION_NAME "0.1.0")
-set(QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/android")
-
-set(FORMAT_DIRS "src")
-
-find_program(CLANG_FORMAT "clang-format")
-
-if(CLANG_FORMAT)
-    string(REPLACE ";" " " DIRS_STRING "${FORMAT_DIRS}")
-
-    set(FORMAT_FIND_EXPR
-        "${DIRS_STRING} -type d -name third_party -prune -o \
--type f '(' -name '*.cpp' -o -name '*.h' -o -name '*.hpp' ')'"
-    )
-
-    add_custom_target(format
-        COMMAND sh -c "find ${FORMAT_FIND_EXPR} -exec '${CLANG_FORMAT}' -style=file -i {} +"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Formatting files in directories: ${DIRS_STRING}"
-        VERBATIM
-    )
-
-    add_custom_target(format_check
-        COMMAND sh -c "find ${FORMAT_FIND_EXPR} -exec '${CLANG_FORMAT}' -style=file --dry-run -Werror {} +"
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Checking format in directories: ${DIRS_STRING}"
-        VERBATIM
-    )
-
-    message(STATUS "Clang-format found: ${CLANG_FORMAT} for dirs: ${DIRS_STRING}")
-else()
-    message(WARNING "Clang-format not found")
-endif()
-
-add_compile_definitions(
-    $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
-    $<$<NOT:$<CONFIG:Debug>>:QT_NO_INFO_OUTPUT>
-)
-
-# In-process UI automation server (libs/automation): a localhost TCP server that
-# walks the QML object tree and drives it by objectName. Debug-only by default —
-# it is an unauthenticated remote-control channel, never ship it in a release.
-set(QANVAS_AUTOMATION_DEFAULT OFF)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(QANVAS_AUTOMATION_DEFAULT ON)
-endif()
-option(QANVAS_AUTOMATION "Compile in the UI automation server" ${QANVAS_AUTOMATION_DEFAULT})
-
-if(QANVAS_AUTOMATION)
-    add_compile_definitions(QANVAS_AUTOMATION)
-    # The name libs/CMakeLists.txt gates the automation target on.
-    set(FILLIN_AUTOMATION ON)
-endif()
-
-# Debug-only escape hatch: talk to the local `claude` binary instead of a
-# provider API, so the agent loop can be exercised without an API key.
-set(QANVAS_CLAUDE_CLI_DEFAULT OFF)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT ANDROID)
-    set(QANVAS_CLAUDE_CLI_DEFAULT ON)
-endif()
-option(QANVAS_CLAUDE_CLI "Offer the local claude CLI as a provider" ${QANVAS_CLAUDE_CLI_DEFAULT})
-
-if(QANVAS_CLAUDE_CLI)
-    add_compile_definitions(QANVAS_CLAUDE_CLI)
-endif()
+app_load_env(${CMAKE_SOURCE_DIR}/app.env)
 
 set(QANVAS_TESTS_DEFAULT OFF)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT ANDROID)
     set(QANVAS_TESTS_DEFAULT ON)
 endif()
-option(QANVAS_TESTS "Build the runtime unit tests" ${QANVAS_TESTS_DEFAULT})
+option(BUILD_TESTING "Build the runtime unit tests" ${QANVAS_TESTS_DEFAULT})
 
-# Shared component libraries (git submodule, github.com/dpietruchowski/app-libs).
+app_project_setup(
+    SOURCE_ROOT ${CMAKE_SOURCE_DIR}/src
+    FORMAT_DIRS src
+)
+
+app_option_debug_default(QANVAS_CLAUDE_CLI "Offer the local claude CLI as a provider")
+
 add_subdirectory(libs)
-
-if(QANVAS_TESTS)
-    if(NOT TARGET gtest)
-        add_subdirectory(libs/third_party/googletest)
-    endif()
-    enable_testing()
-endif()
-
 add_subdirectory(src)
 
 if(ANDROID)
-    if(NOT CMAKE_BUILD_TYPE)
-        set(CMAKE_BUILD_TYPE Release)
-    endif()
-
-    set_target_properties(appqanvas PROPERTIES
-        QT_ANDROID_PACKAGE_NAME   "${ANDROID_PACKAGE_NAME}"
-        QT_ANDROID_VERSION_CODE   "${QT_ANDROID_VERSION_CODE}"
-        QT_ANDROID_VERSION_NAME   "${QT_ANDROID_VERSION_NAME}"
-        QT_ANDROID_TARGET_SDK_VERSION 36
-        QT_ANDROID_PACKAGE_SOURCE_DIR "${QT_ANDROID_PACKAGE_SOURCE_DIR}"
-        QT_ANDROID_KEYSTORE_PATH "${ANDROID_KEYSTORE_PATH}"
-        QT_ANDROID_KEY_ALIAS "${ANDROID_KEY_ALIAS}"
+    app_configure_android(${APP_TARGET}
+        PACKAGE_NAME "${ANDROID_PACKAGE}"
+        VERSION_CODE ${VERSION_CODE}
+        VERSION_NAME "${VERSION_NAME}"
+        KEYSTORE "${CMAKE_SOURCE_DIR}/${ANDROID_KEYSTORE}"
+        KEY_ALIAS "${ANDROID_KEY_ALIAS}"
+        PACKAGE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/android"
     )
-
-    # Prebuilt OpenSSL for Android (git submodule, github.com/KDAB/android_openssl).
-    # Uncomment once the app talks to the network over TLS.
-    # include(${CMAKE_SOURCE_DIR}/third_party/android_openssl/android_openssl.cmake)
-    # set_target_properties(OpenSSL::Crypto OpenSSL::SSL PROPERTIES IMPORTED_GLOBAL TRUE)
-    # add_android_openssl_libraries(appqanvas)
-
-    qt_android_generate_deployment_settings(appqanvas)
-    qt_android_add_apk_target(appqanvas)
-
-    get_target_property(QT_ANDROID_DIR appqanvas QT_ANDROID_PACKAGE_SOURCE_DIR)
-    message(STATUS "Target property QT_ANDROID_PACKAGE_SOURCE_DIR = ${QT_ANDROID_DIR}")
 endif()

@@ -1,430 +1,347 @@
 pragma Singleton
 import QtQuick
+import Themed.Theme
 
-QtObject {
+DefaultTheme {
     id: theme
 
-    property int applicationWidth: 400
-    property int applicationHeight: 800
-    property int contentMaxWidth: 600
-    property bool isNightMode: true
+    isNightMode: true
+    contentMaxWidthBase: 600
 
-    property var colors: QtObject {
-        property color background: "#17130F"
-        property color surface: "#241F19"
-        property color surfaceRaised: "#2C261F"
-        property color surfaceSunken: "#120F0C"
+    colors: QtObject {
+        readonly property color backgroundDark: "#17130F"
+        readonly property color backgroundLight: "#17130F"
+        readonly property color background: "#17130F"
+        readonly property color surface: "#241F19"
+        readonly property color surfaceRaised: "#2C261F"
+        readonly property color surfaceSunken: "#120F0C"
+        readonly property color dialogSurface: "#221D17"
 
-        property color primary: "#E9A93C"
-        property color primaryVariant: "#F2BC5C"
-        property color primaryDark: "#CE9430"
-        property color primarySurface: "#2E2417"
+        readonly property color primary: "#E9A93C"
+        readonly property color primaryVariant: "#F2BC5C"
+        readonly property color primaryDark: "#CE9430"
+        readonly property color primarySurface: "#2E2417"
+        readonly property color secondary: "#2C261F"
+        readonly property color accent: "#E9A93C"
 
-        property color border: "#2E2820"
-        property color borderStrong: "#413930"
-        property color divider: "#231E18"
+        readonly property color info: "#E9A93C"
+        readonly property color success: "#6E9E5B"
+        readonly property color successVariant: "#82B36E"
+        readonly property color successDark: "#5C8549"
+        readonly property color warning: "#FFA826"
+        readonly property color error: "#C4553D"
+        readonly property color errorVariant: "#D46A52"
+        readonly property color errorDark: "#A8462F"
 
-        property color textPrimary: "#EDE7DF"
-        property color textSecondary: "#A79E93"
-        property color textMuted: "#8A8177"
-        property color textPlaceholder: "#7A7167"
-        property color textDisabled: "#5A534B"
-        property color textInverse: "#17130F"
+        readonly property color textPrimary: "#EDE7DF"
+        readonly property color textSecondary: "#A79E93"
+        readonly property color textMuted: "#8A8177"
+        readonly property color textPlaceholder: "#7A7167"
+        readonly property color textDisabled: "#5A534B"
+        readonly property color textInverse: "#17130F"
 
-        property color cardBackground: "#241F19"
-        property color cardBorder: "#2E2820"
+        readonly property color border: "#2E2820"
+        readonly property color borderStrong: "#413930"
+        readonly property color divider: "#231E18"
+        readonly property color overlay: "#000000B3"
+        readonly property color overlayLight: "#0000008C"
 
-        property color dialogSurface: "#221D17"
-        property color overlay: "#000000B3"
-        property color overlayLight: "#0000008C"
-
-        property color danger: "#C4553D"
-        property color dangerVariant: "#D46A52"
-        property color dangerDark: "#A8462F"
-        property color success: "#6E9E5B"
-        property color successVariant: "#82B36E"
-        property color successDark: "#5C8549"
+        readonly property color cardBackground: "#241F19"
+        readonly property color cardBorder: "#2E2820"
+        readonly property color cardBorderHover: "#413930"
     }
 
-    property var fontSize: QtObject {
-        property int xxLarge: 32
-        property int xLarge: 24
-        property int large: 20
-        property int medium: 16
-        property int normal: 14
-        property int small: 12
-        property int xSmall: 11
+    page: QtObject {
+        readonly property QtObject title: QtObject {
+            readonly property color color: theme.colors.textPrimary
+            readonly property int fontSize: theme.fontSize.xLarge
+            readonly property bool bold: true
+            readonly property real lineHeight: 1.0
+        }
+        readonly property int contentSpacing: theme.spacing.medium
     }
 
-    property var spacing: QtObject {
-        property int xSmall: 4
-        property int small: 8
-        property int medium: 12
-        property int large: 16
-        property int xLarge: 24
+    grid: QtObject {
+        readonly property int columns: theme.isLandscape ? 3 : 2
+        readonly property int spacing: theme.spacing.small
     }
 
-    property var padding: QtObject {
-        property int xSmall: 4
-        property int small: 8
-        property int medium: 16
-        property int large: 20
-        property int xLarge: 28
-        property int screen: 16
-    }
+    button: QtObject {
+        readonly property int radius: theme.radius.medium
 
-    property var radius: QtObject {
-        property int small: 6
-        property int medium: 12
-        property int large: 16
-        property int xLarge: 22
-        property int full: 9999
-    }
-
-    property var border: QtObject {
-        property int thin: 1
-        property int medium: 2
-        property int thick: 3
-    }
-
-    property var panel: QtObject {
-        property real maxHeightRatio: 0.9
-        property int handleWidth: 38
-        property int handleHeight: 4
-        property int titleSize: theme.fontSize.large
-    }
-
-    property var navigation: QtObject {
-        property int barHeight: 58
-    }
-
-    property var icon: QtObject {
-        property int small: 16
-        property int medium: 22
-        property int large: 28
-    }
-
-    property var icons: QtObject {
-        property string back: "qrc:/Themed/Icons/previous.svg"
-        property string settings: "qrc:/Themed/Icons/sliders.svg"
-        property string send: "qrc:/Themed/Icons/send.svg"
-        property string chat: "qrc:/Themed/Icons/chat.svg"
-        property string shelf: "qrc:/Themed/Icons/deck.svg"
-        property string close: "qrc:/Themed/Icons/close.svg"
-        property string app: "qrc:/Themed/Icons/ai-app.svg"
-        property string remove: "qrc:/Themed/Icons/remove.svg"
-        property string plus: "qrc:/Themed/Icons/plus.svg"
-        property string check: "qrc:/Themed/Icons/check.svg"
-        property string edit: "qrc:/Themed/Icons/edit.svg"
-        property string search: "qrc:/Themed/Icons/search.svg"
-    }
-
-    property var card: QtObject {
-        property int sizeSmall: 56
-    }
-
-    property var elevation: QtObject {
-        property int shadowSteps: 3
-        property int shadowBlur: 6
-        property int shadowOffset: 2
-        property color shadowColor: "#000000"
-        property real shadowLayerOpacity: 0.14
-    }
-
-    property var appList: QtObject {
-        property int spacing: theme.spacing.medium
-        property int cardPadding: theme.padding.medium
-        property int titleFontSize: theme.fontSize.medium
-        property color titleColor: theme.colors.textPrimary
-        property int subtitleFontSize: theme.fontSize.small
-        property color subtitleColor: theme.colors.textMuted
-        property int lineSpacing: theme.spacing.xSmall
-        property int actionSpacing: theme.spacing.medium
-        property int emptyFontSize: theme.fontSize.normal
-        property color emptyColor: theme.colors.textMuted
-    }
-
-    property var appStage: QtObject {
-        property color background: theme.colors.surfaceSunken
-        property color border: theme.colors.border
-        property int radius: theme.radius.medium
-        property color placeholderText: theme.colors.textMuted
-        property int placeholderFontSize: theme.fontSize.normal
-        property int placeholderPadding: theme.padding.large
-    }
-
-    property var chat: QtObject {
-        property real bubbleMaxWidthRatio: 0.78
-        property int bubbleRadius: theme.radius.large
-        property int bubblePaddingH: 14
-        property int bubblePaddingV: 10
-        property int fontSize: theme.fontSize.normal
-        property int lineSpacing: 4
-        property int messageSpacing: theme.spacing.large
-        property int composerHeight: 52
-        property int headerHeight: 48
-    }
-
-    property var activity: QtObject {
-        property int spacing: theme.spacing.small
-        property int markerSpacing: theme.spacing.small
-        property int markerSize: 8
-        property int markerRadius: 2
-        property int fontSize: theme.fontSize.small
-        property string fontFamily: "monospace"
-        property int tickInterval: 1000
-        property color runningMarker: theme.colors.primary
-        property color doneMarker: theme.colors.textDisabled
-        property color failedMarker: theme.colors.danger
-        property color runningText: theme.colors.textPrimary
-        property color doneText: theme.colors.textDisabled
-        property color runningDetail: theme.colors.primary
-        property color doneDetail: theme.colors.textSecondary
-    }
-
-    property var chatBubble: QtObject {
-        property var user: QtObject {
-            property color background: theme.colors.surface
-            property color border: "transparent"
-            property color text: theme.colors.textPrimary
-            property int radius: theme.radius.large
-            property int paddingH: 14
-            property int paddingV: 10
-            property int alignment: Qt.AlignRight
+        readonly property QtObject square: QtObject {
+            readonly property int size: theme.scaled(32)
+            readonly property int width: size
+            readonly property int height: size
+            readonly property int fontSize: theme.fontSize.small
+            readonly property int iconSize: theme.scaled(18)
         }
 
-        property var agent: QtObject {
-            property color background: "transparent"
-            property color border: "transparent"
-            property color text: theme.colors.textPrimary
-            property int radius: 0
-            property int paddingH: 0
-            property int paddingV: 0
-            property int alignment: Qt.AlignLeft
-        }
-    }
-
-    property var button: QtObject {
-        property int radius: theme.radius.medium
-
-        property var icon: QtObject {
-            property int size: 40
-            property int width: size
-            property int height: size
-            property int fontSize: theme.fontSize.small
-            property int iconSize: theme.icon.medium
+        readonly property QtObject icon: QtObject {
+            readonly property int size: theme.scaled(40)
+            readonly property int width: size
+            readonly property int height: size
+            readonly property int fontSize: theme.fontSize.small
+            readonly property int iconSize: theme.icon.medium
         }
 
-        property var circle: QtObject {
-            property int size: 44
-            property int width: size
-            property int height: size
-            property int fontSize: theme.fontSize.normal
-            property int iconSize: theme.icon.medium
+        readonly property QtObject iconSmall: QtObject {
+            readonly property int size: theme.scaled(33)
+            readonly property int width: size
+            readonly property int height: size
+            readonly property int fontSize: theme.fontSize.normal
+            readonly property int iconSize: theme.icon.small
         }
 
-        property var small: QtObject {
-            property int width: theme.applicationWidth * 0.24
-            property int height: 34
-            property int fontSize: theme.fontSize.small
-            property int iconSize: theme.icon.small
+        readonly property QtObject circle: QtObject {
+            readonly property int size: theme.scaled(44)
+            readonly property int width: size
+            readonly property int height: size
+            readonly property int fontSize: theme.fontSize.normal
+            readonly property int iconSize: theme.icon.medium
         }
 
-        property var medium: QtObject {
-            property int width: theme.applicationWidth * 0.32
-            property int height: 44
-            property int fontSize: theme.fontSize.normal
-            property int iconSize: theme.icon.medium
+        readonly property QtObject small: QtObject {
+            readonly property int width: theme.contentWidth * 0.24
+            readonly property int height: theme.scaled(34)
+            readonly property int fontSize: theme.fontSize.small
+            readonly property int iconSize: theme.icon.small
         }
 
-        property var large: QtObject {
-            property int width: theme.applicationWidth * 0.5
-            property int height: 52
-            property int fontSize: theme.fontSize.medium
-            property int iconSize: theme.icon.large
+        readonly property QtObject compact: QtObject {
+            readonly property int width: theme.contentWidth * 0.24
+            readonly property int height: theme.scaled(40)
+            readonly property int fontSize: theme.fontSize.normal
+            readonly property int iconSize: theme.scaled(18)
         }
 
-        property var primary: QtObject {
-            property color background: theme.colors.primary
-            property color hovered: theme.colors.primaryVariant
-            property color pressed: theme.colors.primaryDark
-            property color border: theme.colors.primary
-            property color text: theme.colors.textInverse
+        readonly property QtObject medium: QtObject {
+            readonly property int width: theme.contentWidth * 0.32
+            readonly property int height: theme.scaled(44)
+            readonly property int fontSize: theme.fontSize.normal
+            readonly property int iconSize: theme.icon.medium
         }
 
-        property var subtle: QtObject {
-            property color background: theme.colors.surface
-            property color hovered: theme.colors.surfaceRaised
-            property color pressed: theme.colors.surfaceSunken
-            property color border: theme.colors.border
-            property color text: theme.colors.textSecondary
+        readonly property QtObject large: QtObject {
+            readonly property int width: theme.contentWidth * 0.5
+            readonly property int height: theme.scaled(52)
+            readonly property int fontSize: theme.fontSize.medium
+            readonly property int iconSize: theme.icon.large
         }
 
-        property var accent: QtObject {
-            property color background: theme.colors.primarySurface
-            property color hovered: "#3A2D1C"
-            property color pressed: "#251D12"
-            property color border: "#00000000"
-            property color text: theme.colors.primary
+        readonly property QtObject row: QtObject {
+            readonly property int width: theme.contentWidth
+            readonly property int height: theme.scaled(52)
+            readonly property int fontSize: theme.fontSize.medium
+            readonly property int iconSize: theme.icon.medium
         }
 
-        property var ghost: QtObject {
-            property color background: "#00000000"
-            property color hovered: "#14FFFFFF"
-            property color pressed: "#0AFFFFFF"
-            property color border: "#00000000"
-            property color text: theme.colors.textSecondary
+        readonly property QtObject rowCompact: QtObject {
+            readonly property int width: theme.contentWidth
+            readonly property int height: theme.scaled(44)
+            readonly property int fontSize: theme.fontSize.normal
+            readonly property int iconSize: theme.scaled(18)
         }
 
-        property var secondary: QtObject {
-            property color background: theme.colors.surface
-            property color hovered: theme.colors.surfaceRaised
-            property color pressed: theme.colors.surfaceSunken
-            property color border: theme.colors.border
-            property color text: theme.colors.textPrimary
+        readonly property QtObject primary: QtObject {
+            readonly property color background: theme.colors.primary
+            readonly property color hovered: theme.colors.primaryVariant
+            readonly property color pressed: theme.colors.primaryDark
+            readonly property color border: theme.colors.primary
+            readonly property color text: theme.colors.textInverse
         }
 
-        property var danger: QtObject {
-            property color background: theme.colors.danger
-            property color hovered: theme.colors.dangerVariant
-            property color pressed: theme.colors.dangerDark
-            property color border: theme.colors.danger
-            property color text: theme.colors.textPrimary
+        readonly property QtObject primarySoft: QtObject {
+            readonly property color background: theme.colors.primarySurface
+            readonly property color hovered: "#3A2D1C"
+            readonly property color pressed: "#251D12"
+            readonly property color border: "transparent"
+            readonly property color text: theme.colors.primary
         }
 
-        property var success: QtObject {
-            property color background: theme.colors.success
-            property color hovered: theme.colors.successVariant
-            property color pressed: theme.colors.successDark
-            property color border: theme.colors.success
-            property color text: theme.colors.textPrimary
+        readonly property QtObject accent: primarySoft
+
+        readonly property QtObject secondary: QtObject {
+            readonly property color background: theme.colors.surface
+            readonly property color hovered: theme.colors.surfaceRaised
+            readonly property color pressed: theme.colors.surfaceSunken
+            readonly property color border: theme.colors.border
+            readonly property color text: theme.colors.textPrimary
+        }
+
+        readonly property QtObject secondarySoft: QtObject {
+            readonly property color background: "transparent"
+            readonly property color hovered: theme.colors.surface
+            readonly property color pressed: theme.colors.surfaceSunken
+            readonly property color border: theme.colors.border
+            readonly property color text: theme.colors.textSecondary
+        }
+
+        readonly property QtObject subtle: QtObject {
+            readonly property color background: theme.colors.surface
+            readonly property color hovered: theme.colors.surfaceRaised
+            readonly property color pressed: theme.colors.surfaceSunken
+            readonly property color border: theme.colors.border
+            readonly property color text: theme.colors.textSecondary
+        }
+
+        readonly property QtObject success: QtObject {
+            readonly property color background: theme.colors.success
+            readonly property color hovered: theme.colors.successVariant
+            readonly property color pressed: theme.colors.successDark
+            readonly property color border: theme.colors.success
+            readonly property color text: theme.colors.textPrimary
+        }
+
+        readonly property QtObject danger: QtObject {
+            readonly property color background: theme.colors.error
+            readonly property color hovered: theme.colors.errorVariant
+            readonly property color pressed: theme.colors.errorDark
+            readonly property color border: theme.colors.error
+            readonly property color text: theme.colors.textPrimary
+        }
+
+        readonly property QtObject dangerSoft: QtObject {
+            readonly property color background: Qt.rgba(theme.colors.error.r, theme.colors.error.g, theme.colors.error.b, 0.24)
+            readonly property color hovered: Qt.rgba(theme.colors.error.r, theme.colors.error.g, theme.colors.error.b, 0.34)
+            readonly property color pressed: Qt.rgba(theme.colors.error.r, theme.colors.error.g, theme.colors.error.b, 0.42)
+            readonly property color border: Qt.rgba(theme.colors.error.r, theme.colors.error.g, theme.colors.error.b, 0.60)
+            readonly property color text: theme.colors.error
+        }
+
+        readonly property QtObject warning: QtObject {
+            readonly property color background: theme.colors.warning
+            readonly property color hovered: "#FFB84D"
+            readonly property color pressed: "#E69500"
+            readonly property color border: theme.colors.warning
+            readonly property color text: theme.colors.textInverse
+        }
+
+        readonly property QtObject ghost: QtObject {
+            readonly property color background: "transparent"
+            readonly property color hovered: "#14FFFFFF"
+            readonly property color pressed: "#0AFFFFFF"
+            readonly property color border: "transparent"
+            readonly property color text: theme.colors.textSecondary
+        }
+
+        readonly property QtObject ghostPrimary: QtObject {
+            readonly property color background: "transparent"
+            readonly property color hovered: Qt.rgba(theme.colors.primary.r, theme.colors.primary.g, theme.colors.primary.b, 0.16)
+            readonly property color pressed: Qt.rgba(theme.colors.primary.r, theme.colors.primary.g, theme.colors.primary.b, 0.26)
+            readonly property color border: theme.colors.primary
+            readonly property color text: theme.colors.primary
+        }
+
+        readonly property QtObject ghostDanger: QtObject {
+            readonly property color background: "transparent"
+            readonly property color hovered: Qt.rgba(theme.colors.error.r, theme.colors.error.g, theme.colors.error.b, 0.16)
+            readonly property color pressed: Qt.rgba(theme.colors.error.r, theme.colors.error.g, theme.colors.error.b, 0.26)
+            readonly property color border: Qt.rgba(theme.colors.error.r, theme.colors.error.g, theme.colors.error.b, 0.60)
+            readonly property color text: theme.colors.error
         }
     }
 
-    property var input: QtObject {
-        property color background: theme.colors.surface
-        property color border: theme.colors.border
-        property color borderFocused: theme.colors.borderStrong
-        property int radius: theme.radius.xLarge
-        property int height: theme.chat.composerHeight
-        property int fontSize: theme.fontSize.normal
-        property int paddingH: theme.padding.medium
+    property QtObject appList: QtObject {
+        readonly property int spacing: theme.spacing.medium
+        readonly property int cardPadding: theme.padding.medium
+        readonly property int cardMinHeight: theme.scaled(56)
+        readonly property int titleFontSize: theme.fontSize.medium
+        readonly property color titleColor: theme.colors.textPrimary
+        readonly property int subtitleFontSize: theme.fontSize.small
+        readonly property color subtitleColor: theme.colors.textMuted
+        readonly property int lineSpacing: theme.spacing.xSmall
+        readonly property int actionSpacing: theme.spacing.medium
+        readonly property int emptyFontSize: theme.fontSize.normal
+        readonly property color emptyColor: theme.colors.textMuted
     }
 
-    property var settings: QtObject {
-        property color labelColor: theme.colors.textMuted
-        property int labelSize: theme.fontSize.xSmall
-        property real labelSpacing: 1.4
-        property int labelBottomSpacing: theme.spacing.small
-        property int sectionSpacing: theme.spacing.xLarge
-        property int optionSpacing: theme.spacing.small
-        property color fieldBackground: theme.colors.background
-        property color fieldBorder: theme.colors.border
-        property color fieldBorderFocused: theme.colors.borderStrong
-        property int fieldHeight: 48
-        property int fieldRadius: theme.radius.medium
-        property int fieldFontSize: theme.fontSize.normal
-        property int fieldPadding: theme.padding.medium
-        property string fontFamily: Qt.application.font.family
-        property string monoFamily: "monospace"
+    property QtObject appStage: QtObject {
+        readonly property color background: theme.colors.surfaceSunken
+        readonly property color border: theme.colors.border
+        readonly property int radius: theme.radius.medium
+        readonly property color placeholderText: theme.colors.textMuted
+        readonly property int placeholderFontSize: theme.fontSize.normal
+        readonly property int placeholderPadding: theme.padding.large
     }
 
-    property var text: QtObject {
-        property var title: QtObject {
-            property int fontSize: theme.fontSize.xLarge
-            property color color: theme.colors.textPrimary
-            property bool bold: true
-            property real lineHeight: 1.0
+    property QtObject chat: QtObject {
+        readonly property real bubbleMaxWidthRatio: 0.78
+        readonly property int bubbleRadius: theme.radius.large
+        readonly property int bubblePaddingH: 14
+        readonly property int bubblePaddingV: 10
+        readonly property int fontSize: theme.fontSize.normal
+        readonly property int lineSpacing: 4
+        readonly property int messageSpacing: theme.spacing.large
+        readonly property int composerHeight: theme.scaled(52)
+        readonly property int headerHeight: theme.scaled(48)
+    }
+
+    property QtObject activity: QtObject {
+        readonly property int spacing: theme.spacing.small
+        readonly property int markerSpacing: theme.spacing.small
+        readonly property int markerSize: 8
+        readonly property int markerRadius: 2
+        readonly property int fontSize: theme.fontSize.small
+        readonly property string fontFamily: "monospace"
+        readonly property int tickInterval: 1000
+        readonly property color runningMarker: theme.colors.primary
+        readonly property color doneMarker: theme.colors.textDisabled
+        readonly property color failedMarker: theme.colors.error
+        readonly property color runningText: theme.colors.textPrimary
+        readonly property color doneText: theme.colors.textDisabled
+        readonly property color runningDetail: theme.colors.primary
+        readonly property color doneDetail: theme.colors.textSecondary
+    }
+
+    property QtObject chatBubble: QtObject {
+        readonly property QtObject user: QtObject {
+            readonly property color background: theme.colors.surface
+            readonly property color border: "transparent"
+            readonly property color text: theme.colors.textPrimary
+            readonly property int radius: theme.radius.large
+            readonly property int paddingH: 14
+            readonly property int paddingV: 10
+            readonly property int alignment: Qt.AlignRight
         }
 
-        property var subtitle: QtObject {
-            property int fontSize: theme.fontSize.medium
-            property color color: theme.colors.textPrimary
-            property bool bold: true
-            property real lineHeight: 1.0
-        }
-
-        property var body: QtObject {
-            property int fontSize: theme.fontSize.normal
-            property color color: theme.colors.textPrimary
-            property bool bold: false
-            property real lineHeight: 1.15
-        }
-
-        property var caption: QtObject {
-            property int fontSize: theme.fontSize.small
-            property color color: theme.colors.textSecondary
-            property bool bold: false
-            property real lineHeight: 1.15
-        }
-
-        property var muted: QtObject {
-            property int fontSize: theme.fontSize.normal
-            property color color: theme.colors.textMuted
-            property bool bold: false
-            property real lineHeight: 1.15
+        readonly property QtObject agent: QtObject {
+            readonly property color background: "transparent"
+            readonly property color border: "transparent"
+            readonly property color text: theme.colors.textPrimary
+            readonly property int radius: 0
+            readonly property int paddingH: 0
+            readonly property int paddingV: 0
+            readonly property int alignment: Qt.AlignLeft
         }
     }
 
-    property var page: QtObject {
-        property var title: theme.text.title
-        property int contentSpacing: theme.spacing.medium
+    property QtObject input: QtObject {
+        readonly property color background: theme.colors.surface
+        readonly property color border: theme.colors.border
+        readonly property color borderFocused: theme.colors.borderStrong
+        readonly property int radius: theme.radius.xLarge
+        readonly property int height: theme.chat.composerHeight
+        readonly property int fontSize: theme.fontSize.normal
+        readonly property int paddingH: theme.padding.medium
     }
 
-    property var section: QtObject {
-        property int spacing: theme.spacing.small
-        property int contentSpacing: theme.spacing.small
-    }
-
-    property var separator: QtObject {
-        property int thickness: theme.border.thin
-        property color color: theme.colors.divider
-    }
-
-    property var list: QtObject {
-        property int spacing: theme.spacing.small
-        property int itemHeight: 56
-        property int itemPadding: theme.padding.medium
-        property int iconSize: theme.icon.medium
-        property color iconColor: theme.colors.textSecondary
-        property int lineSpacing: theme.spacing.xSmall
-    }
-
-    property var grid: QtObject {
-        property int columns: 2
-        property int spacing: theme.spacing.small
-    }
-
-    property var scroll: QtObject {
-        property int barWidth: 6
-        property int barRadius: theme.radius.small
-        property color barColor: theme.colors.borderStrong
-        property real barIdleOpacity: 0.4
-    }
-
-    property var empty: QtObject {
-        property int spacing: theme.spacing.medium
-        property int iconSize: theme.icon.large
-        property color iconColor: theme.colors.textMuted
-        property int maxWidth: 280
-    }
-
-    property var slider: QtObject {
-        property int width: 200
-        property int trackHeight: 6
-        property int handleSize: 22
-        property color trackColor: theme.colors.divider
-        property color fillColor: theme.colors.primary
-        property color handleColor: theme.colors.surfaceRaised
-        property color handlePressedColor: theme.colors.primarySurface
-    }
-
-    property var busy: QtObject {
-        property int size: 32
-        property int dotSize: 5
-        property int dotCount: 8
-        property int duration: 900
-        property color color: theme.colors.primary
+    property QtObject settings: QtObject {
+        readonly property color labelColor: theme.colors.textMuted
+        readonly property int labelSize: theme.fontSize.xSmall
+        readonly property real labelSpacing: 1.4
+        readonly property int labelBottomSpacing: theme.spacing.small
+        readonly property int sectionSpacing: theme.spacing.xLarge
+        readonly property int optionSpacing: theme.spacing.small
+        readonly property color fieldBackground: theme.colors.background
+        readonly property color fieldBorder: theme.colors.border
+        readonly property color fieldBorderFocused: theme.colors.borderStrong
+        readonly property int fieldHeight: theme.scaled(48)
+        readonly property int fieldRadius: theme.radius.medium
+        readonly property int fieldFontSize: theme.fontSize.normal
+        readonly property int fieldPadding: theme.padding.medium
+        readonly property string fontFamily: Qt.application.font.family
+        readonly property string monoFamily: "monospace"
     }
 
     function iconSource(name) {
@@ -459,7 +376,7 @@ QtObject {
 
     function textStyle(type) {
         if (theme.hasType(type, "title"))
-            return theme.text.title
+            return theme.page.title
         if (theme.hasType(type, "subtitle"))
             return theme.text.subtitle
         if (theme.hasType(type, "caption"))

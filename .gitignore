@@ -79,6 +79,18 @@ CMakeLists.txt.user
 android/*.keystore
 logcat*
 
+# AppImage
+AppDir/
+dist/
+*.AppImage
+
+# Python
+__pycache__/
+*.pyc
+
+# Claude Code local overrides
+.claude/settings.local.json
+
 # App databases: AppContext writes app.db next to the app it belongs to, so a
 # checked-in test app (test/app/) grows one as soon as it is run.
 *.db

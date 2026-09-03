@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/result.h"
+#include "async/result.h"
 
 class App;
 class QQmlEngine;

@@ -5,118 +5,53 @@ set(CMAKE_AUTORCC ON)
 
 qt_standard_project_setup()
 
-qt_add_executable(appqanvas
+add_subdirectory(runtime)
+add_subdirectory(components)
+add_subdirectory(qml)
+
+qt_add_executable(${APP_TARGET}
     main.cpp
 )
 
-add_subdirectory(components)
+if(LIBS_AUTOMATION)
+    target_link_libraries(${APP_TARGET} PRIVATE app_automation)
+endif()
 
-file(GLOB_RECURSE SHELL_QML_FULL "${CMAKE_CURRENT_SOURCE_DIR}/qml/*.qml")
-
-set(SHELL_QML "")
-foreach(qml_file ${SHELL_QML_FULL})
-    file(RELATIVE_PATH rel_path "${CMAKE_CURRENT_SOURCE_DIR}/qml" ${qml_file})
-    set_source_files_properties(${qml_file} PROPERTIES QT_RESOURCE_ALIAS ${rel_path})
-    list(APPEND SHELL_QML ${qml_file})
-endforeach()
-
-qt_add_qml_module(appqanvas
-    URI Qanvas
-    VERSION 1.0
-    RESOURCE_PREFIX "/"
-    OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Qanvas
-    QML_FILES ${SHELL_QML}
-    SOURCES
-        runtime/app/app.h
-        runtime/app/app.cpp
-        runtime/app/appfiles.h
-        runtime/app/appfiles.cpp
-        runtime/app/appregistry.h
-        runtime/app/appregistry.cpp
-        runtime/app/appschema.h
-        runtime/app/appschema.cpp
-        runtime/app/appcompiler.h
-        runtime/app/appcompiler.cpp
-        runtime/app/appwarnings.h
-        runtime/app/appwarnings.cpp
-        runtime/storage/systemdatabase.h
-        runtime/storage/systemdatabase.cpp
-        runtime/storage/chatstore.h
-        runtime/storage/chatstore.cpp
-        runtime/storage/notesstore.h
-        runtime/storage/notesstore.cpp
-        runtime/storage/tasksstore.h
-        runtime/storage/tasksstore.cpp
-        runtime/host/appcontext.h
-        runtime/host/appcontext.cpp
-        runtime/host/apploader.h
-        runtime/host/apploader.cpp
-        runtime/host/storebridge.h
-        runtime/host/storebridge.cpp
-        runtime/host/notesbridge.h
-        runtime/host/notesbridge.cpp
-        runtime/host/tasksbridge.h
-        runtime/host/tasksbridge.cpp
-        runtime/chat/apptools.h
-        runtime/chat/apptools.cpp
-        runtime/chat/chatthread.h
-        runtime/chat/chatthread.cpp
-        runtime/chat/chatagent.h
-        runtime/chat/chatagent.cpp
-        runtime/chat/systemprompt.h
-        runtime/chat/systemprompt.cpp
+target_compile_definitions(${APP_TARGET} PRIVATE
+    APP_NAME="${APP_NAME}"
+    APP_QML_URI="${APP_QML_URI}"
+    APP_VERSION="${VERSION_NAME}"
+    APP_VERSION_CODE="${VERSION_CODE}"
 )
 
-qt_add_resources(appqanvas "systemprompt"
-    PREFIX "/qanvas"
-    BASE runtime/chat
-    FILES runtime/chat/systemprompt.txt
-)
-
-target_include_directories(appqanvas PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/runtime/app
-    ${CMAKE_CURRENT_SOURCE_DIR}/runtime/host
-    ${CMAKE_CURRENT_SOURCE_DIR}/runtime/chat
-)
-
-target_compile_definitions(appqanvas PRIVATE
-    APP_VERSION="${QT_ANDROID_VERSION_NAME}"
-    APP_VERSION_CODE="${QT_ANDROID_VERSION_CODE}"
-)
-
-target_link_libraries(appqanvas
+target_link_libraries(${APP_TARGET}
     PRIVATE
+        qanvas_runtime
+        app_platform
+        app_qmlutils
+        -Wl,--no-as-needed
+        app_theme_qml
+        app_themed_qml
+        app_components_qml
+        app_icons
+        qanvas_components_qml
+        ${APP_QML_TARGET}
+        -Wl,--as-needed
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Sql
-        qanvas_components_qml
-        themed_components_qml
-        app_components_qml
-        themed_icons
-        app_utils
-        app_agent
         $<$<PLATFORM_ID:Android>:log>
 )
 
-if(QANVAS_AUTOMATION)
-    target_link_libraries(appqanvas PRIVATE app_automation)
-endif()
-
-if(QANVAS_TESTS)
+if(BUILD_TESTING AND NOT ANDROID)
     add_subdirectory(tests)
 endif()
 
-install(TARGETS appqanvas
+install(TARGETS ${APP_TARGET}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
-)
-
-install(DIRECTORY ${CMAKE_BINARY_DIR}/Qanvas
-    DESTINATION lib/qt6/qml
-    FILES_MATCHING PATTERN "*.qml" PATTERN "*.qmltypes" PATTERN "qmldir"
 )

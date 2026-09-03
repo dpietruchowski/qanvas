@@ -9,6 +9,16 @@ Zamysł: aplikacje pisze agent LLM na żądanie użytkownika. Zarys w [doc/idea.
 - **Nie dodawaj `Co-Authored-By` ani żadnej innej atrybucji do commitów i PR-ów.**
 - **Pliki robocze tylko w `tmp/` w repo** (ignorowany przez git) — skrypty pomocnicze, dane testowe, zrzuty. Nic poza katalogiem repo.
 
+## Build i narzędzia
+
+- Parametry aplikacji (nazwa, targety, wersja, pakiet Android, AppImage) siedzą w `app.env`; CMake czyta je przez `app_load_env()`, skrypty z `libs/scripts` przez `common.sh`. Wersji nie bumpuj ręcznie.
+- Root `CMakeLists.txt` składa się z helperów z `libs/cmake/AppProject.cmake` (`app_add_module`, `app_add_qml_module`, `app_add_test`, `app_configure_android`). Pliki są globowane przy konfiguracji: po dodaniu albo przeniesieniu pliku `cmake -B build-desktop`.
+- `libs/cpp` jest include rootem: `async/result.h`, `platform/securestorage.h`, `qmlutils/qmlregistrator.h`, `agent/agentcontroller.h`. Targety: `app_<katalog>`.
+- Typy QML z runtime (`AppLoader`, `ChatAgent`, `AppRegistry`) rejestruje `main.cpp` przez `QmlRegistrator` — bez `QML_ELEMENT`, bo `qanvas_runtime` to zwykła biblioteka statyczna.
+- `Theme.qml` dziedziczy po `DefaultTheme` z modułu `Themed.Theme` i **nie importuje `Themed.Components`** (cykl). Nadpisuje tylko to, co jest specyficzne dla qanvasa.
+- Debug build: `cmake -B build-desktop -DCMAKE_BUILD_TYPE=Debug`, testy `ctest --test-dir build-desktop`, format `cmake --build build-desktop --target format_check`.
+- Aplikację uruchamiaj przez `python3 libs/tools/ui_session.py start --platform offscreen` i steruj `python3 libs/tools/ui_driver.py …` (skill `ui-session`); log w `tmp/ui_session/app.log`. Android: `libs/scripts/build-android.sh debug apk`, AppImage: `libs/scripts/build-appimage.sh`.
+
 ## Układ `src/runtime`
 
 - `app/` — aplikacja na dysku: `App` (id, katalog, ścieżki), `AppFiles`, `AppRegistry` (lista apek i uprawnienia w `system.db`), `AppSchema` (tabele w `app.db` apki, tylko do odczytu), `AppCompiler`, `AppWarnings`.

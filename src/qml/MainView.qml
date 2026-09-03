@@ -35,7 +35,7 @@ AppShell {
 
     pages: [
         { name: "navChat", icon: Theme.icons.chat, screen: root.chatPage },
-        { name: "navApp", icon: Theme.icons.app, screen: root.appPage }
+        { name: "navApp", icon: Theme.icons.aiApp, screen: root.appPage }
     ]
 
     ChatAgent {
