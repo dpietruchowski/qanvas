@@ -294,6 +294,27 @@ DefaultTheme {
         readonly property color doneDetail: theme.colors.textSecondary
     }
 
+    property QtObject agentBar: QtObject {
+        readonly property color background: theme.colors.surface
+        readonly property color border: theme.colors.border
+        readonly property int radius: theme.radius.large
+        readonly property int padding: theme.padding.medium
+        readonly property int headerHeight: theme.scaled(44)
+        readonly property int headerSpacing: theme.spacing.small
+        readonly property int spinnerSize: theme.scaled(16)
+        readonly property int spinnerDotSize: theme.scaled(3)
+        readonly property int iconSize: theme.icon.small
+        readonly property color idleIcon: theme.colors.textMuted
+        readonly property int fontSize: theme.fontSize.small
+        readonly property string fontFamily: "monospace"
+        readonly property color runningText: theme.colors.textPrimary
+        readonly property color idleText: theme.colors.textMuted
+        readonly property color counterText: theme.colors.textDisabled
+        readonly property int logMaxHeight: theme.scaled(200)
+        readonly property int logSpacing: theme.spacing.medium
+        readonly property int expandDuration: 180
+    }
+
     property QtObject chatBubble: QtObject {
         readonly property QtObject user: QtObject {
             readonly property color background: theme.colors.surface

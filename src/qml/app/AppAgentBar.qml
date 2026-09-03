@@ -14,7 +14,6 @@ Rectangle {
     readonly property var lastActivity: root.activities.length > 0
                                         ? root.activities[root.activities.length - 1]
                                         : null
-    readonly property bool working: root.lastActivity !== null && root.lastActivity.running
     readonly property int doneCount: {
         var count = 0
         for (var i = 0; i < root.activities.length; ++i) {
@@ -36,7 +35,6 @@ Rectangle {
     }
 
     color: Theme.agentBar.background
-    opacity: Theme.agentBar.overlayOpacity
     radius: Theme.agentBar.radius
     border.width: Theme.border.thin
     border.color: Theme.agentBar.border
@@ -119,11 +117,17 @@ Rectangle {
         }
 
         Item {
+            id: reveal
+
+            property real revealedHeight: root.expanded
+                                          ? content.implicitHeight + Theme.agentBar.padding
+                                          : 0
+
             Layout.fillWidth: true
-            Layout.preferredHeight: root.expanded ? content.implicitHeight : 0
+            Layout.preferredHeight: reveal.revealedHeight
             clip: true
 
-            Behavior on Layout.preferredHeight {
+            Behavior on revealedHeight {
                 NumberAnimation {
                     duration: Theme.agentBar.expandDuration
                     easing.type: Easing.InOutQuad
@@ -140,6 +144,7 @@ Rectangle {
                 anchors.rightMargin: Theme.agentBar.padding
                 anchors.bottomMargin: Theme.agentBar.padding
                 spacing: Theme.agentBar.logSpacing
+                enabled: root.expanded
 
                 ThemedScroll {
                     id: logScroll
