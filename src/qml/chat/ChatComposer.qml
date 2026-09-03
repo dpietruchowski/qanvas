@@ -34,7 +34,7 @@ Item {
         TextField {
             id: field
 
-            objectName: "chatComposerInput"
+            objectName: root.objectName !== "" ? root.objectName + "Input" : ""
             anchors.left: parent.left
             anchors.leftMargin: Theme.input.paddingH
             anchors.right: sendButton.left
@@ -54,7 +54,7 @@ Item {
         ThemedButton {
             id: sendButton
 
-            objectName: "chatSendButton"
+            objectName: root.objectName !== "" ? root.objectName + "Send" : ""
             anchors.right: parent.right
             anchors.rightMargin: (parent.height - height) / 2
             anchors.verticalCenter: parent.verticalCenter

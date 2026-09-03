@@ -14,7 +14,7 @@ Column {
         model: root.activities
 
         ChatActivityLine {
-            objectName: "chatActivity" + index
+            objectName: root.objectName !== "" ? root.objectName + index : ""
             width: root.width
             text: modelData.text
             detail: modelData.detail

@@ -21,8 +21,11 @@ AppShell {
         id: appsView
 
         openedId: agent.lastAppId
+        activities: agent.activities
+        busy: agent.busy
 
         onAppActivated: function (id) { agent.openApp(id) }
+        onSent: function (text) { agent.send(text) }
 
         Connections {
             target: agent

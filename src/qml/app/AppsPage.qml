@@ -8,12 +8,17 @@ ThemedPage {
 
     property string openedId: ""
     property string removingId: ""
+    property alias activities: agentBar.activities
+    property alias busy: agentBar.busy
 
     signal appActivated(string id)
+    signal sent(string text)
 
     function open(id) {
-        root.openedId = id
-        stage.reload()
+        if (root.openedId === id)
+            stage.reload()
+        else
+            root.openedId = id
     }
 
     objectName: "appsPage"
@@ -62,6 +67,19 @@ ThemedPage {
         anchors.fill: parent
         visible: root.openedId !== ""
         appId: root.openedId
+    }
+
+    AppAgentBar {
+        id: agentBar
+
+        objectName: "appAgentBar"
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        z: 1
+        visible: root.openedId !== ""
+
+        onSent: function (text) { root.sent(text) }
     }
 
     ThemedDialog {
