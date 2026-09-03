@@ -63,7 +63,7 @@ void AppLoader::load()
         return;
     }
 
-    m_app = new AppContext(m_appId, dir, this);
+    m_app = new AppContext(m_appId, dir, engine, this);
     m_notes = new NotesBridge(m_appId, AppRegistry::instance(), this);
     m_tasks = new TasksBridge(m_appId, AppRegistry::instance(), this);
     m_context = new QQmlContext(engine->rootContext(), this);

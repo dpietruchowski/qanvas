@@ -1,14 +1,20 @@
 #pragma once
 
+#include <QMap>
 #include <QString>
 #include <QStringList>
 
 #include "async/result.h"
 
+using AppSources = QMap<QString, QString>;
+
 class AppFiles
 {
 public:
     explicit AppFiles(QString dir);
+
+    AppSources snapshot() const;
+    void restore(const AppSources& sources) const;
 
     Result<QString> list() const;
     Result<QString> outline() const;

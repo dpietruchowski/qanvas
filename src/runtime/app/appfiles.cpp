@@ -428,6 +428,36 @@ QString AppFiles::resolve(const QString& path, QString* error) const
     return m_dir + QLatin1Char('/') + path;
 }
 
+AppSources AppFiles::snapshot() const
+{
+    AppSources sources;
+    const QStringList names = sourceNames();
+    for (const QString& name : names)
+    {
+        QString content;
+        QString error;
+        if (loadFile(m_dir + QLatin1Char('/') + name, &content, &error))
+            sources.insert(name, content);
+    }
+    return sources;
+}
+
+void AppFiles::restore(const AppSources& sources) const
+{
+    const QStringList names = sourceNames();
+    for (const QString& name : names)
+    {
+        if (!sources.contains(name))
+            QFile::remove(m_dir + QLatin1Char('/') + name);
+    }
+
+    for (auto it = sources.cbegin(); it != sources.cend(); ++it)
+    {
+        QString error;
+        saveFile(m_dir + QLatin1Char('/') + it.key(), it.value(), &error);
+    }
+}
+
 QStringList AppFiles::sourceNames() const
 {
     if (m_dir.isEmpty())

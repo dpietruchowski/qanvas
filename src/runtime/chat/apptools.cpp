@@ -38,6 +38,8 @@ const char* kReadFileDocstring
       "@details Reads one source file of an app, numbered by line\n"
       "@param app (string) app id\n"
       "@param path (string) file name, such as Main.qml\n"
+      "@param from (integer) first line to read, 0 or 1 for the start of the file\n"
+      "@param lines (integer) how many lines to read, 0 for the whole file\n"
       "@return the numbered file, or the names of the files the app does have";
 
 const char* kSearchFilesDocstring
@@ -113,6 +115,11 @@ QString argument(const QVariantMap& arguments, const char* name)
     return arguments.value(QString::fromLatin1(name)).toString();
 }
 
+int number(const QVariantMap& arguments, const char* name)
+{
+    return arguments.value(QString::fromLatin1(name)).toInt();
+}
+
 QString invalidId(const QString& id)
 {
     return QStringLiteral("Invalid app id \"%1\": use 1-32 characters of a-z, 0-9 and -").arg(id);
@@ -121,6 +128,13 @@ QString invalidId(const QString& id)
 QString doesNotLoad(const QString& error)
 {
     return QStringLiteral("Saved, but the app does not load:\n%1").arg(error);
+}
+
+QString wasRolledBack(const QString& error)
+{
+    return QStringLiteral("Rejected and undone — the app still runs the version it ran before. "
+                          "It would not have loaded:\n%1")
+        .arg(error);
 }
 
 QString raisedWhileLoading(const QStringList& lines)
@@ -172,7 +186,11 @@ void AppTools::registerTools()
 
     addFileTool(kReadFileDocstring, { "reading", "read", "could not read", "path" }, false,
                 [](AppFiles& files, const QVariantMap& arguments)
-                { return files.read(argument(arguments, "path")); });
+                {
+                    const int from = qMax(1, number(arguments, "from"));
+                    return files.read(argument(arguments, "path"), from,
+                                      qMax(0, number(arguments, "lines")));
+                });
 
     addFileTool(kSearchFilesDocstring,
                 { "searching for", "searched for", "could not search for", "text" }, false,
@@ -317,6 +335,7 @@ void AppTools::addCreateAppTool()
             }
 
             AppFiles files(app.dir());
+            const AppSources previous = files.snapshot();
             const Result<QString> written
                 = files.write(QStringLiteral("Main.qml"), argument(arguments, "qml"));
             if (written.isFailure())
@@ -336,7 +355,7 @@ void AppTools::addCreateAppTool()
             }
 
             m_registry.record(id, argument(arguments, "title"));
-            show(app, QStringLiteral("ok"), index, done);
+            show(app, QStringLiteral("ok"), index, done, previous);
         });
 }
 
@@ -375,6 +394,7 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
                              }
 
                              AppFiles files(app.dir());
+                             const AppSources previous = files.snapshot();
                              const Result<QString> result = operation(files, arguments);
                              if (result.isFailure() || !reloads)
                              {
@@ -382,7 +402,7 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
                                  return;
                              }
 
-                             show(app, result.value(), index, done);
+                             show(app, result.value(), index, done, previous);
                          });
 }
 
@@ -401,12 +421,22 @@ void AppTools::finish(int index, const Result<QString>& result, const ToolDone& 
     done(result.isSuccess() ? result.value() : result.error());
 }
 
-void AppTools::show(const App& app, const QString& result, int index, const ToolDone& done)
+void AppTools::show(const App& app, const QString& result, int index, const ToolDone& done,
+                    const AppSources& restoreTo)
 {
     const Result<void> compiled
         = m_engine ? AppCompiler(*m_engine).compile(app) : Result<void>::success();
     if (m_warnings)
         m_warnings->clear(app.id());
+
+    if (compiled.isFailure() && !restoreTo.isEmpty())
+    {
+        AppFiles(app.dir()).restore(restoreTo);
+        emit appShown(app.id());
+        finish(index, Result<QString>::failure(wasRolledBack(compiled.error())), done);
+        return;
+    }
+
     emit appShown(app.id());
 
     if (compiled.isFailure())

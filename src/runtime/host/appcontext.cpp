@@ -1,6 +1,7 @@
 #include "runtime/host/appcontext.h"
 
 #include <QDir>
+#include <QJSEngine>
 #include <QRegularExpression>
 #include <QSqlDatabase>
 #include <QSqlError>
@@ -10,6 +11,12 @@
 
 namespace
 {
+
+QString nextConnectionName(const QString& id)
+{
+    static int serial = 0;
+    return QStringLiteral("qanvas_app_%1_%2").arg(id).arg(++serial);
+}
 
 // Reaching another app's data means going through the runtime, never through
 // SQL. These are the only two statements that can leave the app's own file.
@@ -41,10 +48,11 @@ void bindParams(QSqlQuery& q, const QVariant& params)
 
 }  // namespace
 
-AppContext::AppContext(const QString& id, const QString& dir, QObject* parent)
+AppContext::AppContext(const QString& id, const QString& dir, QJSEngine* engine, QObject* parent)
     : QObject(parent)
+    , m_engine(engine)
     , m_id(id)
-    , m_connectionName(QStringLiteral("qanvas_app_") + id)
+    , m_connectionName(nextConnectionName(id))
 {
     m_open = open(dir);
 }
@@ -126,7 +134,10 @@ QVariantList AppContext::query(const QString& sql, const QVariant& params)
     {
         QVariantMap row;
         for (int i = 0; i < columns; ++i)
-            row.insert(record.fieldName(i), q.value(i));
+        {
+            const QVariant value = q.value(i);
+            row.insert(record.fieldName(i), value.isNull() ? QVariant() : value);
+        }
         rows.append(row);
     }
 
@@ -146,6 +157,9 @@ bool AppContext::exec(const QString& sql, const QVariant& params)
 
 void AppContext::setError(const QString& message)
 {
+    if (!message.isEmpty() && m_engine)
+        m_engine->throwError(message);
+
     if (m_lastError == message)
         return;
     m_lastError = message;

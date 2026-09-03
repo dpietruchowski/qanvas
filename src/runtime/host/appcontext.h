@@ -5,6 +5,7 @@
 #include <QVariant>
 #include <QVariantList>
 
+class QJSEngine;
 class QSqlQuery;
 
 // The generated app's whole view of the world, exposed to its QML as "App".
@@ -29,7 +30,8 @@ class AppContext : public QObject
     Q_PROPERTY(int revision READ revision NOTIFY changed)
 
 public:
-    AppContext(const QString& id, const QString& dir, QObject* parent = nullptr);
+    AppContext(const QString& id, const QString& dir, QJSEngine* engine = nullptr,
+               QObject* parent = nullptr);
     ~AppContext() override;
 
     QString id() const { return m_id; }
@@ -58,6 +60,7 @@ private:
     void setError(const QString& message);
     void clearError();
 
+    QJSEngine* m_engine = nullptr;
     QString m_id;
     QString m_connectionName;
     QString m_lastError;
