@@ -6,6 +6,7 @@ add_executable(qanvas_tests
     apptest.cpp
     appfilestest.cpp
     appregistrytest.cpp
+    appschematest.cpp
     appcompilertest.cpp
     appwarningstest.cpp
     apptoolstest.cpp
@@ -21,6 +22,8 @@ add_executable(qanvas_tests
     ../runtime/app/appfiles.cpp
     ../runtime/app/appregistry.h
     ../runtime/app/appregistry.cpp
+    ../runtime/app/appschema.h
+    ../runtime/app/appschema.cpp
     ../runtime/app/appcompiler.h
     ../runtime/app/appcompiler.cpp
     ../runtime/app/appwarnings.h

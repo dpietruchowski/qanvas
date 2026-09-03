@@ -77,6 +77,33 @@ TEST_F(AppFilesTest, ListsSourceFilesWithLineCounts)
     EXPECT_EQ(listed.value(), QStringLiteral("Main.qml 12L\nNoteRow.qml 5L"));
 }
 
+TEST_F(AppFilesTest, OutlineNamesTheFunctionsOfEachFile)
+{
+    files.write(QStringLiteral("Data.qml"),
+                QStringLiteral("import QtQuick\n"
+                               "QtObject {\n"
+                               "    function setup() {\n"
+                               "        App.exec(\"CREATE TABLE IF NOT EXISTS items (id INTEGER "
+                               "PRIMARY KEY)\")\n"
+                               "    }\n"
+                               "    function addItem( text,  done ) { return App.exec(\"...\") }\n"
+                               "    property var functionLike: 1\n"
+                               "}\n"));
+    files.write(QStringLiteral("Main.qml"), kMain);
+    files.write(QStringLiteral("helpers.js"), QStringLiteral("function pad(n) { return n }\n"));
+
+    const Result<QString> outlined = files.outline();
+
+    ASSERT_TRUE(outlined.isSuccess());
+    EXPECT_EQ(outlined.value(),
+              QStringLiteral("Data.qml 8L\n"
+                             "  setup()\n"
+                             "  addItem(text, done)\n"
+                             "Main.qml 12L\n"
+                             "helpers.js 1L\n"
+                             "  pad(n)"));
+}
+
 TEST_F(AppFilesTest, ReadsTheWholeFileWithLineNumbers)
 {
     files.write(QStringLiteral("Main.qml"), kMain);

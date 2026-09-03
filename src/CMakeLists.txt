@@ -33,6 +33,8 @@ qt_add_qml_module(appqanvas
         runtime/app/appfiles.cpp
         runtime/app/appregistry.h
         runtime/app/appregistry.cpp
+        runtime/app/appschema.h
+        runtime/app/appschema.cpp
         runtime/app/appcompiler.h
         runtime/app/appcompiler.cpp
         runtime/app/appwarnings.h

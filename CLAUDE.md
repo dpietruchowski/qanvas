@@ -11,7 +11,7 @@ Zamysł: aplikacje pisze agent LLM na żądanie użytkownika. Zarys w [doc/idea.
 
 ## Układ `src/runtime`
 
-- `app/` — aplikacja na dysku: `App` (id, katalog, ścieżki), `AppFiles`, `AppRegistry` (lista apek i uprawnienia w `system.db`), `AppCompiler`, `AppWarnings`.
+- `app/` — aplikacja na dysku: `App` (id, katalog, ścieżki), `AppFiles`, `AppRegistry` (lista apek i uprawnienia w `system.db`), `AppSchema` (tabele w `app.db` apki, tylko do odczytu), `AppCompiler`, `AppWarnings`.
 - `storage/` — store'y na `system.db`: `SystemDatabase`, `ChatStore`, `NotesStore`, `TasksStore`.
 - `host/` — to, co widzi działająca apka: `AppLoader`, `AppContext` (`App` w QML), `StoreBridge` i mostki `NotesBridge`/`TasksBridge` (`Notes`/`Tasks` w QML, za uprawnieniem z `AppRegistry`).
 - `chat/` — strona agenta: `ChatAgent`, `AppTools` (toole), `ChatThread`.

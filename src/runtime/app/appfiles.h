@@ -11,6 +11,7 @@ public:
     explicit AppFiles(QString dir);
 
     Result<QString> list() const;
+    Result<QString> outline() const;
     Result<QString> read(const QString& path, int firstLine = 1, int lineCount = 0) const;
     Result<QString> grep(const QString& text, int context = 2,
                          const QString& path = QString()) const;

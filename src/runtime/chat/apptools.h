@@ -49,6 +49,7 @@ private:
     void registerTools();
     void addCreateAppTool();
     void addDeleteAppTool();
+    void addDescribeAppTool();
     void addReadLogTool();
     void addGrantAccessTool();
     void addFileTool(const char* docstring, const Activity& activity, bool reloads,

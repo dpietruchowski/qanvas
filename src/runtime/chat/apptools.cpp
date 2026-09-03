@@ -4,6 +4,7 @@
 #include "runtime/app/appcompiler.h"
 #include "runtime/app/appfiles.h"
 #include "runtime/app/appregistry.h"
+#include "runtime/app/appschema.h"
 #include "runtime/app/appwarnings.h"
 #include "runtime/host/notesbridge.h"
 #include "runtime/host/tasksbridge.h"
@@ -78,6 +79,13 @@ const char* kDeleteAppDocstring
       "only when the user asked to remove that app\n"
       "@param app (string) app id\n"
       "@return confirmation, or the reason it was refused";
+
+const char* kDescribeAppDocstring
+    = "@brief describe_app\n"
+      "@details Shows what an app is made of: every source file with the functions it defines, "
+      "and every table in the app's database with its CREATE statement and row count\n"
+      "@param app (string) app id\n"
+      "@return the files with their functions, then the tables";
 
 const char* kReadLogDocstring
     = "@brief read_log\n"
@@ -185,9 +193,39 @@ void AppTools::registerTools()
                 [](AppFiles& files, const QVariantMap& arguments)
                 { return files.remove(argument(arguments, "path")); });
 
+    addDescribeAppTool();
     addDeleteAppTool();
     addReadLogTool();
     addGrantAccessTool();
+}
+
+void AppTools::addDescribeAppTool()
+{
+    m_controller.addTool(QString::fromLatin1(kDescribeAppDocstring),
+                         [this](QVariantMap arguments, ToolDone done)
+                         {
+                             const Activity activity { "inspecting", "inspected",
+                                                       "could not inspect", "app" };
+                             const int index = beginActivity(activity, arguments);
+                             const App app(argument(arguments, "app"));
+                             if (const std::optional<QString> refused = refusal(app))
+                             {
+                                 finish(index, Result<QString>::failure(*refused), done);
+                                 return;
+                             }
+
+                             const Result<QString> files = AppFiles(app.dir()).outline();
+                             if (files.isFailure())
+                             {
+                                 finish(index, files, done);
+                                 return;
+                             }
+
+                             finish(index,
+                                    Result<QString>::success(files.value() + QStringLiteral("\n\n")
+                                                             + AppSchema(app).describe()),
+                                    done);
+                         });
 }
 
 void AppTools::addGrantAccessTool()

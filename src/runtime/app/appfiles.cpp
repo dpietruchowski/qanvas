@@ -25,6 +25,26 @@ const QRegularExpression& namePattern()
 
 bool isSourceName(const QString& name) { return namePattern().match(name).hasMatch(); }
 
+const QRegularExpression& functionPattern()
+{
+    static const QRegularExpression pattern(
+        QStringLiteral("^\\s*function\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\(([^)]*)\\)"));
+    return pattern;
+}
+
+QStringList functionsIn(const QStringList& lines)
+{
+    QStringList functions;
+    for (const QString& line : lines)
+    {
+        const QRegularExpressionMatch match = functionPattern().match(line);
+        if (match.hasMatch())
+            functions.append(match.captured(1) + QLatin1Char('(') + match.captured(2).simplified()
+                             + QLatin1Char(')'));
+    }
+    return functions;
+}
+
 QString elide(const QString& text)
 {
     if (text.size() <= kMaxLineLength)
@@ -117,6 +137,33 @@ Result<QString> AppFiles::list() const
     }
 
     return Result<QString>::success(lines.join(QLatin1Char('\n')));
+}
+
+Result<QString> AppFiles::outline() const
+{
+    if (m_dir.isEmpty())
+        return Result<QString>::failure(QStringLiteral("No app directory"));
+
+    const QStringList names = sourceNames();
+    if (names.isEmpty())
+        return Result<QString>::failure(QStringLiteral("No files"));
+
+    QStringList out;
+    for (const QString& name : names)
+    {
+        QString content;
+        QString error;
+        if (!loadFile(m_dir + QLatin1Char('/') + name, &content, &error))
+            continue;
+
+        const QStringList lines = splitLines(content);
+        out.append(QStringLiteral("%1 %2L").arg(name).arg(lines.size()));
+        const QStringList functions = functionsIn(lines);
+        for (const QString& function : functions)
+            out.append(QStringLiteral("  ") + function);
+    }
+
+    return Result<QString>::success(out.join(QLatin1Char('\n')));
 }
 
 Result<QString> AppFiles::read(const QString& path, int firstLine, int lineCount) const

@@ -405,6 +405,39 @@ TEST_F(AppToolsTest, GrantAccessRefusesAnAppThatIsNotThere)
     EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
 }
 
+TEST_F(AppToolsTest, DescribeAppListsFunctionsAndTables)
+{
+    run({ ScriptedClient::toolCall(
+              QStringLiteral("create_app"),
+              QVariantMap { { QStringLiteral("id"), QStringLiteral("notes") },
+                            { QStringLiteral("title"), QStringLiteral("Notatki") },
+                            { QStringLiteral("qml"),
+                              QStringLiteral("import QtQuick\nItem {\n    function greet(name) { "
+                                             "return name }\n}\n") } }),
+          ScriptedClient::toolCall(
+              QStringLiteral("describe_app"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("seen")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("Main.qml 4L")));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("greet(name)")));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No database yet")));
+    EXPECT_EQ(shown.size(), 1);
+    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(), QStringLiteral("inspected"));
+    EXPECT_EQ(activity(1).value(QStringLiteral("detail")).toString(), QStringLiteral("notes"));
+}
+
+TEST_F(AppToolsTest, DescribeAppRefusesAnAppThatIsNotThere)
+{
+    run({ ScriptedClient::toolCall(
+              QStringLiteral("describe_app"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No app")));
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
 TEST_F(AppToolsTest, DeleteAppRefusesAnAppThatIsNotThere)
 {
     run({ ScriptedClient::toolCall(
