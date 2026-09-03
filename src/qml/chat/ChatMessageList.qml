@@ -9,6 +9,8 @@ ListView {
     property var activities: []
     property bool busy: false
     property string userRole: "user"
+    readonly property bool working: root.activities.length > 0
+                                    && root.activities[root.activities.length - 1].running
 
     model: root.messages
     spacing: Theme.chat.messageSpacing
@@ -38,10 +40,11 @@ ListView {
             activities: root.activities
         }
 
-        TypingDots {
-            objectName: "typingDots"
-            visible: root.busy
-            running: root.busy
+        ChatThinking {
+            objectName: "chatThinking"
+            width: parent.width
+            visible: root.busy && !root.working
+            running: visible
         }
     }
 }

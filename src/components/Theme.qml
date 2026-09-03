@@ -161,8 +161,6 @@ QtObject {
         property int fontSize: theme.fontSize.normal
         property int lineSpacing: 4
         property int messageSpacing: theme.spacing.large
-        property int dotSize: 7
-        property int dotSpacing: theme.spacing.small
         property int composerHeight: 52
         property int headerHeight: 48
     }
@@ -174,6 +172,7 @@ QtObject {
         property int markerRadius: 2
         property int fontSize: theme.fontSize.small
         property string fontFamily: "monospace"
+        property int tickInterval: 1000
         property color runningMarker: theme.colors.primary
         property color doneMarker: theme.colors.textDisabled
         property color failedMarker: theme.colors.danger
