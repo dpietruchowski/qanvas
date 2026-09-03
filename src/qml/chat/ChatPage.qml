@@ -13,17 +13,37 @@ ThemedPage {
 
     signal sent(string text)
     signal settingsClicked()
+    signal newChatRequested()
 
     objectName: "chatPage"
     showBackButton: true
 
-    headerAction: ThemedButton {
-        objectName: "chatSettingsButton"
-        buttonSize: Theme.button.icon
-        buttonStyle: Theme.button.ghost
-        iconSource: Theme.icons.settings
+    headerAction: ThemedRow {
+        spacing: Theme.spacing.small
 
-        onClicked: root.settingsClicked()
+        ThemedButton {
+            objectName: "chatNewButton"
+            Layout.alignment: Qt.AlignVCenter
+            buttonSize: Theme.button.small
+            buttonStyle: Theme.button.subtle
+            pill: true
+            text: qsTr("New")
+            iconSource: Theme.icons.plus
+            iconColor: Theme.colors.primary
+            enabled: !root.busy
+
+            onClicked: root.newChatRequested()
+        }
+
+        ThemedButton {
+            objectName: "chatSettingsButton"
+            Layout.alignment: Qt.AlignVCenter
+            buttonSize: Theme.button.icon
+            buttonStyle: Theme.button.ghost
+            iconSource: Theme.icons.settings
+
+            onClicked: root.settingsClicked()
+        }
     }
 
     ColumnLayout {

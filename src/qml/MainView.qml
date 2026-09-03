@@ -14,6 +14,7 @@ AppShell {
 
         onSent: function (text) { agent.send(text) }
         onSettingsClicked: settingsPanel.open()
+        onNewChatRequested: agent.clear()
     }
 
     property Component appPage: AppsPage {
