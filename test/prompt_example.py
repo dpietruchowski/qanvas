@@ -47,7 +47,19 @@ def parse_steps(text):
         found = PATH.search(lines[i])
         path = found.group(1) if found else "Main.qml"
         i += 1
-        if tool in ("create_app", "write_file"):
+        if tool == "create_app":
+            sections = {}
+            current = None
+            while not lines[i].startswith("    -> "):
+                if lines[i].strip() in ("qml=", "data="):
+                    current = "Main.qml" if lines[i].strip() == "qml=" else "Data.qml"
+                    sections[current] = []
+                else:
+                    sections[current].append(lines[i])
+                i += 1
+            for name, body in sections.items():
+                steps.append((tool, name, textwrap.dedent("\n".join(body)).strip("\n") + "\n"))
+        elif tool == "write_file":
             body = []
             while not lines[i].startswith("    -> "):
                 body.append(lines[i])

@@ -102,6 +102,22 @@ TEST_F(AppToolsTest, CreateAppWritesTheEntryFileAndRegistersTheApp)
     EXPECT_EQ(controller.lastResponse(), QStringLiteral("done"));
 }
 
+TEST_F(AppToolsTest, CreateAppWritesTheDataComponentBesideTheEntryFile)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")] = QStringLiteral("import QtQuick\nItem { Data { id: db } }\n");
+    arguments[QStringLiteral("data")]
+        = QStringLiteral("import QtQuick\nQtObject { function setup() {} }\n");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_EQ(readAll(App(QStringLiteral("notes")).dir() + QStringLiteral("/Data.qml")),
+              arguments.value(QStringLiteral("data")).toString());
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("\"value\":\"ok\"")));
+    EXPECT_FALSE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
 TEST_F(AppToolsTest, CreateAppLogsOneBuiltStepNamedAfterTheTitle)
 {
     run({ ScriptedClient::toolCall(QStringLiteral("create_app"),

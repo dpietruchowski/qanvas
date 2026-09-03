@@ -18,11 +18,13 @@ const int kSettleMs = 300;
 
 const char* kCreateAppDocstring
     = "@brief create_app\n"
-      "@details Creates an app from its Main.qml and runs it at once, replacing an app of the same "
-      "id\n"
+      "@details Creates an app from its Main.qml and Data.qml and runs it at once, replacing an "
+      "app of the same id\n"
       "@param id (string) lowercase slug naming the app, 1-32 characters of a-z, 0-9 and -\n"
       "@param title (string) short human name for the app list\n"
       "@param qml (string) the complete Main.qml source\n"
+      "@param data (string) the complete Data.qml source, or an empty string when the app keeps "
+      "no data\n"
       "@return ok, or the reason the app was rejected, does not load, or raised errors while "
       "loading";
 
@@ -314,11 +316,22 @@ void AppTools::addCreateAppTool()
                 return;
             }
 
+            AppFiles files(app.dir());
             const Result<QString> written
-                = AppFiles(app.dir()).write(QStringLiteral("Main.qml"), argument(arguments, "qml"));
+                = files.write(QStringLiteral("Main.qml"), argument(arguments, "qml"));
             if (written.isFailure())
             {
                 finish(index, written, done);
+                return;
+            }
+
+            const QString data = argument(arguments, "data");
+            const Result<QString> dataWritten
+                = data.trimmed().isEmpty() ? Result<QString>::success(QString())
+                                           : files.write(QStringLiteral("Data.qml"), data);
+            if (dataWritten.isFailure())
+            {
+                finish(index, dataWritten, done);
                 return;
             }
 
