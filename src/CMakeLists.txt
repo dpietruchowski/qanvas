@@ -63,6 +63,14 @@ qt_add_qml_module(appqanvas
         runtime/chat/chatthread.cpp
         runtime/chat/chatagent.h
         runtime/chat/chatagent.cpp
+        runtime/chat/systemprompt.h
+        runtime/chat/systemprompt.cpp
+)
+
+qt_add_resources(appqanvas "systemprompt"
+    PREFIX "/qanvas"
+    BASE runtime/chat
+    FILES runtime/chat/systemprompt.txt
 )
 
 target_include_directories(appqanvas PRIVATE

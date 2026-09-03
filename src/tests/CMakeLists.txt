@@ -16,6 +16,7 @@ add_executable(qanvas_tests
     notesbridgetest.cpp
     tasksstoretest.cpp
     tasksbridgetest.cpp
+    systemprompttest.cpp
     ../runtime/app/app.h
     ../runtime/app/app.cpp
     ../runtime/app/appfiles.h
@@ -46,6 +47,14 @@ add_executable(qanvas_tests
     ../runtime/chat/apptools.cpp
     ../runtime/chat/chatthread.h
     ../runtime/chat/chatthread.cpp
+    ../runtime/chat/systemprompt.h
+    ../runtime/chat/systemprompt.cpp
+)
+
+qt_add_resources(qanvas_tests "systemprompt"
+    PREFIX "/qanvas"
+    BASE ../runtime/chat
+    FILES ../runtime/chat/systemprompt.txt
 )
 
 target_include_directories(qanvas_tests PRIVATE

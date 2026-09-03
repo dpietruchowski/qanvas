@@ -14,9 +14,11 @@ Zamysł: aplikacje pisze agent LLM na żądanie użytkownika. Zarys w [doc/idea.
 - `app/` — aplikacja na dysku: `App` (id, katalog, ścieżki), `AppFiles`, `AppRegistry` (lista apek i uprawnienia w `system.db`), `AppSchema` (tabele w `app.db` apki, tylko do odczytu), `AppCompiler`, `AppWarnings`.
 - `storage/` — store'y na `system.db`: `SystemDatabase`, `ChatStore`, `NotesStore`, `TasksStore`.
 - `host/` — to, co widzi działająca apka: `AppLoader`, `AppContext` (`App` w QML), `StoreBridge` i mostki `NotesBridge`/`TasksBridge` (`Notes`/`Tasks` w QML, za uprawnieniem z `AppRegistry`).
-- `chat/` — strona agenta: `ChatAgent`, `AppTools` (toole), `ChatThread`.
+- `chat/` — strona agenta: `ChatAgent`, `AppTools` (toole), `ChatThread`, prompt systemowy w `systemprompt.txt` (zasób `:/qanvas/systemprompt.txt`, ładowany przez `SystemPrompt::text()`).
 
-Nowy współdzielony store = klasa w `storage/`, mostek dziedziczący po `StoreBridge` w `host/`, wpis w `sharedStores()` w `apptools.cpp`, akapit w prompcie systemowym i testy.
+Prompt jest maszyną stanów (ROUTE → DESIGN → BUILD, INSPECT → MODIFY, FIX, DEBUG, DONE) z przykładami; przykładowe pliki i edycje z promptu muszą naprawdę się ładować — `python3 test/prompt_example.py` wyciąga je z promptu i uruchamia offscreen (debug build w `build-desktop`). Nowy tool albo komponent = wpis w prompcie i w `systemprompttest.cpp`.
+
+Nowy współdzielony store = klasa w `storage/`, mostek dziedziczący po `StoreBridge` w `host/`, wpis w `sharedStores()` w `apptools.cpp`, akapit SHARED STORES w `systemprompt.txt` i testy.
 
 ## Komentarze
 
