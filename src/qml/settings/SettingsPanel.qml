@@ -11,14 +11,13 @@ ThemedPanel {
     property string modelName: ""
     property var reasoningLevels: ["Minimal", "Low", "Medium", "High"]
     property string reasoning: ""
-    property string apiKey: ""
+    property string apiKeyPreview: ""
     property string apiKeyHint: ""
 
     signal providerSelected(string provider)
     signal modelNameEdited(string modelName)
     signal reasoningSelected(string reasoning)
     signal apiKeyEdited(string apiKey)
-    signal apiKeyReplaceRequested()
 
     objectName: "settingsPanel"
     contentSpacing: Theme.settings.sectionSpacing
@@ -67,16 +66,13 @@ ThemedPanel {
         Layout.fillWidth: true
         label: qsTr("API key")
 
-        SettingsField {
+        SettingsSecretField {
             objectName: "settingsApiKey"
             Layout.fillWidth: true
-            text: root.apiKey
+            preview: root.apiKeyPreview
             placeholder: root.apiKeyHint
-            masked: true
-            actionText: qsTr("Replace")
 
-            onEdited: function (text) { root.apiKeyEdited(text) }
-            onActionTriggered: root.apiKeyReplaceRequested()
+            onAccepted: function (apiKey) { root.apiKeyEdited(apiKey) }
         }
     }
 }

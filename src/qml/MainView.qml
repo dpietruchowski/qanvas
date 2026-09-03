@@ -60,13 +60,12 @@ AppShell {
         provider: agent.provider
         modelName: agent.model
         reasoning: agent.reasoning
-        apiKey: agent.apiKey
+        apiKeyPreview: agent.apiKeyPreview
         apiKeyHint: agent.apiKeyHint
 
         onProviderSelected: function (provider) { agent.provider = provider }
         onModelNameEdited: function (modelName) { agent.model = modelName }
         onReasoningSelected: function (reasoning) { agent.reasoning = reasoning }
         onApiKeyEdited: function (apiKey) { agent.apiKey = apiKey }
-        onApiKeyReplaceRequested: agent.apiKey = ""
     }
 }

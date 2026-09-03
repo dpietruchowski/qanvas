@@ -10,10 +10,20 @@ Rectangle {
     property string placeholder: ""
     property bool masked: false
     property bool monospace: false
+    property bool readOnly: false
     property string actionText: ""
 
     signal edited(string text)
     signal actionTriggered()
+
+    function focusInput() {
+        field.forceActiveFocus()
+    }
+
+    onTextChanged: {
+        if (field.text !== root.text)
+            field.text = root.text
+    }
 
     implicitHeight: Theme.settings.fieldHeight
     radius: Theme.settings.fieldRadius
@@ -39,6 +49,8 @@ Rectangle {
         font.pixelSize: Theme.settings.fieldFontSize
         font.family: root.monospace ? Theme.settings.monoFamily : Theme.settings.fontFamily
         echoMode: root.masked ? TextInput.Password : TextInput.Normal
+        readOnly: root.readOnly
+        activeFocusOnPress: !root.readOnly
         verticalAlignment: Text.AlignVCenter
 
         onTextEdited: root.edited(text)

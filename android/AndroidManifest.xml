@@ -5,10 +5,8 @@
     android:versionCode="-- %%INSERT_VERSION_CODE%% --"
     android:versionName="-- %%INSERT_VERSION_NAME%% --">
 
-    <!-- Uncomment once the app talks to the network (see android_openssl in CMakeLists.txt).
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    -->
 
     <supports-screens
         android:anyDensity="true"

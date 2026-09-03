@@ -12,6 +12,10 @@
 #include <QQmlEngine>
 #include <QSettings>
 #include <QVariantMap>
+#ifdef QANVAS_KEY_IMPORT
+#include <QFile>
+#include <QStandardPaths>
+#endif
 
 namespace
 {
@@ -23,6 +27,9 @@ const char* kClaudeCliProvider = "Claude CLI";
 const char* kDefaultProvider = "OpenAI";
 const char* kDefaultModel = "gpt-5-mini";
 const char* kDefaultReasoning = "Minimal";
+#ifdef QANVAS_KEY_IMPORT
+const char* kImportFileName = "/import_keys.ini";
+#endif
 
 bool isClaudeCli(const QString& provider)
 {
@@ -35,6 +42,22 @@ bool isClaudeCli(const QString& provider)
 }
 
 bool isClaude(const QString& provider) { return provider == QLatin1String(kClaudeProvider); }
+
+QString defaultModel(const QString& provider)
+{
+    if (isClaudeCli(provider))
+        return QStringLiteral("sonnet");
+    if (isClaude(provider))
+        return QStringLiteral("claude-sonnet-4-5");
+    if (provider == QLatin1String(kOpenAiProvider))
+        return QString::fromLatin1(kDefaultModel);
+    return QStringLiteral("openai/gpt-5-mini");
+}
+
+QString providerKey(const QString& provider, const QString& key)
+{
+    return provider + QLatin1Char('/') + key;
+}
 
 QString providerUrl(const QString& provider)
 {
@@ -156,7 +179,21 @@ void ChatAgent::setProvider(const QString& provider)
     emit providerChanged();
     emit apiKeyHintChanged();
 
+    loadProviderSettings();
     setApiKey(m_secrets.retrieve(provider));
+}
+
+void ChatAgent::loadProviderSettings()
+{
+    QSettings settings;
+    settings.beginGroup(QStringLiteral("agent"));
+    setModel(
+        settings.value(providerKey(m_provider, QStringLiteral("model")), defaultModel(m_provider))
+            .toString());
+    setReasoning(settings
+                     .value(providerKey(m_provider, QStringLiteral("reasoning")),
+                            QString::fromLatin1(kDefaultReasoning))
+                     .toString());
 }
 
 void ChatAgent::setModel(const QString& model)
@@ -166,7 +203,7 @@ void ChatAgent::setModel(const QString& model)
 
     m_model = model;
     m_controller.setModel(model);
-    store(QStringLiteral("model"), model);
+    store(providerKey(m_provider, QStringLiteral("model")), model);
     emit modelChanged();
 }
 
@@ -177,7 +214,7 @@ void ChatAgent::setReasoning(const QString& reasoning)
 
     m_reasoning = reasoning;
     m_controller.setReasoningEffort(reasoning.toLower());
-    store(QStringLiteral("reasoning"), reasoning);
+    store(providerKey(m_provider, QStringLiteral("reasoning")), reasoning);
     emit reasoningChanged();
 }
 
@@ -228,19 +265,51 @@ void ChatAgent::clear()
     m_thread.reset();
 }
 
+#ifdef QANVAS_KEY_IMPORT
+void ChatAgent::importKeys()
+{
+    const QString path
+        = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + kImportFileName;
+    if (!QFile::exists(path))
+        return;
+
+    QSettings keys(path, QSettings::IniFormat);
+    for (const QString& provider : keys.allKeys())
+    {
+        const QString key = keys.value(provider).toString();
+        if (!key.isEmpty())
+            m_secrets.store(provider, key);
+    }
+
+    QFile::remove(path);
+}
+#endif
+
 void ChatAgent::load()
 {
+#ifdef QANVAS_KEY_IMPORT
+    importKeys();
+#endif
+
     QSettings settings;
     settings.beginGroup(QStringLiteral("agent"));
     setProvider(settings.value(QStringLiteral("provider"), QString::fromLatin1(kDefaultProvider))
                     .toString());
-    setModel(
-        settings.value(QStringLiteral("model"), QString::fromLatin1(kDefaultModel)).toString());
-    setReasoning(settings.value(QStringLiteral("reasoning"), QString::fromLatin1(kDefaultReasoning))
-                     .toString());
 
     const QString lastApp = settings.value(QStringLiteral("lastApp")).toString();
     m_thread.open(App(lastApp).exists() ? lastApp : QString());
+}
+
+QString ChatAgent::apiKeyPreview() const
+{
+    constexpr int head = 8;
+    constexpr int tail = 4;
+
+    if (m_apiKey.isEmpty())
+        return QString();
+    if (m_apiKey.size() < head + tail)
+        return QStringLiteral("…");
+    return m_apiKey.left(head) + QStringLiteral("…") + m_apiKey.right(tail);
 }
 
 QString ChatAgent::apiKeyHint() const

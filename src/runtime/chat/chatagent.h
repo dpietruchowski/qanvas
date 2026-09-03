@@ -25,6 +25,7 @@ class ChatAgent : public QObject, public QQmlParserStatus
     Q_PROPERTY(QString model READ model WRITE setModel NOTIFY modelChanged)
     Q_PROPERTY(QString reasoning READ reasoning WRITE setReasoning NOTIFY reasoningChanged)
     Q_PROPERTY(QString apiKey READ apiKey WRITE setApiKey NOTIFY apiKeyChanged)
+    Q_PROPERTY(QString apiKeyPreview READ apiKeyPreview NOTIFY apiKeyChanged)
     Q_PROPERTY(QString apiKeyHint READ apiKeyHint NOTIFY apiKeyHintChanged)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY messagesChanged)
     Q_PROPERTY(QVariantList activities READ activities NOTIFY activitiesChanged)
@@ -39,6 +40,7 @@ public:
     QString model() const { return m_model; }
     QString reasoning() const { return m_reasoning; }
     QString apiKey() const { return m_apiKey; }
+    QString apiKeyPreview() const;
     QString apiKeyHint() const;
     QVariantList messages() const;
     QVariantList activities() const { return m_tools.activities(); }
@@ -71,6 +73,10 @@ signals:
 
 private:
     void load();
+    void loadProviderSettings();
+#ifdef QANVAS_KEY_IMPORT
+    void importKeys();
+#endif
     void store(const QString& key, const QString& value);
     QString effectiveApiKey() const;
     const Client& client();
