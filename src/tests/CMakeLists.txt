@@ -13,6 +13,8 @@ add_executable(qanvas_tests
     chatthreadtest.cpp
     notesstoretest.cpp
     notesbridgetest.cpp
+    tasksstoretest.cpp
+    tasksbridgetest.cpp
     ../runtime/app/app.h
     ../runtime/app/app.cpp
     ../runtime/app/appfiles.h
@@ -29,8 +31,14 @@ add_executable(qanvas_tests
     ../runtime/storage/chatstore.cpp
     ../runtime/storage/notesstore.h
     ../runtime/storage/notesstore.cpp
+    ../runtime/storage/tasksstore.h
+    ../runtime/storage/tasksstore.cpp
+    ../runtime/host/storebridge.h
+    ../runtime/host/storebridge.cpp
     ../runtime/host/notesbridge.h
     ../runtime/host/notesbridge.cpp
+    ../runtime/host/tasksbridge.h
+    ../runtime/host/tasksbridge.cpp
     ../runtime/chat/apptools.h
     ../runtime/chat/apptools.cpp
     ../runtime/chat/chatthread.h

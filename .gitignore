@@ -84,3 +84,6 @@ logcat*
 *.db
 *.db-shm
 *.db-wal
+
+# Scratch space for helper scripts and ad-hoc data
+tmp/

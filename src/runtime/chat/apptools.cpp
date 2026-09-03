@@ -6,6 +6,7 @@
 #include "runtime/app/appregistry.h"
 #include "runtime/app/appwarnings.h"
 #include "runtime/host/notesbridge.h"
+#include "runtime/host/tasksbridge.h"
 
 #include <QStringList>
 #include <QTimer>
@@ -90,8 +91,12 @@ const char* kGrantAccessDocstring
       "@details Lets an app use one of the user's shared stores and reloads it; only when the "
       "user asked for an app that works on that data\n"
       "@param app (string) app id\n"
-      "@param store (string) the store to share; notes is the only one\n"
+      "@param store (string) the store to share: notes or tasks\n"
       "@return confirmation, or the reason it was refused";
+
+QStringList sharedStores() { return { NotesBridge::capability(), TasksBridge::capability() }; }
+
+QString storeObject(const QString& store) { return store.left(1).toUpper() + store.mid(1); }
 
 QString argument(const QVariantMap& arguments, const char* name)
 {
@@ -191,8 +196,7 @@ void AppTools::addGrantAccessTool()
         QString::fromLatin1(kGrantAccessDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
-            const Activity activity { "sharing notes with", "shared notes with",
-                                      "could not share notes with", "app" };
+            const Activity activity { "sharing", "shared", "could not share", "store" };
             const int index = beginActivity(activity, arguments);
             const App app(argument(arguments, "app"));
             if (const std::optional<QString> refused = refusal(app))
@@ -202,11 +206,12 @@ void AppTools::addGrantAccessTool()
             }
 
             const QString store = argument(arguments, "store");
-            if (store != NotesBridge::capability())
+            if (!sharedStores().contains(store))
             {
                 finish(index,
                        Result<QString>::failure(
-                           QStringLiteral("No store \"%1\": notes is the only one").arg(store)),
+                           QStringLiteral("No store \"%1\": choose %2")
+                               .arg(store, sharedStores().join(QStringLiteral(" or ")))),
                        done);
                 return;
             }
@@ -215,12 +220,13 @@ void AppTools::addGrantAccessTool()
             {
                 finish(index,
                        Result<QString>::failure(
-                           QStringLiteral("Could not share notes with \"%1\"").arg(app.id())),
+                           QStringLiteral("Could not share %1 with \"%2\"").arg(store, app.id())),
                        done);
                 return;
             }
 
-            show(app, QStringLiteral("\"%1\" may use Notes now").arg(app.id()), index, done);
+            show(app, QStringLiteral("\"%1\" may use %2 now").arg(app.id(), storeObject(store)),
+                 index, done);
         });
 }
 

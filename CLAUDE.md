@@ -7,6 +7,16 @@ Zamysł: aplikacje pisze agent LLM na żądanie użytkownika. Zarys w [doc/idea.
 ## Zasady
 
 - **Nie dodawaj `Co-Authored-By` ani żadnej innej atrybucji do commitów i PR-ów.**
+- **Pliki robocze tylko w `tmp/` w repo** (ignorowany przez git) — skrypty pomocnicze, dane testowe, zrzuty. Nic poza katalogiem repo.
+
+## Układ `src/runtime`
+
+- `app/` — aplikacja na dysku: `App` (id, katalog, ścieżki), `AppFiles`, `AppRegistry` (lista apek i uprawnienia w `system.db`), `AppCompiler`, `AppWarnings`.
+- `storage/` — store'y na `system.db`: `SystemDatabase`, `ChatStore`, `NotesStore`, `TasksStore`.
+- `host/` — to, co widzi działająca apka: `AppLoader`, `AppContext` (`App` w QML), `StoreBridge` i mostki `NotesBridge`/`TasksBridge` (`Notes`/`Tasks` w QML, za uprawnieniem z `AppRegistry`).
+- `chat/` — strona agenta: `ChatAgent`, `AppTools` (toole), `ChatThread`.
+
+Nowy współdzielony store = klasa w `storage/`, mostek dziedziczący po `StoreBridge` w `host/`, wpis w `sharedStores()` w `apptools.cpp`, akapit w prompcie systemowym i testy.
 
 ## Komentarze
 

@@ -7,6 +7,7 @@
 class AppContext;
 class NotesBridge;
 class QQmlContext;
+class TasksBridge;
 
 class AppLoader : public QQuickItem
 {
@@ -64,4 +65,5 @@ private:
     QQmlContext* m_context = nullptr;
     AppContext* m_app = nullptr;
     NotesBridge* m_notes = nullptr;
+    TasksBridge* m_tasks = nullptr;
 };

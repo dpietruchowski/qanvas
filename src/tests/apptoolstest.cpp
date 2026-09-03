@@ -354,12 +354,27 @@ TEST_F(AppToolsTest, GrantAccessRecordsThePermissionAndShowsTheAppAgain)
     EXPECT_EQ(shown, (QStringList { QStringLiteral("notes"), QStringLiteral("notes") }));
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("may use Notes")));
     ASSERT_EQ(tools->activities().size(), 2);
-    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(),
-              QStringLiteral("shared notes with"));
+    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(), QStringLiteral("shared"));
     EXPECT_EQ(activity(1).value(QStringLiteral("detail")).toString(), QStringLiteral("notes"));
 }
 
-TEST_F(AppToolsTest, GrantAccessKnowsOnlyTheNotesStore)
+TEST_F(AppToolsTest, GrantAccessSharesTheTasksToo)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("todo"), QStringLiteral("Zadania"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("grant_access"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("todo") },
+                            { QStringLiteral("store"), QStringLiteral("tasks") } }),
+          ScriptedClient::reply(QStringLiteral("shared")) });
+
+    EXPECT_TRUE(registry->has(QStringLiteral("todo"), QStringLiteral("tasks")));
+    EXPECT_FALSE(registry->has(QStringLiteral("todo"), QStringLiteral("notes")));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("may use Tasks")));
+    EXPECT_EQ(activity(1).value(QStringLiteral("detail")).toString(), QStringLiteral("tasks"));
+}
+
+TEST_F(AppToolsTest, GrantAccessKnowsOnlyTheSharedStores)
 {
     run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
                                    createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
@@ -373,6 +388,7 @@ TEST_F(AppToolsTest, GrantAccessKnowsOnlyTheNotesStore)
     EXPECT_EQ(shown.size(), 1);
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No store")));
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("contacts")));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("notes or tasks")));
     EXPECT_TRUE(activity(1).value(QStringLiteral("failed")).toBool());
 }
 

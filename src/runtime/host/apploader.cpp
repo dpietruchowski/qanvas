@@ -4,6 +4,7 @@
 #include "runtime/app/appregistry.h"
 #include "runtime/host/appcontext.h"
 #include "runtime/host/notesbridge.h"
+#include "runtime/host/tasksbridge.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -64,9 +65,11 @@ void AppLoader::load()
 
     m_app = new AppContext(m_appId, dir, this);
     m_notes = new NotesBridge(m_appId, AppRegistry::instance(), this);
+    m_tasks = new TasksBridge(m_appId, AppRegistry::instance(), this);
     m_context = new QQmlContext(engine->rootContext(), this);
     m_context->setContextProperty(QStringLiteral("App"), m_app);
     m_context->setContextProperty(QStringLiteral("Notes"), m_notes);
+    m_context->setContextProperty(QStringLiteral("Tasks"), m_tasks);
 
     QQmlComponent component(engine, QUrl::fromLocalFile(entry));
     if (component.isError())
@@ -105,6 +108,9 @@ void AppLoader::unload()
 
     delete m_context;
     m_context = nullptr;
+
+    delete m_tasks;
+    m_tasks = nullptr;
 
     delete m_notes;
     m_notes = nullptr;
