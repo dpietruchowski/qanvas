@@ -1,5 +1,12 @@
 {
   "binary": ["build-desktop/src/appqanvas", "build-release/src/appqanvas"],
   "port": 49300,
-  "port_env": "APP_AUTOMATION_PORT"
+  "port_env": "APP_AUTOMATION_PORT",
+  "sandbox": {
+    "dir": "tmp/run",
+    "env": {
+      "QANVAS_APPS_ROOT": "apps",
+      "XDG_CONFIG_HOME": "config"
+    }
+  }
 }
