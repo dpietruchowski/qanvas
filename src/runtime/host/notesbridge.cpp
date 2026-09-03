@@ -1,6 +1,6 @@
-#include "notesbridge.h"
+#include "runtime/host/notesbridge.h"
 
-#include "appregistry.h"
+#include "runtime/app/appregistry.h"
 
 NotesBridge::NotesBridge(const QString& appId, const AppRegistry& registry, QObject* parent)
     : QObject(parent)

@@ -5,7 +5,7 @@
 #include <QFile>
 #include <QTemporaryDir>
 
-#include "runtime/app.h"
+#include "runtime/app/app.h"
 
 class AppTest : public ::testing::Test
 {

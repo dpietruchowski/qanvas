@@ -13,21 +13,28 @@ add_executable(qanvas_tests
     chatthreadtest.cpp
     notesstoretest.cpp
     notesbridgetest.cpp
-    ../runtime/app.cpp
-    ../runtime/appfiles.cpp
-    ../runtime/systemdatabase.cpp
-    ../runtime/appregistry.cpp
-    ../runtime/appcompiler.cpp
-    ../runtime/appwarnings.h
-    ../runtime/appwarnings.cpp
-    ../runtime/apptools.h
-    ../runtime/apptools.cpp
-    ../runtime/chatstore.cpp
-    ../runtime/chatthread.h
-    ../runtime/chatthread.cpp
-    ../runtime/notesstore.cpp
-    ../runtime/notesbridge.h
-    ../runtime/notesbridge.cpp
+    ../runtime/app/app.h
+    ../runtime/app/app.cpp
+    ../runtime/app/appfiles.h
+    ../runtime/app/appfiles.cpp
+    ../runtime/app/appregistry.h
+    ../runtime/app/appregistry.cpp
+    ../runtime/app/appcompiler.h
+    ../runtime/app/appcompiler.cpp
+    ../runtime/app/appwarnings.h
+    ../runtime/app/appwarnings.cpp
+    ../runtime/storage/systemdatabase.h
+    ../runtime/storage/systemdatabase.cpp
+    ../runtime/storage/chatstore.h
+    ../runtime/storage/chatstore.cpp
+    ../runtime/storage/notesstore.h
+    ../runtime/storage/notesstore.cpp
+    ../runtime/host/notesbridge.h
+    ../runtime/host/notesbridge.cpp
+    ../runtime/chat/apptools.h
+    ../runtime/chat/apptools.cpp
+    ../runtime/chat/chatthread.h
+    ../runtime/chat/chatthread.cpp
 )
 
 target_include_directories(qanvas_tests PRIVATE

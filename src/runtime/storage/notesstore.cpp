@@ -1,4 +1,4 @@
-#include "notesstore.h"
+#include "runtime/storage/notesstore.h"
 
 #include <QDateTime>
 #include <QSqlQuery>

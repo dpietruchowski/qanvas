@@ -1,6 +1,6 @@
-#include "chatthread.h"
+#include "runtime/chat/chatthread.h"
 
-#include "chatstore.h"
+#include "runtime/storage/chatstore.h"
 
 namespace
 {

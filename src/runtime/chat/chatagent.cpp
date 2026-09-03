@@ -1,7 +1,7 @@
-#include "chatagent.h"
+#include "runtime/chat/chatagent.h"
 
-#include "app.h"
-#include "appregistry.h"
+#include "runtime/app/app.h"
+#include "runtime/app/appregistry.h"
 #ifdef QANVAS_CLAUDE_CLI
 #include "agent/claudecliclient.h"
 #endif

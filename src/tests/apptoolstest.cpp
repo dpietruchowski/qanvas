@@ -12,9 +12,9 @@
 #include <QVariantMap>
 
 #include "agent/agentcontroller.h"
-#include "runtime/app.h"
-#include "runtime/appregistry.h"
-#include "runtime/apptools.h"
+#include "runtime/app/app.h"
+#include "runtime/app/appregistry.h"
+#include "runtime/chat/apptools.h"
 #include "scriptedclient.h"
 
 namespace

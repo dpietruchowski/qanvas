@@ -8,9 +8,9 @@
 #include <QTemporaryDir>
 #include <QVariantMap>
 
-#include "runtime/appregistry.h"
-#include "runtime/notesbridge.h"
-#include "runtime/notesstore.h"
+#include "runtime/app/appregistry.h"
+#include "runtime/host/notesbridge.h"
+#include "runtime/storage/notesstore.h"
 
 class NotesBridgeTest : public ::testing::Test
 {

@@ -6,7 +6,7 @@
 #include <QTemporaryDir>
 #include <QVariantMap>
 
-#include "runtime/appregistry.h"
+#include "runtime/app/appregistry.h"
 
 class AppRegistryTest : public ::testing::Test
 {

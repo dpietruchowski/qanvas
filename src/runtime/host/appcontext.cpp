@@ -1,4 +1,4 @@
-#include "appcontext.h"
+#include "runtime/host/appcontext.h"
 
 #include <QDir>
 #include <QRegularExpression>

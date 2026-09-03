@@ -1,6 +1,6 @@
-#include "appregistry.h"
+#include "runtime/app/appregistry.h"
 
-#include "app.h"
+#include "runtime/app/app.h"
 
 #include <QCoreApplication>
 #include <QDateTime>

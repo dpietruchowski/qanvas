@@ -5,7 +5,7 @@
 #include <QTemporaryDir>
 #include <QVariantMap>
 
-#include "runtime/notesstore.h"
+#include "runtime/storage/notesstore.h"
 
 namespace
 {

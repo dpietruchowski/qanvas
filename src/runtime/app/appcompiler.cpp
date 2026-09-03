@@ -1,6 +1,6 @@
-#include "appcompiler.h"
+#include "runtime/app/appcompiler.h"
 
-#include "app.h"
+#include "runtime/app/app.h"
 
 #include <QQmlComponent>
 #include <QQmlEngine>

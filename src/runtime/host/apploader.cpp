@@ -1,9 +1,9 @@
-#include "apploader.h"
+#include "runtime/host/apploader.h"
 
-#include "app.h"
-#include "appcontext.h"
-#include "appregistry.h"
-#include "notesbridge.h"
+#include "runtime/app/app.h"
+#include "runtime/app/appregistry.h"
+#include "runtime/host/appcontext.h"
+#include "runtime/host/notesbridge.h"
 
 #include <QDir>
 #include <QFileInfo>

@@ -27,37 +27,42 @@ qt_add_qml_module(appqanvas
     OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Qanvas
     QML_FILES ${SHELL_QML}
     SOURCES
-        runtime/appcontext.h
-        runtime/appcontext.cpp
-        runtime/apploader.h
-        runtime/apploader.cpp
-        runtime/chatagent.h
-        runtime/chatagent.cpp
-        runtime/app.h
-        runtime/app.cpp
-        runtime/appfiles.h
-        runtime/appfiles.cpp
-        runtime/appregistry.h
-        runtime/appregistry.cpp
-        runtime/apptools.h
-        runtime/apptools.cpp
-        runtime/appcompiler.h
-        runtime/appcompiler.cpp
-        runtime/appwarnings.h
-        runtime/appwarnings.cpp
-        runtime/systemdatabase.h
-        runtime/systemdatabase.cpp
-        runtime/chatstore.h
-        runtime/chatstore.cpp
-        runtime/chatthread.h
-        runtime/chatthread.cpp
-        runtime/notesstore.h
-        runtime/notesstore.cpp
-        runtime/notesbridge.h
-        runtime/notesbridge.cpp
+        runtime/app/app.h
+        runtime/app/app.cpp
+        runtime/app/appfiles.h
+        runtime/app/appfiles.cpp
+        runtime/app/appregistry.h
+        runtime/app/appregistry.cpp
+        runtime/app/appcompiler.h
+        runtime/app/appcompiler.cpp
+        runtime/app/appwarnings.h
+        runtime/app/appwarnings.cpp
+        runtime/storage/systemdatabase.h
+        runtime/storage/systemdatabase.cpp
+        runtime/storage/chatstore.h
+        runtime/storage/chatstore.cpp
+        runtime/storage/notesstore.h
+        runtime/storage/notesstore.cpp
+        runtime/host/appcontext.h
+        runtime/host/appcontext.cpp
+        runtime/host/apploader.h
+        runtime/host/apploader.cpp
+        runtime/host/notesbridge.h
+        runtime/host/notesbridge.cpp
+        runtime/chat/apptools.h
+        runtime/chat/apptools.cpp
+        runtime/chat/chatthread.h
+        runtime/chat/chatthread.cpp
+        runtime/chat/chatagent.h
+        runtime/chat/chatagent.cpp
 )
 
-target_include_directories(appqanvas PRIVATE runtime)
+target_include_directories(appqanvas PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/runtime/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/runtime/host
+    ${CMAKE_CURRENT_SOURCE_DIR}/runtime/chat
+)
 
 target_compile_definitions(appqanvas PRIVATE
     APP_VERSION="${QT_ANDROID_VERSION_NAME}"

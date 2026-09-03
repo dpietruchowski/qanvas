@@ -11,9 +11,9 @@
 
 #include "agent/agentcontroller.h"
 #include "agent/client.h"
-#include "apptools.h"
-#include "chatstore.h"
-#include "chatthread.h"
+#include "runtime/chat/apptools.h"
+#include "runtime/chat/chatthread.h"
+#include "runtime/storage/chatstore.h"
 #include "utils/securestorage.h"
 
 class ChatAgent : public QObject, public QQmlParserStatus

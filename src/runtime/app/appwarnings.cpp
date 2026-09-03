@@ -1,6 +1,6 @@
-#include "appwarnings.h"
+#include "runtime/app/appwarnings.h"
 
-#include "app.h"
+#include "runtime/app/app.h"
 
 #include <QQmlEngine>
 #include <QQmlError>

@@ -5,7 +5,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 
-#include "runtime/chatstore.h"
+#include "runtime/storage/chatstore.h"
 
 namespace
 {

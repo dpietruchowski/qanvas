@@ -5,8 +5,8 @@
 #include <QQmlEngine>
 #include <QTemporaryDir>
 
-#include "runtime/app.h"
-#include "runtime/appcompiler.h"
+#include "runtime/app/app.h"
+#include "runtime/app/appcompiler.h"
 
 namespace
 {

@@ -4,7 +4,7 @@
 #include <QString>
 #include <QVariantList>
 
-#include "notesstore.h"
+#include "runtime/storage/notesstore.h"
 
 class AppRegistry;
 

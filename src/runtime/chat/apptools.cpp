@@ -1,11 +1,11 @@
-#include "apptools.h"
+#include "runtime/chat/apptools.h"
 
-#include "app.h"
-#include "appcompiler.h"
-#include "appfiles.h"
-#include "appregistry.h"
-#include "appwarnings.h"
-#include "notesbridge.h"
+#include "runtime/app/app.h"
+#include "runtime/app/appcompiler.h"
+#include "runtime/app/appfiles.h"
+#include "runtime/app/appregistry.h"
+#include "runtime/app/appwarnings.h"
+#include "runtime/host/notesbridge.h"
 
 #include <QStringList>
 #include <QTimer>

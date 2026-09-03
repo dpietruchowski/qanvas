@@ -1,4 +1,4 @@
-#include "chatstore.h"
+#include "runtime/storage/chatstore.h"
 
 #include <QDateTime>
 #include <QSqlQuery>

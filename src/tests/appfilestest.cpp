@@ -3,7 +3,7 @@
 #include <QFile>
 #include <QTemporaryDir>
 
-#include "runtime/appfiles.h"
+#include "runtime/app/appfiles.h"
 
 namespace
 {

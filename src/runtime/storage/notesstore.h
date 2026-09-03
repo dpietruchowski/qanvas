@@ -3,7 +3,7 @@
 #include <QString>
 #include <QVariantList>
 
-#include "systemdatabase.h"
+#include "runtime/storage/systemdatabase.h"
 
 class NotesStore
 {

@@ -9,8 +9,8 @@
 #include <QVariantMap>
 
 #include "agent/agentcontroller.h"
-#include "runtime/chatstore.h"
-#include "runtime/chatthread.h"
+#include "runtime/chat/chatthread.h"
+#include "runtime/storage/chatstore.h"
 #include "scriptedclient.h"
 
 namespace

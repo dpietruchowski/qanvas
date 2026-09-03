@@ -10,8 +10,8 @@
 #include <QTemporaryDir>
 #include <QUrl>
 
-#include "runtime/app.h"
-#include "runtime/appwarnings.h"
+#include "runtime/app/app.h"
+#include "runtime/app/appwarnings.h"
 
 namespace
 {
