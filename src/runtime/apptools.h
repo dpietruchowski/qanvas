@@ -50,6 +50,7 @@ private:
     void addCreateAppTool();
     void addDeleteAppTool();
     void addReadLogTool();
+    void addGrantAccessTool();
     void addFileTool(const char* docstring, const Activity& activity, bool reloads,
                      const FileOperation& operation);
     std::optional<QString> refusal(const App& app) const;

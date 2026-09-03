@@ -126,6 +126,40 @@ TEST_F(AppRegistryTest, RemoveAnnouncesTheAppWhileItsFilesAreStillThere)
     EXPECT_TRUE(filesWereThere);
 }
 
+TEST_F(AppRegistryTest, GrantsACapabilityOnceAndListsIt)
+{
+    AppRegistry registry(nullptr);
+
+    EXPECT_FALSE(registry.has(QStringLiteral("notes"), QStringLiteral("notes")));
+    EXPECT_TRUE(registry.grant(QStringLiteral("notes"), QStringLiteral("notes")));
+    EXPECT_TRUE(registry.grant(QStringLiteral("notes"), QStringLiteral("notes")));
+
+    EXPECT_TRUE(registry.has(QStringLiteral("notes"), QStringLiteral("notes")));
+    EXPECT_FALSE(registry.has(QStringLiteral("timer"), QStringLiteral("notes")));
+    EXPECT_EQ(registry.capabilities(QStringLiteral("notes")),
+              QStringList { QStringLiteral("notes") });
+}
+
+TEST_F(AppRegistryTest, GrantRejectsNamesThatAreNotSlugs)
+{
+    AppRegistry registry(nullptr);
+
+    EXPECT_FALSE(registry.grant(QStringLiteral("../notes"), QStringLiteral("notes")));
+    EXPECT_FALSE(registry.grant(QStringLiteral("notes"), QStringLiteral("")));
+    EXPECT_TRUE(registry.capabilities(QStringLiteral("notes")).isEmpty());
+}
+
+TEST_F(AppRegistryTest, RemoveDropsTheCapabilities)
+{
+    AppRegistry registry(nullptr);
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    registry.grant(QStringLiteral("notes"), QStringLiteral("notes"));
+
+    registry.remove(QStringLiteral("notes"));
+
+    EXPECT_FALSE(registry.has(QStringLiteral("notes"), QStringLiteral("notes")));
+}
+
 TEST_F(AppRegistryTest, RemoveRejectsAnIdThatIsNotASlug)
 {
     AppRegistry registry(nullptr);

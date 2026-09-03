@@ -5,6 +5,7 @@
 #include "appfiles.h"
 #include "appregistry.h"
 #include "appwarnings.h"
+#include "notesbridge.h"
 
 #include <QStringList>
 #include <QTimer>
@@ -83,6 +84,14 @@ const char* kReadLogDocstring
       "exceptions in handlers and timers, including ones the user triggered by using the app\n"
       "@param app (string) app id\n"
       "@return one \"File.qml:line:column: message\" line per error, oldest first";
+
+const char* kGrantAccessDocstring
+    = "@brief grant_access\n"
+      "@details Lets an app use one of the user's shared stores and reloads it; only when the "
+      "user asked for an app that works on that data\n"
+      "@param app (string) app id\n"
+      "@param store (string) the store to share; notes is the only one\n"
+      "@return confirmation, or the reason it was refused";
 
 QString argument(const QVariantMap& arguments, const char* name)
 {
@@ -173,6 +182,46 @@ void AppTools::registerTools()
 
     addDeleteAppTool();
     addReadLogTool();
+    addGrantAccessTool();
+}
+
+void AppTools::addGrantAccessTool()
+{
+    m_controller.addTool(
+        QString::fromLatin1(kGrantAccessDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "sharing notes with", "shared notes with",
+                                      "could not share notes with", "app" };
+            const int index = beginActivity(activity, arguments);
+            const App app(argument(arguments, "app"));
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
+
+            const QString store = argument(arguments, "store");
+            if (store != NotesBridge::capability())
+            {
+                finish(index,
+                       Result<QString>::failure(
+                           QStringLiteral("No store \"%1\": notes is the only one").arg(store)),
+                       done);
+                return;
+            }
+
+            if (!m_registry.grant(app.id(), store))
+            {
+                finish(index,
+                       Result<QString>::failure(
+                           QStringLiteral("Could not share notes with \"%1\"").arg(app.id())),
+                       done);
+                return;
+            }
+
+            show(app, QStringLiteral("\"%1\" may use Notes now").arg(app.id()), index, done);
+        });
 }
 
 void AppTools::addDeleteAppTool()

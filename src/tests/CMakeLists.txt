@@ -11,6 +11,8 @@ add_executable(qanvas_tests
     apptoolstest.cpp
     chatstoretest.cpp
     chatthreadtest.cpp
+    notesstoretest.cpp
+    notesbridgetest.cpp
     ../runtime/app.cpp
     ../runtime/appfiles.cpp
     ../runtime/systemdatabase.cpp
@@ -23,6 +25,9 @@ add_executable(qanvas_tests
     ../runtime/chatstore.cpp
     ../runtime/chatthread.h
     ../runtime/chatthread.cpp
+    ../runtime/notesstore.cpp
+    ../runtime/notesbridge.h
+    ../runtime/notesbridge.cpp
 )
 
 target_include_directories(qanvas_tests PRIVATE

@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
@@ -27,6 +28,10 @@ public:
     QVariantList apps() const;
     bool record(const QString& id, const QString& title);
     Q_INVOKABLE bool remove(const QString& id);
+
+    QStringList capabilities(const QString& id) const;
+    bool has(const QString& id, const QString& capability) const;
+    bool grant(const QString& id, const QString& capability);
 
 signals:
     void appsChanged();

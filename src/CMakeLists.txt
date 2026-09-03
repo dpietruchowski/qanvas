@@ -51,6 +51,10 @@ qt_add_qml_module(appqanvas
         runtime/chatstore.cpp
         runtime/chatthread.h
         runtime/chatthread.cpp
+        runtime/notesstore.h
+        runtime/notesstore.cpp
+        runtime/notesbridge.h
+        runtime/notesbridge.cpp
 )
 
 target_include_directories(appqanvas PRIVATE runtime)

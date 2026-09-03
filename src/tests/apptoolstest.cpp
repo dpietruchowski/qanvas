@@ -340,6 +340,55 @@ TEST_F(AppToolsTest, DeleteAppRemovesTheFilesAndTheListEntry)
     EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
 }
 
+TEST_F(AppToolsTest, GrantAccessRecordsThePermissionAndShowsTheAppAgain)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("grant_access"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") },
+                            { QStringLiteral("store"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("shared")) });
+
+    EXPECT_TRUE(registry->has(QStringLiteral("notes"), QStringLiteral("notes")));
+    EXPECT_EQ(shown, (QStringList { QStringLiteral("notes"), QStringLiteral("notes") }));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("may use Notes")));
+    ASSERT_EQ(tools->activities().size(), 2);
+    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(),
+              QStringLiteral("shared notes with"));
+    EXPECT_EQ(activity(1).value(QStringLiteral("detail")).toString(), QStringLiteral("notes"));
+}
+
+TEST_F(AppToolsTest, GrantAccessKnowsOnlyTheNotesStore)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("grant_access"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") },
+                            { QStringLiteral("store"), QStringLiteral("contacts") } }),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    EXPECT_TRUE(registry->capabilities(QStringLiteral("notes")).isEmpty());
+    EXPECT_EQ(shown.size(), 1);
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No store")));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("contacts")));
+    EXPECT_TRUE(activity(1).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, GrantAccessRefusesAnAppThatIsNotThere)
+{
+    run({ ScriptedClient::toolCall(
+              QStringLiteral("grant_access"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") },
+                            { QStringLiteral("store"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    EXPECT_TRUE(registry->capabilities(QStringLiteral("notes")).isEmpty());
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No app")));
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
 TEST_F(AppToolsTest, DeleteAppRefusesAnAppThatIsNotThere)
 {
     run({ ScriptedClient::toolCall(

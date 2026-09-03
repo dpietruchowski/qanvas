@@ -40,11 +40,18 @@ bool AppRegistry::open()
         return false;
 
     QSqlQuery q(m_database.database());
-    return q.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS apps ("
-                                 "id TEXT PRIMARY KEY, "
-                                 "title TEXT NOT NULL, "
-                                 "created_at TEXT NOT NULL, "
-                                 "updated_at TEXT NOT NULL)"));
+    if (!q.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS apps ("
+                               "id TEXT PRIMARY KEY, "
+                               "title TEXT NOT NULL, "
+                               "created_at TEXT NOT NULL, "
+                               "updated_at TEXT NOT NULL)")))
+        return false;
+
+    return q.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS app_permissions ("
+                                 "app TEXT NOT NULL, "
+                                 "capability TEXT NOT NULL, "
+                                 "granted_at TEXT NOT NULL, "
+                                 "PRIMARY KEY (app, capability))"));
 }
 
 QVariantList AppRegistry::apps() const
@@ -111,6 +118,52 @@ bool AppRegistry::remove(const QString& id)
     if (!q.exec())
         return false;
 
+    QSqlQuery permissions(m_database.database());
+    permissions.prepare(QStringLiteral("DELETE FROM app_permissions WHERE app = :id"));
+    permissions.bindValue(QStringLiteral(":id"), id);
+    permissions.exec();
+
     emit appsChanged();
     return true;
+}
+
+QStringList AppRegistry::capabilities(const QString& id) const
+{
+    QStringList capabilities;
+    if (!m_open)
+        return capabilities;
+
+    QSqlQuery q(m_database.database());
+    if (!q.prepare(QStringLiteral(
+            "SELECT capability FROM app_permissions WHERE app = :id ORDER BY capability")))
+        return capabilities;
+
+    q.bindValue(QStringLiteral(":id"), id);
+    if (!q.exec())
+        return capabilities;
+
+    while (q.next())
+        capabilities.append(q.value(0).toString());
+    return capabilities;
+}
+
+bool AppRegistry::has(const QString& id, const QString& capability) const
+{
+    return capabilities(id).contains(capability);
+}
+
+bool AppRegistry::grant(const QString& id, const QString& capability)
+{
+    if (!m_open || !App::isValidId(id) || !App::isValidId(capability))
+        return false;
+
+    QSqlQuery q(m_database.database());
+    if (!q.prepare(QStringLiteral("INSERT OR IGNORE INTO app_permissions "
+                                  "(app, capability, granted_at) VALUES (:id, :capability, :now)")))
+        return false;
+
+    q.bindValue(QStringLiteral(":id"), id);
+    q.bindValue(QStringLiteral(":capability"), capability);
+    q.bindValue(QStringLiteral(":now"), now());
+    return q.exec();
 }

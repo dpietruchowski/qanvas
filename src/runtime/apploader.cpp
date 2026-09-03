@@ -2,6 +2,8 @@
 
 #include "app.h"
 #include "appcontext.h"
+#include "appregistry.h"
+#include "notesbridge.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -60,12 +62,11 @@ void AppLoader::load()
         return;
     }
 
-    // The app's own bridge lives on a child context, so it is named only inside
-    // the app. Anything the runtime puts on the root context stays visible, so
-    // the root context is not the place for anything privileged.
     m_app = new AppContext(m_appId, dir, this);
+    m_notes = new NotesBridge(m_appId, AppRegistry::instance(), this);
     m_context = new QQmlContext(engine->rootContext(), this);
     m_context->setContextProperty(QStringLiteral("App"), m_app);
+    m_context->setContextProperty(QStringLiteral("Notes"), m_notes);
 
     QQmlComponent component(engine, QUrl::fromLocalFile(entry));
     if (component.isError())
@@ -99,28 +100,14 @@ void AppLoader::load()
 
 void AppLoader::unload()
 {
-    // Order matters: the item tree goes first so nothing still references the
-    // app's QML files, then the context and the bridge, and only then the cache.
-    //
-    // The cache call has to be clearComponentCache(), not trimComponentCache().
-    // trim() is the appealing one — it only drops what nothing references, so it
-    // cannot touch the host's own QML — but measured against an edited file on
-    // disk it does not drop the app's entry file at all, and reload() then
-    // rebuilds the app from the stale compiled unit. Forcing a GC first does not
-    // help either, so something inside the engine keeps the unit referenced past
-    // the last object that used it.
-    //
-    // clear() does pick the edit up. Its documented cost is that bindings in
-    // objects already created from the cleared components stop working; measured
-    // on Qt 6.4 that does not happen — after a reload the host's bindings still
-    // track (appDir and the placeholder both update when appId changes), because
-    // live objects hold their own reference to the unit and only the cache entry
-    // goes away. Re-check this if the engine is ever upgraded.
     delete m_item;
     m_item = nullptr;
 
     delete m_context;
     m_context = nullptr;
+
+    delete m_notes;
+    m_notes = nullptr;
 
     delete m_app;
     m_app = nullptr;

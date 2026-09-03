@@ -5,20 +5,9 @@
 #include <QtQml/qqmlregistration.h>
 
 class AppContext;
+class NotesBridge;
 class QQmlContext;
 
-// Loads one generated app — apps/<id>/Main.qml — as a child item.
-//
-// This exists instead of a plain QML Loader for one reason: Loader instantiates
-// into the context it sits in, and the app needs its own. Every app gets a child
-// QQmlContext carrying its own "App" object, so two apps can never see each
-// other's bridge, and nothing the runtime keeps in its own QML is named in the
-// app's scope.
-//
-// The app's subtree is rooted here and nowhere else. That is not tidiness: the
-// component cache is only trimmed for files nothing references any more, so a
-// single item left parented into the runtime's scene would pin the old version
-// and the next load would hand back stale QML.
 class AppLoader : public QQuickItem
 {
     Q_OBJECT
@@ -48,12 +37,8 @@ public:
     QString errorString() const { return m_errorString; }
     QString appDir() const;
 
-    // Re-reads the app from disk. Setting appId to the same value does nothing,
-    // so this is what the runtime calls after the agent rewrites the files.
     Q_INVOKABLE void reload();
 
-    // <binary directory>/apps on desktop, <writable app data>/apps on Android,
-    // unless QANVAS_APPS_ROOT points somewhere else.
     static QString appsRoot();
 
 signals:
@@ -78,4 +63,5 @@ private:
     QQuickItem* m_item = nullptr;
     QQmlContext* m_context = nullptr;
     AppContext* m_app = nullptr;
+    NotesBridge* m_notes = nullptr;
 };

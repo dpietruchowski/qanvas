@@ -78,6 +78,13 @@ const char* kSystemPrompt
       "it names and fix it before you answer; never leave the user with a broken app. When the "
       "user says something in the app misbehaves, read_log shows the errors it raised. "
       "delete_app removes an app for good, so call it only when the user asks to remove one.\n"
+      "The user's notes are shared between apps through the Notes object: Notes.list() returns "
+      "maps with id, text, createdAt and updatedAt, newest first; Notes.add(text), "
+      "Notes.update(id, text) and Notes.remove(id) return false and set Notes.lastError when "
+      "refused. Notes.revision changes after every write, so bind as model: (Notes.revision, "
+      "Notes.list()). An app may use Notes only after grant_access(app, \"notes\"); call it "
+      "right after create_app, and only when the user asked for an app that works on their "
+      "notes. Anything else the app stores stays in its own database through App.\n"
       "After the call, say in one sentence what the app does.";
 
 const char* kOpenAiProvider = "OpenAI";
