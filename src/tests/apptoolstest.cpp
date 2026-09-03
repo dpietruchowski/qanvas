@@ -3,7 +3,6 @@
 #include <memory>
 #include <vector>
 
-#include <QEventLoop>
 #include <QFile>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -73,16 +72,7 @@ protected:
     void run(std::vector<Completion> script)
     {
         client.script = std::move(script);
-        QEventLoop loop;
-        QObject::connect(&controller, &AgentController::busyChanged, &loop,
-                         [this, &loop]
-                         {
-                             if (!controller.isBusy())
-                                 loop.quit();
-                         });
-        controller.request(client, QStringLiteral("go"));
-        if (controller.isBusy())
-            loop.exec();
+        requestAndWait(controller, client, QStringLiteral("go"));
     }
 
     QVariantMap activity(int index) const { return tools->activities().at(index).toMap(); }

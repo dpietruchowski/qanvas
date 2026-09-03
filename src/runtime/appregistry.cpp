@@ -6,37 +6,19 @@
 #include <QDateTime>
 #include <QDir>
 #include <QJSEngine>
-#include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QVariantMap>
 
 namespace
 {
-
-QString nextConnectionName()
-{
-    static int serial = 0;
-    return QStringLiteral("qanvas_system_%1").arg(++serial);
-}
-
 QString now() { return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs); }
-
-}  // namespace
+}
 
 AppRegistry::AppRegistry(QObject* parent)
     : QObject(parent)
-    , m_connectionName(nextConnectionName())
+    , m_database(QStringLiteral("registry"))
 {
     m_open = open();
-}
-
-AppRegistry::~AppRegistry()
-{
-    if (QSqlDatabase::contains(m_connectionName))
-    {
-        QSqlDatabase::database(m_connectionName, false).close();
-        QSqlDatabase::removeDatabase(m_connectionName);
-    }
 }
 
 AppRegistry& AppRegistry::instance()
@@ -54,16 +36,10 @@ AppRegistry* AppRegistry::create(QQmlEngine*, QJSEngine*)
 
 bool AppRegistry::open()
 {
-    const QString root = App::root();
-    if (!QDir().mkpath(root))
+    if (!m_database.isOpen())
         return false;
 
-    QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_connectionName);
-    db.setDatabaseName(root + QStringLiteral("/system.db"));
-    if (!db.open())
-        return false;
-
-    QSqlQuery q(db);
+    QSqlQuery q(m_database.database());
     return q.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS apps ("
                                  "id TEXT PRIMARY KEY, "
                                  "title TEXT NOT NULL, "
@@ -77,7 +53,7 @@ QVariantList AppRegistry::apps() const
     if (!m_open)
         return apps;
 
-    QSqlQuery q(QSqlDatabase::database(m_connectionName, false));
+    QSqlQuery q(m_database.database());
     if (!q.exec(QStringLiteral("SELECT id, title, updated_at FROM apps "
                                "ORDER BY updated_at DESC, id ASC")))
         return apps;
@@ -97,7 +73,7 @@ bool AppRegistry::record(const QString& id, const QString& title)
     if (!m_open || !App::isValidId(id))
         return false;
 
-    QSqlQuery q(QSqlDatabase::database(m_connectionName, false));
+    QSqlQuery q(m_database.database());
     if (!q.prepare(QStringLiteral("INSERT INTO apps (id, title, created_at, updated_at) "
                                   "VALUES (:id, :title, :now, :now) "
                                   "ON CONFLICT(id) DO UPDATE SET title = excluded.title, "
@@ -127,7 +103,7 @@ bool AppRegistry::remove(const QString& id)
     if (directory.exists() && !directory.removeRecursively())
         return false;
 
-    QSqlQuery q(QSqlDatabase::database(m_connectionName, false));
+    QSqlQuery q(m_database.database());
     if (!q.prepare(QStringLiteral("DELETE FROM apps WHERE id = :id")))
         return false;
 

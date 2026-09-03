@@ -21,6 +21,8 @@ AppShell {
 
         openedId: agent.lastAppId
 
+        onAppActivated: function (id) { agent.openApp(id) }
+
         Connections {
             target: agent
 

@@ -2,11 +2,28 @@
 
 #include <vector>
 
+#include <QEventLoop>
+#include <QObject>
 #include <QString>
 #include <QVariantMap>
 
+#include "agent/agentcontroller.h"
 #include "agent/client.h"
 #include "agent/structures.h"
+
+inline void requestAndWait(AgentController& controller, const Client& client, const QString& text)
+{
+    QEventLoop loop;
+    QObject::connect(&controller, &AgentController::busyChanged, &loop,
+                     [&controller, &loop]
+                     {
+                         if (!controller.isBusy())
+                             loop.quit();
+                     });
+    controller.request(client, text);
+    if (controller.isBusy())
+        loop.exec();
+}
 
 class ScriptedClient : public Client
 {

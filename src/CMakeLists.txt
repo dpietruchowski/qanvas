@@ -45,6 +45,12 @@ qt_add_qml_module(appqanvas
         runtime/appcompiler.cpp
         runtime/appwarnings.h
         runtime/appwarnings.cpp
+        runtime/systemdatabase.h
+        runtime/systemdatabase.cpp
+        runtime/chatstore.h
+        runtime/chatstore.cpp
+        runtime/chatthread.h
+        runtime/chatthread.cpp
 )
 
 target_include_directories(appqanvas PRIVATE runtime)

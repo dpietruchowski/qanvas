@@ -12,6 +12,8 @@
 #include "agent/agentcontroller.h"
 #include "agent/client.h"
 #include "apptools.h"
+#include "chatstore.h"
+#include "chatthread.h"
 #include "utils/securestorage.h"
 
 class ChatAgent : public QObject, public QQmlParserStatus
@@ -43,7 +45,7 @@ public:
     QVariantList messages() const;
     QVariantList activities() const { return m_tools.activities(); }
     bool busy() const { return m_controller.isBusy(); }
-    QString lastAppId() const { return m_lastAppId; }
+    QString lastAppId() const { return m_thread.app(); }
 
     void setProvider(const QString& provider);
     void setModel(const QString& model);
@@ -51,6 +53,7 @@ public:
     void setApiKey(const QString& apiKey);
 
     Q_INVOKABLE void send(const QString& text);
+    Q_INVOKABLE void openApp(const QString& id);
     Q_INVOKABLE void clear();
 
     void classBegin() override { }
@@ -69,7 +72,6 @@ signals:
     void appShown(const QString& id);
 
 private:
-    void showApp(const QString& id);
     void load();
     void store(const QString& key, const QString& value);
     QString effectiveApiKey() const;
@@ -77,13 +79,14 @@ private:
 
     AgentController m_controller;
     AppTools m_tools;
+    ChatStore m_store;
+    ChatThread m_thread;
     SecureStorage m_secrets;
     std::unique_ptr<Client> m_client;
     QString m_provider;
     QString m_model;
     QString m_reasoning;
     QString m_apiKey;
-    QString m_lastAppId;
     QString m_clientProvider;
     QString m_clientApiKey;
     QString m_error;

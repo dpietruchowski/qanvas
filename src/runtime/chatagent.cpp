@@ -1,5 +1,6 @@
 #include "chatagent.h"
 
+#include "app.h"
 #include "appregistry.h"
 #ifdef QANVAS_CLAUDE_CLI
 #include "agent/claudecliclient.h"
@@ -137,6 +138,7 @@ ChatAgent::ChatAgent(QObject* parent)
     : QObject(parent)
     , m_controller(QString::fromLatin1(kDefaultModel), QString::fromLatin1(kSystemPrompt))
     , m_tools(m_controller, AppRegistry::instance(), this)
+    , m_thread(m_controller, m_store, this)
     , m_secrets(QCoreApplication::organizationName(), QStringLiteral("agent"))
 {
     connect(&m_controller, &AgentController::messagesChanged, this, &ChatAgent::messagesChanged);
@@ -148,27 +150,34 @@ ChatAgent::ChatAgent(QObject* parent)
                 emit messagesChanged();
             });
     connect(&m_tools, &AppTools::activitiesChanged, this, &ChatAgent::activitiesChanged);
-    connect(&m_tools, &AppTools::appShown, this, &ChatAgent::showApp);
-    connect(&AppRegistry::instance(), &AppRegistry::appRemoving, this,
+    connect(&m_tools, &AppTools::appShown, this,
             [this](const QString& id)
             {
-                if (id != m_lastAppId)
-                    return;
-
-                m_lastAppId.clear();
+                m_thread.bind(id);
+                emit appShown(id);
+            });
+    connect(&m_thread, &ChatThread::appChanged, this,
+            [this]
+            {
+                store(QStringLiteral("lastApp"), m_thread.app());
                 emit lastAppIdChanged();
             });
+    connect(&AppRegistry::instance(), &AppRegistry::appRemoving, this,
+            [this](const QString& id) { m_thread.forget(id); });
 
     load();
 }
 
 void ChatAgent::componentComplete() { m_tools.setEngine(qmlEngine(this)); }
 
-void ChatAgent::showApp(const QString& id)
+void ChatAgent::openApp(const QString& id)
 {
-    m_lastAppId = id;
-    emit lastAppIdChanged();
-    emit appShown(id);
+    if (m_controller.isBusy() || id == m_thread.app())
+        return;
+
+    m_error.clear();
+    m_tools.clearActivities();
+    m_thread.open(id);
 }
 
 QStringList ChatAgent::providers() const
@@ -260,14 +269,18 @@ void ChatAgent::send(const QString& text)
         return;
     }
 
+    m_thread.remember(text);
     m_controller.request(client(), text);
 }
 
 void ChatAgent::clear()
 {
+    if (m_controller.isBusy())
+        return;
+
     m_error.clear();
     m_tools.clearActivities();
-    m_controller.clear(QString());
+    m_thread.reset();
 }
 
 void ChatAgent::load()
@@ -280,6 +293,9 @@ void ChatAgent::load()
         settings.value(QStringLiteral("model"), QString::fromLatin1(kDefaultModel)).toString());
     setReasoning(settings.value(QStringLiteral("reasoning"), QString::fromLatin1(kDefaultReasoning))
                      .toString());
+
+    const QString lastApp = settings.value(QStringLiteral("lastApp")).toString();
+    m_thread.open(App(lastApp).exists() ? lastApp : QString());
 }
 
 QString ChatAgent::apiKeyHint() const

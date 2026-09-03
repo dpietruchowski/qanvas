@@ -9,6 +9,8 @@ ThemedPage {
     property string openedId: ""
     property string removingId: ""
 
+    signal appActivated(string id)
+
     function open(id) {
         root.openedId = id
         stage.reload()
@@ -34,7 +36,10 @@ ThemedPage {
         visible: root.openedId === ""
         apps: AppRegistry.apps
 
-        onAppActivated: function (id) { root.open(id) }
+        onAppActivated: function (id) {
+            root.open(id)
+            root.appActivated(id)
+        }
         onAppRemoveRequested: function (id, title) {
             root.removingId = id
             removeDialog.message = qsTr("Delete \"%1\" with everything it stored?").arg(title)

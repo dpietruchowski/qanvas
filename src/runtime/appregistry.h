@@ -5,6 +5,8 @@
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 
+#include "systemdatabase.h"
+
 class QJSEngine;
 class QQmlEngine;
 
@@ -18,7 +20,6 @@ class AppRegistry : public QObject
 
 public:
     explicit AppRegistry(QObject* parent);
-    ~AppRegistry() override;
 
     static AppRegistry& instance();
     static AppRegistry* create(QQmlEngine* engine, QJSEngine* scriptEngine);
@@ -34,6 +35,6 @@ signals:
 private:
     bool open();
 
-    QString m_connectionName;
+    SystemDatabase m_database;
     bool m_open = false;
 };
