@@ -295,8 +295,9 @@ DefaultTheme {
     }
 
     property QtObject agentBar: QtObject {
-        readonly property color background: theme.colors.surface
+        readonly property color background: theme.colors.surfaceRaised
         readonly property color border: theme.colors.border
+        readonly property color divider: theme.colors.borderStrong
         readonly property int radius: theme.radius.large
         readonly property int padding: theme.padding.medium
         readonly property int headerHeight: theme.scaled(44)

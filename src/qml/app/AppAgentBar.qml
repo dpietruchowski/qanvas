@@ -7,9 +7,29 @@ import Themed.Components
 Rectangle {
     id: root
 
+    property var messages: []
     property var activities: []
     property bool busy: false
     property bool expanded: false
+    property string userRole: "user"
+
+    readonly property var recentMessages: {
+        var recent = []
+        for (var i = root.messages.length - 1; i >= 0; --i) {
+            recent.unshift(root.messages[i])
+            if (root.messages[i].sender === root.userRole)
+                break
+        }
+        return recent
+    }
+    readonly property var askedMessage: root.recentMessages.length > 0
+                                        && root.recentMessages[0].sender === root.userRole
+                                        ? root.recentMessages[0]
+                                        : null
+    readonly property var replyMessages: root.askedMessage ? root.recentMessages.slice(1)
+                                                           : root.recentMessages
+    readonly property bool hasTurn: root.busy || root.recentMessages.length > 0
+                                    || root.activities.length > 0
 
     readonly property var lastActivity: root.activities.length > 0
                                         ? root.activities[root.activities.length - 1]
@@ -29,6 +49,7 @@ Rectangle {
     }
 
     signal sent(string text)
+    signal backClicked()
 
     function toggle() {
         root.expanded = !root.expanded
@@ -57,9 +78,26 @@ Rectangle {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Theme.agentBar.padding
+                anchors.leftMargin: Theme.spacing.xSmall
                 anchors.rightMargin: Theme.spacing.xSmall
                 spacing: Theme.agentBar.headerSpacing
+
+                ThemedBackButton {
+                    objectName: "appAgentBack"
+                    Layout.alignment: Qt.AlignVCenter
+                    buttonSize: Theme.button.iconSmall
+
+                    onClicked: root.backClicked()
+                }
+
+                ThemedSeparator {
+                    objectName: "appAgentDivider"
+                    Layout.fillHeight: true
+                    Layout.topMargin: Theme.spacing.small
+                    Layout.bottomMargin: Theme.spacing.small
+                    vertical: true
+                    color: Theme.agentBar.divider
+                }
 
                 Item {
                     Layout.alignment: Qt.AlignVCenter
@@ -147,24 +185,27 @@ Rectangle {
                 enabled: root.expanded
 
                 ThemedScroll {
-                    id: logScroll
+                    id: turnScroll
 
-                    objectName: "appAgentLogScroll"
+                    objectName: "appAgentTurnScroll"
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.min(log.implicitHeight,
+                    Layout.preferredHeight: Math.min(turn.implicitHeight,
                                                      Theme.agentBar.logMaxHeight)
-                    visible: root.activities.length > 0
+                    visible: root.hasTurn
 
                     onContentHeightChanged: Qt.callLater(function () {
-                        logScroll.contentY = Math.max(0, logScroll.contentHeight - logScroll.height)
+                        turnScroll.contentY = Math.max(0, turnScroll.contentHeight
+                                                          - turnScroll.height)
                     })
 
-                    ChatActivityLog {
-                        id: log
+                    AppAgentTurn {
+                        id: turn
 
-                        objectName: "appAgentLog"
-                        width: logScroll.width
+                        width: turnScroll.width
+                        askedMessage: root.askedMessage
+                        replyMessages: root.replyMessages
                         activities: root.activities
+                        busy: root.busy
                     }
                 }
 

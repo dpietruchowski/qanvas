@@ -8,6 +8,7 @@ ThemedPage {
 
     property string openedId: ""
     property string removingId: ""
+    property alias messages: agentBar.messages
     property alias activities: agentBar.activities
     property alias busy: agentBar.busy
 
@@ -22,9 +23,6 @@ ThemedPage {
     }
 
     objectName: "appsPage"
-    showBackButton: root.openedId !== ""
-
-    onBackClicked: root.openedId = ""
 
     Connections {
         target: AppRegistry
@@ -80,6 +78,7 @@ ThemedPage {
         visible: root.openedId !== ""
 
         onSent: function (text) { root.sent(text) }
+        onBackClicked: root.openedId = ""
     }
 
     ThemedDialog {

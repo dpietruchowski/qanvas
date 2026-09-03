@@ -21,6 +21,7 @@ AppShell {
         id: appsView
 
         openedId: agent.lastAppId
+        messages: agent.messages
         activities: agent.activities
         busy: agent.busy
 
