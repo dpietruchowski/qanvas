@@ -366,8 +366,32 @@ DefaultTheme {
         readonly property string monoFamily: "monospace"
     }
 
+    readonly property var iconNames: [
+        "plus", "minus", "remove", "check", "close", "edit", "copy", "search", "settings",
+        "list", "menu", "star", "star-half", "star-full", "timer", "calendar", "home", "user",
+        "info", "warning", "error", "success", "chat", "send", "globe", "next", "previous",
+        "chevron-down", "chevron-up", "chevron-right", "barbell", "dumbell", "sliders",
+        "more-vertical", "reorder", "export", "import"
+    ]
+
+    readonly property var iconAliases: ({
+        "add": "plus", "delete": "remove", "trash": "remove", "ok": "check", "done": "check",
+        "cancel": "close", "x": "close", "back": "previous", "forward": "next",
+        "clock": "timer", "history": "timer", "stopwatch": "timer", "gear": "settings",
+        "cog": "settings", "help": "info", "dumbbell": "dumbell", "gym": "barbell",
+        "workout": "dumbell", "stats": "sliders", "chart": "sliders", "filter": "sliders",
+        "more": "more-vertical", "drag": "reorder", "share": "export", "download": "import",
+        "date": "calendar", "person": "user", "profile": "user", "message": "chat"
+    })
+
     function iconSource(name) {
-        return name ? "qrc:/Themed/Icons/" + name + ".svg" : ""
+        if (!name)
+            return ""
+        const resolved = theme.iconAliases[name] || name
+        if (theme.iconNames.indexOf(resolved) === -1)
+            throw new Error("unknown icon \"" + name + "\": iconName is one of "
+                            + theme.iconNames.join(" "))
+        return "qrc:/Themed/Icons/" + resolved + ".svg"
     }
 
     function hasType(type, token) {

@@ -28,6 +28,15 @@ TEST(SystemPromptTest, NamesEveryTool)
         EXPECT_TRUE(prompt.contains(QLatin1String(tool))) << tool;
 }
 
+TEST(SystemPromptTest, NamesEveryComponent)
+{
+    const QString prompt = SystemPrompt::text();
+    for (const char* component :
+         { "QanvasCountdown", "QanvasStopwatch", "QanvasStat", "QanvasBadge", "QanvasTabs",
+           "QanvasProgress", "QanvasStepper", "QanvasPanel", "emptyText" })
+        EXPECT_TRUE(prompt.contains(QLatin1String(component))) << component;
+}
+
 TEST(SystemPromptTest, EveryTransitionLeadsToADefinedState)
 {
     const QString prompt = SystemPrompt::text();

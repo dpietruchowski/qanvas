@@ -183,6 +183,7 @@ Rectangle {
                 anchors.bottomMargin: Theme.agentBar.padding
                 spacing: Theme.agentBar.logSpacing
                 enabled: root.expanded
+                visible: reveal.revealedHeight > 0
 
                 ThemedScroll {
                     id: turnScroll

@@ -101,7 +101,11 @@ The answer names File.qml:line, or names the component and its text.
                          cause (one long row, one page that needs scrollable).
   "Rejected and undone"  disk holds the file as it was BEFORE the edit. Build
                          the next edit against that text; a "before" from the
-                         change that was undone cannot match.
+                         change that was undone cannot match. A rejected
+                         write_file of a screen means the screen does NOT
+                         exist: fix the line it names and write it again now,
+                         before anything else — Main.qml cannot name it until
+                         it lands.
   "Saved, but ... does not load"   disk holds what you just wrote. When the
                          error is in ANOTHER file (Main.qml names a screen
                          you have not written yet), go on writing; it clears
@@ -185,6 +189,38 @@ tells you when something does not fit. The rules that keep it fitting:
         }
 
   - A filter or a mode switch above a list: QanvasTabs, not a row of buttons.
+  - A list that may be empty says so itself: emptyText and emptyIcon on the
+    QanvasList. A separate QanvasEmpty under a list lands at the bottom edge.
+  - A new row with several fields (name, sets, reps) is a form in a
+    QanvasPanel, opened by a button; never several values in one input
+    separated by commas:
+
+        QanvasButton { text: "Dodaj ćwiczenie"; onClicked: form.open() }
+
+        QanvasPanel {
+            id: form
+            title: "Nowe ćwiczenie"
+
+            QanvasInput { id: nameField; placeholder: "Nazwa" }
+            QanvasRow {
+                QanvasText { text: "Serie" }
+                QanvasStepper { id: setsField; value: 3; from: 1; to: 20 }
+            }
+            QanvasButton {
+                text: "Zapisz"
+                Layout.fillWidth: true
+                onClicked: {
+                    if (nameField.text.trim() === "")
+                        return
+                    db.addExercise(planId, nameField.text.trim(), setsField.value)
+                    nameField.text = ""
+                    form.close()
+                }
+            }
+        }
+
+  - A button that only sometimes applies: visible: done < total, never a
+    Repeater whose model is 1 or 0.
   - Never give an item x, y, width or height, and never anchor: layouts place
     everything.
 
@@ -231,6 +267,9 @@ nothing, which no tool will tell you about. So each screen file:
         property string screen: "list"
         property int lessonId: 0
 
+        showBack: screen !== "list"
+        onBack: screen = "list"
+
         Data { id: db }
         Component.onCompleted: db.setup()
 
@@ -269,7 +308,12 @@ defined", the page is missing its id: root — add it; never drop the root.
 
 Only Main.qml calls db.setup(). A screen that needs to refresh after writing
 binds through App.revision like any other list.
-Set showBack and onBack on the page only when back should leave the app.
+The page's back arrow is the way out of every screen but the first: showBack
+and onBack as above, on Main.qml, never a "Wstecz" button inside a screen.
+Bottom navigation between top-level screens (Plany | Historia | Statystyki) is
+a QanvasTabs as the LAST child of the page: options are the labels, value is
+bound to the screen, onSelected sets it; showBack is then true only on the
+screens the tabs do not reach.
 
 ## STATE THAT DOES NOT REFRESH
 A binding only re-runs when something it reads announces a change. Two things
@@ -280,6 +324,12 @@ never announce it, and both fail in silence — the screen keeps the old value:
         counts = Object.assign({}, counts)    when a key changed
   - reading the database without App.revision. Every binding that calls a Data
     function reads it: (App.revision, db.listItems()).
+And one thing breaks the other way: assigning to a property that has a binding
+throws the binding away for good. A Timer with running: resting that does
+running = false inside onTriggered never runs again; set resting = false — the
+thing the binding reads — instead. Time itself is never your own Timer plus
+Date.now() (it does not fit a property int): QanvasCountdown counts down and
+says finished, QanvasStopwatch counts up, both bound through running.
 Check length before indexing: list[i] past the end is undefined, and reading a
 field off it raises an error the user never sees. Do it ONCE, in a property the
 rest of the file reads, instead of guarding at every use:
@@ -300,6 +350,13 @@ QanvasBadge{text type:primary|success|warning|danger}  a small pill label
 QanvasTabs{options value onSelected(value)}  one row of choices, one active
 QanvasProgress{value from to}
 QanvasStepper{value from to onChanged(value)}  a number with - and +
+QanvasCountdown{seconds running remaining text onFinished restart()}  draws
+    nothing, so no Layout or visible on it; running: resting starts it from
+    seconds, remaining and text ("0:59") tick down, finished fires at zero
+QanvasStopwatch{running elapsed text reset()}  draws nothing; elapsed seconds
+    since running became true, text is "m:ss". How long a session took:
+    QanvasStopwatch { id: clock; running: true } and db.addSession(clock.elapsed)
+    at the end — never Date.now() in a property
 QanvasIcon{iconName type:small|medium|large}
 QanvasButton{text iconName onClicked type}  type takes one colour word
     (primary|secondary|danger|success|ghost) and optionally a shape word
@@ -309,7 +366,7 @@ QanvasInput{text placeholder clearOnSubmit onSubmitted(text) type:text|number|se
 QanvasTextArea{text readOnly}
 QanvasCheckBox{text checked}  QanvasSwitch{text checked}
 QanvasSlider{value from to}  QanvasSelect{options value onSelected(value)}
-QanvasList{model textRole subtitleRole iconRole removable
+QanvasList{model textRole subtitleRole iconRole removable emptyText emptyIcon
     textFormat subtitleFormat  functions taking the row, for a line the model
     has no column for: subtitleFormat: function(item) { return item.a + "/" + item.b }
     onItemClicked(index,item) onRemoveClicked(index,item)}
@@ -321,8 +378,10 @@ QanvasDialog{title message acceptText rejectText showCancel type:danger|success
     open() onAccepted}
 QanvasToast{show(text)}  QanvasBusy{running}
 iconName picks from: plus minus remove check close edit copy search settings
-list menu star star-full timer calendar home user info warning error success
-chat send globe next previous chevron-down chevron-up chevron-right
+list menu star star-half star-full timer calendar home user info warning error
+success chat send globe next previous chevron-down chevron-up chevron-right
+barbell dumbell sliders more-vertical reorder export import — any other name
+raises an error
 
 ## DATA
 Data lives in the app's own SQLite database, reached through the App object:
@@ -409,14 +468,10 @@ B1  create_app  id="shopping-list"  title="Lista zakupów"
             model: (App.revision, db.listItems())
             textRole: "text"
             removable: true
+            emptyText: "Pusta lista"
+            emptyIcon: "list"
             onItemClicked: function(index, item) { db.toggleItem(item.id, !item.done) }
             onRemoveClicked: function(index, item) { db.removeItem(item.id) }
-        }
-
-        QanvasEmpty {
-            visible: (App.revision, db.listItems().length === 0)
-            text: "Pusta lista"
-            iconName: "list"
         }
     }
     data=

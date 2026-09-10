@@ -11,6 +11,8 @@
 #include "runtime/host/notesbridge.h"
 #include "runtime/host/tasksbridge.h"
 
+#include <QFile>
+#include <QRegularExpression>
 #include <QStringList>
 #include <QTimer>
 
@@ -181,6 +183,27 @@ bool onlyOldErrors(const QString& errors, const QString& priorErrors)
             return false;
     }
     return true;
+}
+
+QString explained(const QString& errors, const QString& dir)
+{
+    static const QRegularExpression missingType(QStringLiteral("\\b([A-Z]\\w*) is not a type\\b"));
+    QStringList lines = errors.split(QLatin1Char('\n'));
+    for (QString& line : lines)
+    {
+        const QRegularExpressionMatch match = missingType.match(line);
+        if (!match.hasMatch())
+            continue;
+        const QString name = match.captured(1);
+        if (name.startsWith(QStringLiteral("Qanvas")))
+            line += QStringLiteral(" (no such component: see COMPONENTS)");
+        else if (!QFile::exists(dir + QLatin1Char('/') + name + QStringLiteral(".qml")))
+            line += QStringLiteral(" (there is no %1.qml in the app: write_file it first)")
+                        .arg(name);
+        else
+            line += QStringLiteral(" (%1.qml is there but does not load on its own)").arg(name);
+    }
+    return lines.join(QLatin1Char('\n'));
 }
 
 QString withLayout(const QString& result, const QString& appId)
@@ -513,14 +536,19 @@ void AppTools::show(const App& app, const QString& result, int index, const Tool
     const Result<void> compiled
         = m_engine ? AppCompiler(*m_engine).compile(app) : Result<void>::success();
     if (m_warnings)
+    {
         m_warnings->clear(app.id());
+        m_warnings->setCurrentApp(app.id());
+    }
 
     if (compiled.isFailure() && !restoreTo.isEmpty()
         && !onlyOldErrors(compiled.error(), priorError))
     {
         AppFiles(app.dir()).restore(restoreTo);
         emit appShown(app.id());
-        finish(index, Result<QString>::failure(wasRolledBack(compiled.error())), done);
+        finish(index,
+               Result<QString>::failure(wasRolledBack(explained(compiled.error(), app.dir()))),
+               done);
         return;
     }
 
@@ -528,7 +556,8 @@ void AppTools::show(const App& app, const QString& result, int index, const Tool
 
     if (compiled.isFailure())
     {
-        finish(index, Result<QString>::failure(doesNotLoad(compiled.error())), done);
+        endActivity(index, !priorError.isEmpty() && onlyOldErrors(compiled.error(), priorError));
+        done(doesNotLoad(explained(compiled.error(), app.dir())));
         return;
     }
 

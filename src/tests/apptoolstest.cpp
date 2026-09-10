@@ -284,9 +284,10 @@ TEST_F(AppToolsTest, AWriteThatAddsNoNewErrorIsKeptWhileTheAppIsStillBroken)
 
     const QString kept = client.lastToolResult();
     EXPECT_TRUE(kept.contains(QStringLiteral("Saved, but"))) << qPrintable(kept);
-    EXPECT_TRUE(kept.contains(QStringLiteral("Panel"))) << qPrintable(kept);
+    EXPECT_TRUE(kept.contains(QStringLiteral("no Panel.qml in the app"))) << qPrintable(kept);
     EXPECT_FALSE(kept.contains(QStringLiteral("undone"))) << qPrintable(kept);
     EXPECT_TRUE(QFile::exists(App(QStringLiteral("notes")).dir() + QStringLiteral("/Card.qml")));
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
 }
 
 TEST_F(AppToolsTest, AnErrorRaisedWhileLoadingComesBackWithTheWriteResult)

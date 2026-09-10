@@ -18,9 +18,11 @@ public:
 
     QStringList lines(const QString& appId) const { return m_lines.value(appId); }
     void clear(const QString& appId);
+    void setCurrentApp(const QString& appId);
 
 private:
     void record(const QList<QQmlError>& errors);
 
     QHash<QString, QStringList> m_lines;
+    QString m_currentApp;
 };

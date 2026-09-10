@@ -89,6 +89,25 @@ TEST_F(AppWarningsTest, IgnoresFilesOutsideTheAppsRoot)
     EXPECT_TRUE(warnings.lines(app.id()).isEmpty());
 }
 
+TEST_F(AppWarningsTest, AnErrorRaisedByASharedComponentIsFiledUnderTheCurrentApp)
+{
+    writeFile(elsewhere.path() + QStringLiteral("/lib/Bad.qml"),
+              QStringLiteral("import QtQuick\nItem {\n    property var v: (function() { throw "
+                             "new Error(\"unknown icon\") })()\n}\n"));
+    writeFile(app.entryPath(),
+              QStringLiteral("import QtQuick\nimport \"file://%1/lib\"\nItem { Bad {} }\n")
+                  .arg(elsewhere.path()));
+
+    warnings.setCurrentApp(app.id());
+    const std::unique_ptr<QObject> running = run(app.entryPath());
+
+    const QStringList lines = warnings.lines(app.id());
+    ASSERT_EQ(lines.size(), 1);
+    EXPECT_TRUE(lines.first().startsWith(QStringLiteral("Bad.qml:3"))) << qPrintable(lines.first());
+    EXPECT_TRUE(lines.first().contains(QStringLiteral("unknown icon")))
+        << qPrintable(lines.first());
+}
+
 TEST_F(AppWarningsTest, ClearForgetsOneApp)
 {
     writeFile(app.entryPath(), kThrowingQml);

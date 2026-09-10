@@ -1,3 +1,4 @@
+import QtQuick
 import QtQuick.Layouts
 
 import Themed.Components
@@ -13,6 +14,8 @@ ThemedList {
     property bool removable: false
     property var textFormat: null
     property var subtitleFormat: null
+    property string emptyText: ""
+    property string emptyIcon: ""
 
     signal itemClicked(int index, var item)
     signal removeClicked(int index, var item)
@@ -24,6 +27,8 @@ ThemedList {
             return String(item[role])
         return ""
     }
+
+    implicitHeight: empty.visible ? empty.implicitHeight : contentHeight
 
     delegate: QanvasListItem {
         required property var modelData
@@ -38,5 +43,16 @@ ThemedList {
         removable: root.removable
         onClicked: root.itemClicked(index, modelData)
         onRemoveClicked: root.removeClicked(index, modelData)
+    }
+
+    ThemedEmpty {
+        id: empty
+
+        parent: root
+        anchors.centerIn: parent
+        width: parent.width
+        visible: root.count === 0 && root.emptyText !== ""
+        text: root.emptyText
+        iconSource: Theme.iconSource(root.emptyIcon)
     }
 }

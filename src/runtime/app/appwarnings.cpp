@@ -2,6 +2,7 @@
 
 #include "runtime/app/app.h"
 
+#include <QFileInfo>
 #include <QQmlEngine>
 #include <QQmlError>
 #include <QUrl>
@@ -30,17 +31,35 @@ AppWarnings::AppWarnings(QQmlEngine& engine, QObject* parent)
 
 void AppWarnings::clear(const QString& appId) { m_lines.remove(appId); }
 
+void AppWarnings::setCurrentApp(const QString& appId) { m_currentApp = appId; }
+
 void AppWarnings::record(const QList<QQmlError>& errors)
 {
     for (const QQmlError& error : errors)
     {
-        const QString id = appIdOf(error.url());
-        if (id.isEmpty())
+        QString id = appIdOf(error.url());
+        QString line;
+        if (!id.isEmpty())
+        {
+            const QString directory
+                = QUrl::fromLocalFile(App(id).dir()).toString() + QLatin1Char('/');
+            line = error.toString().remove(directory);
+        }
+        else if (!m_currentApp.isEmpty())
+        {
+            id = m_currentApp;
+            line = QStringLiteral("%1:%2: %3")
+                       .arg(QFileInfo(error.url().path()).fileName())
+                       .arg(error.line())
+                       .arg(error.description());
+        }
+        else
+        {
             continue;
+        }
 
-        const QString directory = QUrl::fromLocalFile(App(id).dir()).toString() + QLatin1Char('/');
         QStringList& lines = m_lines[id];
-        lines.append(error.toString().remove(directory));
+        lines.append(line);
         if (lines.size() > kMaxLinesPerApp)
             lines.removeFirst();
     }

@@ -97,7 +97,8 @@ bool isFlickable(const QQuickItem* item) { return item->inherits("QQuickFlickabl
 bool isSpacer(const QQuickItem* item)
 {
     const QString name = typeName(item);
-    return name.contains(QStringLiteral("Spacer")) || name.contains(QStringLiteral("Separator"));
+    return name.contains(QStringLiteral("Spacer")) || name.contains(QStringLiteral("Separator"))
+        || name.contains(QStringLiteral("Countdown")) || name.contains(QStringLiteral("Stopwatch"));
 }
 
 bool hasVisibleChildren(const QQuickItem* item)
