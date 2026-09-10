@@ -295,6 +295,30 @@ TEST_F(AppFilesTest, MatchesAnAnchorWhoseIndentationIsOff)
               QStringLiteral("Item {\n    Column {\n        a: 1\n    }\n    b: 2\n}\n"));
 }
 
+TEST_F(AppFilesTest, NamesACallToAFunctionDataDoesNotDefine)
+{
+    files.write(QStringLiteral("Data.qml"),
+                QStringLiteral("import QtQuick\n"
+                               "QtObject {\n"
+                               "    function setup() {}\n"
+                               "    function listWords(setId) { return [] }\n"
+                               "}\n"));
+    files.write(QStringLiteral("Main.qml"), kMain);
+    files.write(QStringLiteral("Details.qml"),
+                QStringLiteral("import QtQuick\n"
+                               "Item {\n"
+                               "    Data { id: db }\n"
+                               "    property var words: (App.revision, db.listWords(1))\n"
+                               "    property var stats: db.getSetStats(1)\n"
+                               "    Component.onCompleted: { db.setup(); other.listWords(1) }\n"
+                               "}\n"));
+
+    EXPECT_EQ(
+        files.undefinedCalls(),
+        QStringList { QStringLiteral("Details.qml:5: calls db.getSetStats(), which "
+                                     "Data.qml does not define (it has: setup, listWords)") });
+}
+
 TEST_F(AppFilesTest, RemovesAComponentButNotTheEntryPoint)
 {
     files.write(QStringLiteral("Main.qml"), kMain);

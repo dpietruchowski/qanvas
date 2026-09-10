@@ -588,6 +588,49 @@ QStringList AppFiles::unused() const
     return orphans;
 }
 
+QStringList AppFiles::undefinedCalls() const
+{
+    const AppSources sources = snapshot();
+    const QString data = sources.value(QStringLiteral("Data.qml"));
+    if (data.isEmpty())
+        return QStringList();
+
+    QStringList defined;
+    for (const QString& function : functionsIn(splitLines(data)))
+        defined.append(function.left(function.indexOf(QLatin1Char('('))));
+
+    static const QRegularExpression instance(
+        QStringLiteral("\\bData\\s*\\{\\s*id:\\s*([A-Za-z_][A-Za-z0-9_]*)"));
+    QStringList problems;
+    for (auto it = sources.cbegin(); it != sources.cend(); ++it)
+    {
+        if (it.key() == QStringLiteral("Data.qml"))
+            continue;
+        const QRegularExpressionMatch match = instance.match(it.value());
+        if (!match.hasMatch())
+            continue;
+        const QRegularExpression call(
+            QStringLiteral("\\b%1\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\(").arg(match.captured(1)));
+        const QStringList lines = splitLines(it.value());
+        for (int line = 0; line < lines.size(); ++line)
+        {
+            QRegularExpressionMatchIterator calls = call.globalMatch(lines.at(line));
+            while (calls.hasNext())
+            {
+                const QString name = calls.next().captured(1);
+                if (!defined.contains(name))
+                    problems.append(
+                        QStringLiteral("%1:%2: calls %3.%4(), which Data.qml does "
+                                       "not define (it has: %5)")
+                            .arg(it.key())
+                            .arg(line + 1)
+                            .arg(match.captured(1), name, defined.join(QStringLiteral(", "))));
+            }
+        }
+    }
+    return problems;
+}
+
 QStringList AppFiles::sourceNames() const
 {
     if (m_dir.isEmpty())

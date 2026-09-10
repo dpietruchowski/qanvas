@@ -64,6 +64,17 @@ public:
         return completion;
     }
 
+    QStringList toolResults() const
+    {
+        QStringList results;
+        for (const Message& message : lastMessages)
+        {
+            if (message.role == QStringLiteral("tool"))
+                results.append(message.content);
+        }
+        return results;
+    }
+
     QString lastToolResult() const
     {
         for (auto it = lastMessages.crbegin(); it != lastMessages.crend(); ++it)

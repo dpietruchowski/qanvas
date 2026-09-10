@@ -372,6 +372,34 @@ TEST_F(AppToolsTest, ReadLogNamesTheFilesNoOtherFileUses)
         << qPrintable(result);
 }
 
+TEST_F(AppToolsTest, AWriteThatCallsAFunctionDataDoesNotDefineSaysSo)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")] = QStringLiteral("import QtQuick\nItem { Data { id: db } }\n");
+    arguments[QStringLiteral("data")]
+        = QStringLiteral("import QtQuick\nQtObject {\n    function setup() {}\n}\n");
+    QVariantMap screen = fileArguments(QStringLiteral("notes"), QStringLiteral("Stats.qml"));
+    screen[QStringLiteral("content")] = QStringLiteral("import QtQuick\nItem {\n    Data { id: db "
+                                                       "}\n    property var s: db.stats()\n}\n");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::toolCall(QStringLiteral("write_file"), screen),
+          ScriptedClient::toolCall(
+              QStringLiteral("read_log"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    const QString written = client.toolResults().at(1);
+    EXPECT_TRUE(written.contains(QStringLiteral("Stats.qml:4: calls db.stats(), which Data.qml "
+                                                "does not define (it has: setup)")))
+        << qPrintable(written);
+    EXPECT_TRUE(written.contains(QStringLiteral("Add the function to Data.qml")))
+        << qPrintable(written);
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("Will throw when that screen")))
+        << qPrintable(client.lastToolResult());
+}
+
 TEST_F(AppToolsTest, ReadLogNamesARejectedWriteThatWasNeverRedone)
 {
     QVariantMap card = fileArguments(QStringLiteral("notes"), QStringLiteral("Card.qml"));

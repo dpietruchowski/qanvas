@@ -103,7 +103,8 @@ const char* kReadLogDocstring
       "exceptions in handlers and timers, including ones the user triggered by using the app\n"
       "@param app (string) app id\n"
       "@return one \"File.qml:line:column: message\" line per error, oldest first, then the "
-      "writes rejected this turn and never redone, and the files no other file uses";
+      "writes rejected this turn and never redone, the files no other file uses, and the calls "
+      "to functions Data.qml does not define";
 
 const char* kCheckLayoutDocstring
     = "@brief check_layout\n"
@@ -207,6 +208,13 @@ QString explained(const QString& errors, const QString& dir)
             line += QStringLiteral(" (%1.qml is there but does not load on its own)").arg(name);
     }
     return lines.join(QLatin1Char('\n'));
+}
+
+QString missingFunctions(const QStringList& calls)
+{
+    return QStringLiteral("Saved and loaded, but it will throw when that screen opens:\n%1\nAdd "
+                          "the function to Data.qml now.")
+        .arg(calls.join(QLatin1Char('\n')));
 }
 
 QString withLayout(const QString& result, const QString& appId)
@@ -569,6 +577,10 @@ QString AppTools::unfinished(const App& app, bool thisTurnOnly) const
         lines.append(QStringLiteral("Written, but no other file uses them, so the user cannot "
                                     "reach them: %1")
                          .arg(orphans.join(QStringLiteral(", "))));
+    const QStringList calls = AppFiles(app.dir()).undefinedCalls();
+    if (!calls.isEmpty())
+        lines.append(QStringLiteral("Will throw when that screen opens:\n%1")
+                         .arg(calls.join(QLatin1Char('\n'))));
     return lines.join(QLatin1Char('\n'));
 }
 
@@ -652,10 +664,18 @@ void AppTools::show(const App& app, const QString& result, int index, const Tool
         [this, id = app.id(), result, index, done]
         {
             const QStringList raised = m_warnings->lines(id);
-            if (raised.isEmpty())
-                finish(index, Result<QString>::success(withLayout(result, id)), done);
-            else
+            if (!raised.isEmpty())
+            {
                 finish(index, Result<QString>::failure(raisedWhileLoading(raised)), done);
+                return;
+            }
+            const QStringList calls = AppFiles(App(id).dir()).undefinedCalls();
+            if (!calls.isEmpty())
+            {
+                finish(index, Result<QString>::success(missingFunctions(calls)), done);
+                return;
+            }
+            finish(index, Result<QString>::success(withLayout(result, id)), done);
         });
 }
 

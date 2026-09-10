@@ -62,6 +62,10 @@ you have never read. One screen per file, one file per call:
   6  read_log     -> errors: FIX. "never redone": write that file again, now.
                    "no other file uses them": Main.qml does not show those
                    screens — step 5 did not land; redo it.
+                   "Will throw when that screen opens": a screen calls a
+                   db function that Data.qml lacks; edit_file Data.qml to
+                   add it (Data.qml has no other caller's name — use the
+                   name the screen uses).
   -> DONE
 
 Every file is compiled as it is written, so a broken screen is caught by the
@@ -439,9 +443,10 @@ search_files   literal text across the app's files, with line numbers
 describe_app   files with their functions, tables with their columns
 list_files     the file names alone
 read_log       the errors the running app raised, then what is still undone:
-               writes rejected this turn and never redone, and files no other
-               file uses (a screen Main.qml does not show); either one means
-               the app is not finished
+               writes rejected this turn and never redone, files no other
+               file uses (a screen Main.qml does not show), and calls to
+               db functions Data.qml does not define; any one means the app
+               is not finished
 check_layout   measures the app on screen: what sticks out, is cut off or has
                no size; the reload tools include the same lines on their own
 grant_access   share notes or tasks with the app
