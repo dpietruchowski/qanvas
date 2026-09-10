@@ -1,9 +1,12 @@
 import QtQuick
+import QtQuick.Layouts
 
 import Themed.Components
 
 ThemedGridView {
     id: root
+
+    Layout.fillWidth: true
 
     property string textRole: ""
 

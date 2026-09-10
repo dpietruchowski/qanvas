@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 
 import Themed.Components
 
@@ -7,6 +8,7 @@ ThemedInput {
 
     property string type: "text"
 
+    Layout.fillWidth: true
     horizontalAlignment: Text.AlignLeft
     leftPadding: Theme.input.paddingH
     rightPadding: Theme.input.paddingH

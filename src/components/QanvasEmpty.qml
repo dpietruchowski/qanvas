@@ -1,3 +1,5 @@
+import QtQuick.Layouts
+
 import Themed.Components
 
 ThemedEmpty {
@@ -5,5 +7,6 @@ ThemedEmpty {
 
     property string iconName: ""
 
+    Layout.fillWidth: true
     iconSource: Theme.iconSource(root.iconName)
 }

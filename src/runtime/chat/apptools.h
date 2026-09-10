@@ -51,13 +51,15 @@ private:
     void addDeleteAppTool();
     void addDescribeAppTool();
     void addReadLogTool();
+    void addCheckLayoutTool();
     void addGrantAccessTool();
     void addFileTool(const char* docstring, const Activity& activity, bool reloads,
                      const FileOperation& operation);
     std::optional<QString> refusal(const App& app) const;
     void finish(int index, const Result<QString>& result, const ToolDone& done);
     void show(const App& app, const QString& result, int index, const ToolDone& done,
-              const AppSources& restoreTo = AppSources());
+              const AppSources& restoreTo = AppSources(), const QString& priorError = QString());
+    QString currentError(const App& app) const;
     int beginActivity(const Activity& activity, const QVariantMap& arguments);
     void endActivity(int index, bool ok);
     QString unknownApp(const QString& id) const;

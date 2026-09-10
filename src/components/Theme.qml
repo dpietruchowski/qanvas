@@ -396,7 +396,60 @@ DefaultTheme {
         return theme.button.medium
     }
 
+    function textAlignment(type) {
+        if (theme.hasType(type, "center"))
+            return Text.AlignHCenter
+        if (theme.hasType(type, "right"))
+            return Text.AlignRight
+        return Text.AlignLeft
+    }
+
+    function badgeStyle(type) {
+        if (theme.hasType(type, "danger"))
+            return theme.badge.danger
+        if (theme.hasType(type, "success"))
+            return theme.badge.success
+        if (theme.hasType(type, "warning"))
+            return theme.badge.warning
+        if (theme.hasType(type, "primary"))
+            return theme.badge.primary
+        return theme.badge.neutral
+    }
+
+    function statValueStyle(type) {
+        if (theme.hasType(type, "danger"))
+            return theme.statDanger
+        if (theme.hasType(type, "success"))
+            return theme.statSuccess
+        if (theme.hasType(type, "primary"))
+            return theme.statPrimary
+        return theme.stat.value
+    }
+
+    readonly property QtObject statPrimary: QtObject {
+        readonly property color color: theme.colors.primary
+        readonly property int fontSize: theme.stat.value.fontSize
+        readonly property bool bold: true
+        readonly property real lineHeight: 1.1
+    }
+
+    readonly property QtObject statSuccess: QtObject {
+        readonly property color color: theme.colors.success
+        readonly property int fontSize: theme.stat.value.fontSize
+        readonly property bool bold: true
+        readonly property real lineHeight: 1.1
+    }
+
+    readonly property QtObject statDanger: QtObject {
+        readonly property color color: theme.colors.error
+        readonly property int fontSize: theme.stat.value.fontSize
+        readonly property bool bold: true
+        readonly property real lineHeight: 1.1
+    }
+
     function textStyle(type) {
+        if (theme.hasType(type, "display"))
+            return theme.text.display
         if (theme.hasType(type, "title"))
             return theme.page.title
         if (theme.hasType(type, "subtitle"))

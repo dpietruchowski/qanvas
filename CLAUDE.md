@@ -7,6 +7,7 @@ Zamysł: aplikacje pisze agent LLM na żądanie użytkownika. Zarys w [doc/idea.
 ## Zasady
 
 - **Nie dodawaj `Co-Authored-By` ani żadnej innej atrybucji do commitów i PR-ów.**
+- **Commit message: subject, pusta linia, jeden akapit najwyżej 5 linii.** Tyle. Bez drugiego akapitu i bez list — diff i testy mówią resztę.
 - **Pliki robocze tylko w `tmp/` w repo** (ignorowany przez git) — skrypty pomocnicze, dane testowe, zrzuty. Nic poza katalogiem repo.
 
 ## Build i narzędzia
@@ -23,10 +24,12 @@ Zamysł: aplikacje pisze agent LLM na żądanie użytkownika. Zarys w [doc/idea.
 
 - `app/` — aplikacja na dysku: `App` (id, katalog, ścieżki), `AppFiles`, `AppRegistry` (lista apek i uprawnienia w `system.db`), `AppSchema` (tabele w `app.db` apki, tylko do odczytu), `AppCompiler`, `AppWarnings`.
 - `storage/` — store'y na `system.db`: `SystemDatabase`, `ChatStore`, `NotesStore`, `TasksStore`.
-- `host/` — to, co widzi działająca apka: `AppLoader`, `AppContext` (`App` w QML), `StoreBridge` i mostki `NotesBridge`/`TasksBridge` (`Notes`/`Tasks` w QML, za uprawnieniem z `AppRegistry`).
+- `host/` — to, co widzi działająca apka: `AppLoader`, `AppContext` (`App` w QML), `StoreBridge` i mostki `NotesBridge`/`TasksBridge` (`Notes`/`Tasks` w QML, za uprawnieniem z `AppRegistry`), `AppLayout` (mierzy działającą apkę z `AppLoader::running(id)` i opisuje, co wyjeżdża poza ekran — wynik dokleja się do odpowiedzi każdego toola, który przeładowuje apkę, i do `check_layout`).
 - `chat/` — strona agenta: `ChatAgent`, `AppTools` (toole), `ChatThread`, prompt systemowy w `systemprompt.txt` (zasób `:/qanvas/systemprompt.txt`, ładowany przez `SystemPrompt::text()`).
 
 Prompt jest maszyną stanów (ROUTE → DESIGN → BUILD, INSPECT → MODIFY, FIX, DEBUG, DONE) z przykładami; przykładowe pliki i edycje z promptu muszą naprawdę się ładować — `python3 test/prompt_example.py` wyciąga je z promptu i uruchamia offscreen (debug build w `build-desktop`). Nowy tool albo komponent = wpis w prompcie i w `systemprompttest.cpp`.
+
+Agenta testuj na żywo przez Claude CLI z modelem haiku (najsłabszy, więc najszybciej pokazuje luki w prompcie): `python3 tmp/agent_run.py <nazwa> haiku "prompt 1" "prompt 2"` uruchamia apkę offscreen, wysyła kolejne wiadomości i zapisuje do `tmp/agent-<nazwa>/` log, zrzuty ekranu i pliki apki; w wyjściu widać każdy tool call i jego wynik (`Tool result`). Po zmianie w prompcie, toolach albo komponentach przepuść stoper, quiz wieloekranowy i apkę z kafelkami i porównaj czas tury oraz liczbę nieudanych tooli.
 
 Nowy współdzielony store = klasa w `storage/`, mostek dziedziczący po `StoreBridge` w `host/`, wpis w `sharedStores()` w `apptools.cpp`, akapit SHARED STORES w `systemprompt.txt` i testy.
 

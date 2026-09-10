@@ -6,6 +6,8 @@
 #include "runtime/app/appregistry.h"
 #include "runtime/app/appschema.h"
 #include "runtime/app/appwarnings.h"
+#include "runtime/host/applayout.h"
+#include "runtime/host/apploader.h"
 #include "runtime/host/notesbridge.h"
 #include "runtime/host/tasksbridge.h"
 
@@ -14,7 +16,7 @@
 
 namespace
 {
-const int kSettleMs = 300;
+const int kSettleMs = 500;
 
 const char* kCreateAppDocstring
     = "@brief create_app\n"
@@ -98,6 +100,14 @@ const char* kReadLogDocstring
       "@param app (string) app id\n"
       "@return one \"File.qml:line:column: message\" line per error, oldest first";
 
+const char* kCheckLayoutDocstring
+    = "@brief check_layout\n"
+      "@details Measures the running app on screen and lists every element that sticks out of "
+      "the screen, is cut off, or has no size; use it after the user says something is off "
+      "screen, not centred, or missing\n"
+      "@param app (string) app id\n"
+      "@return the screen size with one line per layout problem, or that the layout fits";
+
 const char* kGrantAccessDocstring
     = "@brief grant_access\n"
       "@details Lets an app use one of the user's shared stores and reloads it; only when the "
@@ -148,6 +158,38 @@ QString logText(const QStringList& lines)
     if (lines.isEmpty())
         return QStringLiteral("No errors since the app last loaded");
     return lines.join(QLatin1Char('\n'));
+}
+
+QStringList brokenFiles(const QString& errors)
+{
+    QStringList files;
+    const QStringList lines = errors.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString& line : lines)
+        files.append(line.section(QLatin1Char(':'), 0, 0));
+    return files;
+}
+
+bool onlyOldErrors(const QString& errors, const QString& priorErrors)
+{
+    if (priorErrors.isEmpty())
+        return false;
+    const QStringList before = brokenFiles(priorErrors);
+    const QStringList after = brokenFiles(errors);
+    for (const QString& file : after)
+    {
+        if (!before.contains(file))
+            return false;
+    }
+    return true;
+}
+
+QString withLayout(const QString& result, const QString& appId)
+{
+    const QString layout = AppLayout::reportFor(appId);
+    if (layout.isEmpty())
+        return result;
+    return QStringLiteral("Saved and loaded, but there are %1")
+        .arg(layout.at(0).toLower() + layout.mid(1));
 }
 }
 
@@ -216,7 +258,41 @@ void AppTools::registerTools()
     addDescribeAppTool();
     addDeleteAppTool();
     addReadLogTool();
+    addCheckLayoutTool();
     addGrantAccessTool();
+}
+
+void AppTools::addCheckLayoutTool()
+{
+    m_controller.addTool(
+        QString::fromLatin1(kCheckLayoutDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "measuring", "measured", "could not measure", "app" };
+            const int index = beginActivity(activity, arguments);
+            const App app(argument(arguments, "app"));
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
+
+            if (!AppLoader::running(app.id()))
+            {
+                finish(index,
+                       Result<QString>::failure(
+                           QStringLiteral("\"%1\" is not on screen, so it cannot be measured")
+                               .arg(app.id())),
+                       done);
+                return;
+            }
+
+            const QString layout = AppLayout::reportFor(app.id());
+            finish(index,
+                   Result<QString>::success(
+                       layout.isEmpty() ? QStringLiteral("The layout fits the screen") : layout),
+                   done);
+        });
 }
 
 void AppTools::addDescribeAppTool()
@@ -336,6 +412,7 @@ void AppTools::addCreateAppTool()
 
             AppFiles files(app.dir());
             const AppSources previous = files.snapshot();
+            const QString priorError = currentError(app);
             const Result<QString> written
                 = files.write(QStringLiteral("Main.qml"), argument(arguments, "qml"));
             if (written.isFailure())
@@ -355,7 +432,7 @@ void AppTools::addCreateAppTool()
             }
 
             m_registry.record(id, argument(arguments, "title"));
-            show(app, QStringLiteral("ok"), index, done, previous);
+            show(app, QStringLiteral("ok"), index, done, previous, priorError);
         });
 }
 
@@ -395,6 +472,7 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
 
                              AppFiles files(app.dir());
                              const AppSources previous = files.snapshot();
+                             const QString priorError = reloads ? currentError(app) : QString();
                              const Result<QString> result = operation(files, arguments);
                              if (result.isFailure() || !reloads)
                              {
@@ -402,7 +480,7 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
                                  return;
                              }
 
-                             show(app, result.value(), index, done, previous);
+                             show(app, result.value(), index, done, previous, priorError);
                          });
 }
 
@@ -421,15 +499,24 @@ void AppTools::finish(int index, const Result<QString>& result, const ToolDone& 
     done(result.isSuccess() ? result.value() : result.error());
 }
 
+QString AppTools::currentError(const App& app) const
+{
+    if (!m_engine || !app.exists())
+        return QString();
+    const Result<void> compiled = AppCompiler(*m_engine).compile(app);
+    return compiled.isFailure() ? compiled.error() : QString();
+}
+
 void AppTools::show(const App& app, const QString& result, int index, const ToolDone& done,
-                    const AppSources& restoreTo)
+                    const AppSources& restoreTo, const QString& priorError)
 {
     const Result<void> compiled
         = m_engine ? AppCompiler(*m_engine).compile(app) : Result<void>::success();
     if (m_warnings)
         m_warnings->clear(app.id());
 
-    if (compiled.isFailure() && !restoreTo.isEmpty())
+    if (compiled.isFailure() && !restoreTo.isEmpty()
+        && !onlyOldErrors(compiled.error(), priorError))
     {
         AppFiles(app.dir()).restore(restoreTo);
         emit appShown(app.id());
@@ -451,16 +538,16 @@ void AppTools::show(const App& app, const QString& result, int index, const Tool
         return;
     }
 
-    QTimer::singleShot(kSettleMs, this,
-                       [this, id = app.id(), result, index, done]
-                       {
-                           const QStringList raised = m_warnings->lines(id);
-                           if (raised.isEmpty())
-                               finish(index, Result<QString>::success(result), done);
-                           else
-                               finish(index, Result<QString>::failure(raisedWhileLoading(raised)),
-                                      done);
-                       });
+    QTimer::singleShot(
+        kSettleMs, this,
+        [this, id = app.id(), result, index, done]
+        {
+            const QStringList raised = m_warnings->lines(id);
+            if (raised.isEmpty())
+                finish(index, Result<QString>::success(withLayout(result, id)), done);
+            else
+                finish(index, Result<QString>::failure(raisedWhileLoading(raised)), done);
+        });
 }
 
 int AppTools::beginActivity(const Activity& activity, const QVariantMap& arguments)

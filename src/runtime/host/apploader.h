@@ -38,7 +38,10 @@ public:
 
     Q_INVOKABLE void reload();
 
+    QQuickItem* item() const { return m_item; }
+
     static QString appsRoot();
+    static AppLoader* running(const QString& id);
 
 signals:
     void appIdChanged();

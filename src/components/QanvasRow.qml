@@ -1,3 +1,7 @@
+import QtQuick.Layouts
+
 import Themed.Components
 
-ThemedRow {}
+ThemedRow {
+    Layout.fillWidth: true
+}

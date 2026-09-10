@@ -1,3 +1,7 @@
+import QtQuick.Layouts
+
 import Themed.Components
 
-ThemedSlider {}
+ThemedSlider {
+    Layout.fillWidth: true
+}

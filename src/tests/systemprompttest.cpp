@@ -22,9 +22,9 @@ TEST(SystemPromptTest, LoadsFromTheResource) { EXPECT_FALSE(SystemPrompt::text()
 TEST(SystemPromptTest, NamesEveryTool)
 {
     const QString prompt = SystemPrompt::text();
-    for (const char* tool :
-         { "create_app", "write_file", "edit_file", "delete_file", "delete_app", "list_files",
-           "read_file", "search_files", "describe_app", "read_log", "grant_access" })
+    for (const char* tool : { "create_app", "write_file", "edit_file", "delete_file", "delete_app",
+                              "list_files", "read_file", "search_files", "describe_app", "read_log",
+                              "check_layout", "grant_access" })
         EXPECT_TRUE(prompt.contains(QLatin1String(tool))) << tool;
 }
 

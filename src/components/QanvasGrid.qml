@@ -1,3 +1,7 @@
+import QtQuick.Layouts
+
 import Themed.Components
 
-ThemedGrid {}
+ThemedGrid {
+    Layout.fillWidth: true
+}

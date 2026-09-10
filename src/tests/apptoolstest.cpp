@@ -270,6 +270,25 @@ TEST_F(AppToolsTest, WritingTheMissingComponentMakesTheAppLoad)
     EXPECT_FALSE(client.lastToolResult().contains(QStringLiteral("does not load")));
 }
 
+TEST_F(AppToolsTest, AWriteThatAddsNoNewErrorIsKeptWhileTheAppIsStillBroken)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")]
+        = QStringLiteral("import QtQuick\nItem { Card {} Panel {} }\n");
+    QVariantMap card = fileArguments(QStringLiteral("notes"), QStringLiteral("Card.qml"));
+    card[QStringLiteral("content")] = kMainQml;
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::toolCall(QStringLiteral("write_file"), card),
+          ScriptedClient::reply(QStringLiteral("half")) });
+
+    const QString kept = client.lastToolResult();
+    EXPECT_TRUE(kept.contains(QStringLiteral("Saved, but"))) << qPrintable(kept);
+    EXPECT_TRUE(kept.contains(QStringLiteral("Panel"))) << qPrintable(kept);
+    EXPECT_FALSE(kept.contains(QStringLiteral("undone"))) << qPrintable(kept);
+    EXPECT_TRUE(QFile::exists(App(QStringLiteral("notes")).dir() + QStringLiteral("/Card.qml")));
+}
+
 TEST_F(AppToolsTest, AnErrorRaisedWhileLoadingComesBackWithTheWriteResult)
 {
     QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));

@@ -265,6 +265,19 @@ TEST_F(AppFilesTest, SaysWhenTheAnchorIsNotThere)
     EXPECT_EQ(changed.error(), QStringLiteral("Anchor not found in Main.qml"));
 }
 
+TEST_F(AppFilesTest, MatchesAnAnchorThatDiffersOnlyInTrailingBlanks)
+{
+    files.write(QStringLiteral("Main.qml"),
+                QStringLiteral("Item {\n    a: 1    \n    \n    b: 2\n}\n"));
+
+    const Result<QString> changed
+        = files.replace(QStringLiteral("Main.qml"), QStringLiteral("    a: 1\n\n    b: 2"),
+                        QStringLiteral("    c: 3"));
+
+    ASSERT_TRUE(changed.isSuccess()) << changed.error().toStdString();
+    EXPECT_EQ(readAll(path(QStringLiteral("Main.qml"))), QStringLiteral("Item {\n    c: 3\n}\n"));
+}
+
 TEST_F(AppFilesTest, RemovesAComponentButNotTheEntryPoint)
 {
     files.write(QStringLiteral("Main.qml"), kMain);

@@ -78,6 +78,71 @@ int lineOf(const QString& content, qsizetype offset)
     return static_cast<int>(content.left(offset).count(QLatin1Char('\n'))) + 1;
 }
 
+struct Span
+{
+    qsizetype offset;
+    qsizetype length;
+};
+
+QList<Span> exactMatches(const QString& content, const QString& needle)
+{
+    QList<Span> spans;
+    for (qsizetype at = content.indexOf(needle); at >= 0;
+         at = content.indexOf(needle, at + needle.size()))
+        spans.append(Span { at, needle.size() });
+    return spans;
+}
+
+QString withoutTrailingBlanks(const QString& text, QList<qsizetype>* origin)
+{
+    QString out;
+    QList<qsizetype> pending;
+    for (qsizetype i = 0; i < text.size(); ++i)
+    {
+        const QChar c = text.at(i);
+        if (c == QLatin1Char(' ') || c == QLatin1Char('\t'))
+        {
+            pending.append(i);
+            continue;
+        }
+        if (c != QLatin1Char('\n'))
+        {
+            for (qsizetype at : std::as_const(pending))
+            {
+                out.append(text.at(at));
+                if (origin)
+                    origin->append(at);
+            }
+        }
+        pending.clear();
+        out.append(c);
+        if (origin)
+            origin->append(i);
+    }
+    return out;
+}
+
+QList<Span> looseMatches(const QString& content, const QString& needle)
+{
+    QList<qsizetype> origin;
+    const QString loose = withoutTrailingBlanks(content, &origin);
+    QString target = withoutTrailingBlanks(needle, nullptr);
+    while (!target.isEmpty() && target.back().isSpace())
+        target.chop(1);
+    if (target.isEmpty())
+        return {};
+
+    QList<Span> spans;
+    const QList<Span> found = exactMatches(loose, target);
+    for (const Span& span : found)
+    {
+        const qsizetype start = origin.at(span.offset);
+        const qsizetype end = origin.at(span.offset + span.length - 1) + 1;
+        spans.append(Span { start, end - start });
+    }
+    return spans;
+}
+
 bool loadFile(const QString& path, QString* content, QString* error)
 {
     QFile file(path);
@@ -323,33 +388,32 @@ Result<QString> AppFiles::replace(const QString& path, const QString& before, co
     if (!loadFile(absolute, &content, &error))
         return Result<QString>::failure(error);
 
-    QList<qsizetype> offsets;
-    for (qsizetype at = content.indexOf(before); at >= 0;
-         at = content.indexOf(before, at + before.size()))
-        offsets.append(at);
+    QList<Span> spans = exactMatches(content, before);
+    if (spans.isEmpty())
+        spans = looseMatches(content, before);
 
-    if (offsets.isEmpty())
+    if (spans.isEmpty())
         return Result<QString>::failure(QStringLiteral("Anchor not found in %1").arg(path));
 
-    if (offsets.size() > 1 && !all)
+    if (spans.size() > 1 && !all)
     {
         QStringList at;
-        for (qsizetype offset : offsets)
-            at.append(QString::number(lineOf(content, offset)));
+        for (const Span& span : spans)
+            at.append(QString::number(lineOf(content, span.offset)));
         return Result<QString>::failure(QStringLiteral("%1 matches at lines %2 — extend the anchor")
-                                            .arg(offsets.size())
+                                            .arg(spans.size())
                                             .arg(at.join(QStringLiteral(", "))));
     }
 
     QString updated;
     QList<qsizetype> changes;
     qsizetype from = 0;
-    for (qsizetype offset : offsets)
+    for (const Span& span : spans)
     {
-        updated += content.mid(from, offset - from);
+        updated += content.mid(from, span.offset - from);
         changes.append(updated.size());
         updated += after;
-        from = offset + before.size();
+        from = span.offset + span.length;
         if (!all)
             break;
     }

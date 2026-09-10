@@ -1,0 +1,119 @@
+#include <gtest/gtest.h>
+
+#include <QFile>
+#include <QQuickItem>
+#include <QQuickView>
+#include <QTemporaryDir>
+#include <QTest>
+#include <QUrl>
+
+#include "runtime/host/applayout.h"
+
+namespace
+{
+const char* kImports = "import QtQuick\nimport QtQuick.Layouts\n";
+
+class AppLayoutTest : public ::testing::Test
+{
+protected:
+    QString show(const QString& body)
+    {
+        const QString path = dir.path() + QStringLiteral("/Main.qml");
+        QFile file(path);
+        EXPECT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write(QByteArray(kImports) + body.toUtf8());
+        file.close();
+
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.resize(200, 300);
+        view.setSource(QUrl::fromLocalFile(path));
+        view.show();
+        QTest::qWaitForWindowExposed(&view);
+        QTest::qWait(50);
+        return AppLayout::report(view.rootObject(), dir.path());
+    }
+
+    QTemporaryDir dir;
+    QQuickView view;
+};
+}
+
+TEST_F(AppLayoutTest, ContentThatFitsReportsNothing)
+{
+    const QString report = show(
+        QStringLiteral("Item { ColumnLayout { anchors.fill: parent; Text { text: \"hi\" } } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, ContentTallerThanThePageIsReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; Repeater { model: 5; Rectangle { "
+        "Layout.preferredHeight: 100; Layout.fillWidth: true } } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("200x300"))) << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("ColumnLayout (Main.qml) needs 520px of height but "
+                                               "has 300px")))
+        << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, ContentInsideAScrollableFlickableIsFine)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Flickable { anchors.fill: parent; contentHeight: column.implicitHeight; "
+        "ColumnLayout { id: column; width: parent.width; Repeater { model: 5; Rectangle { "
+        "Layout.preferredHeight: 100; Layout.fillWidth: true } } } } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AnItemStickingOutOnTheRightIsNamed)
+{
+    const QString report = show(
+        QStringLiteral("Item { Text { text: \"a rather long line of text that will not fit\" } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("Text \"a rather long line of t")))
+        << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("sticks out of the screen on the right")))
+        << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("(Main.qml)"))) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, ARowThatDoesNotFitIsReportedOnce)
+{
+    const QString report = show(
+        QStringLiteral("Item { RowLayout { width: parent.width; Repeater { model: 3; Rectangle { "
+                       "Layout.preferredWidth: 100; Layout.preferredHeight: 40 } } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("needs"))) << report.toStdString();
+    EXPECT_EQ(report.count(QStringLiteral("\n- ")), 1) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AWrappedTextIsNotTooWide)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; Text { Layout.fillWidth: true; wrapMode: "
+        "Text.WordWrap; text: \"a rather long line of text that will not fit on one line\" } } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AnItemWithoutHeightIsReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; ListView { Layout.fillWidth: true; "
+        "model: 3; delegate: Text { text: \"row\" } } Item { Layout.fillHeight: true } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("ListView"))) << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("has no height"))) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, HiddenItemsAreSkipped)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Text { visible: false; text: \"a rather long line of text that will not fit\" } "
+        "}"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}

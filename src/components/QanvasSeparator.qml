@@ -1,3 +1,7 @@
+import QtQuick.Layouts
+
 import Themed.Components
 
-ThemedSeparator {}
+ThemedSeparator {
+    Layout.fillWidth: true
+}

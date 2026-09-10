@@ -1,7 +1,11 @@
+import QtQuick.Layouts
+
 import Themed.Components
 
 ThemedList {
     id: root
+
+    Layout.fillWidth: true
 
     property string textRole: ""
     property string subtitleRole: ""

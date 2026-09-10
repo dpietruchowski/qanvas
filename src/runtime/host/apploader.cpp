@@ -8,11 +8,21 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QHash>
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QStandardPaths>
 #include <QUrl>
+
+namespace
+{
+QHash<QString, AppLoader*>& runningLoaders()
+{
+    static QHash<QString, AppLoader*> loaders;
+    return loaders;
+}
+}
 
 AppLoader::AppLoader(QQuickItem* parent)
     : QQuickItem(parent)
@@ -22,6 +32,8 @@ AppLoader::AppLoader(QQuickItem* parent)
 AppLoader::~AppLoader() { unload(); }
 
 QString AppLoader::appsRoot() { return App::root(); }
+
+AppLoader* AppLoader::running(const QString& id) { return runningLoaders().value(id); }
 
 QString AppLoader::appDir() const { return App(m_appId).dir(); }
 
@@ -96,6 +108,7 @@ void AppLoader::load()
     m_item->setParent(this);
     m_item->setParentItem(this);
     m_item->setSize(size());
+    runningLoaders().insert(m_appId, this);
 
     setErrorString(QString());
     setStatus(Ready);
@@ -103,6 +116,9 @@ void AppLoader::load()
 
 void AppLoader::unload()
 {
+    if (runningLoaders().value(m_appId) == this)
+        runningLoaders().remove(m_appId);
+
     delete m_item;
     m_item = nullptr;
 

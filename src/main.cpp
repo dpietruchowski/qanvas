@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 
     KeyboardInsetProvider keyboardInset;
 
-    QmlRegistrator registrator(engine, QStringLiteral("qrc:/" APP_QML_URI),
+    QmlRegistrator registrator(engine, QStringLiteral("qrc:/" APP_QML_URI "/"),
                                QStringLiteral(APP_QML_URI));
     registrator.registerSingletonType(QStringLiteral("Themed.Components"),
                                       QStringLiteral("Components/Theme.qml"),

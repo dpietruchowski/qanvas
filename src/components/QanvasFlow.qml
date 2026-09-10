@@ -1,3 +1,7 @@
+import QtQuick.Layouts
+
 import Themed.Components
 
-ThemedFlow {}
+ThemedFlow {
+    Layout.fillWidth: true
+}

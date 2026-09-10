@@ -1,3 +1,7 @@
+import QtQuick.Layouts
+
 import Themed.Components
 
-ThemedTextArea {}
+ThemedTextArea {
+    Layout.fillWidth: true
+}
