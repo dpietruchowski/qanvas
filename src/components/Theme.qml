@@ -381,7 +381,10 @@ DefaultTheme {
         "cog": "settings", "help": "info", "dumbbell": "dumbell", "gym": "barbell",
         "workout": "dumbell", "stats": "sliders", "chart": "sliders", "filter": "sliders",
         "more": "more-vertical", "drag": "reorder", "share": "export", "download": "import",
-        "date": "calendar", "person": "user", "profile": "user", "message": "chat"
+        "date": "calendar", "person": "user", "profile": "user", "message": "chat",
+        "book": "list", "notes": "list", "heart": "star-full", "favorite": "star-full",
+        "bookmark": "star", "lightbulb": "info", "question": "info", "alert": "warning",
+        "play": "next", "trophy": "success", "quiz": "check", "cards": "copy"
     })
 
     function iconSource(name) {

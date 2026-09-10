@@ -27,6 +27,7 @@ const char* kClaudeCliProvider = "Claude CLI";
 const char* kDefaultProvider = "OpenAI";
 const char* kDefaultModel = "gpt-5-mini";
 const char* kDefaultReasoning = "Minimal";
+const int kMaxNudges = 2;
 #ifdef QANVAS_KEY_IMPORT
 const char* kImportFileName = "/import_keys.ini";
 #endif
@@ -116,6 +117,7 @@ ChatAgent::ChatAgent(QObject* parent)
                 m_error = errorText(error);
                 emit messagesChanged();
             });
+    connect(&m_controller, &AgentController::requestFinished, this, &ChatAgent::finishTurn);
     connect(&m_tools, &AppTools::activitiesChanged, this, &ChatAgent::activitiesChanged);
     connect(&m_tools, &AppTools::appShown, this,
             [this](const QString& id)
@@ -251,6 +253,25 @@ void ChatAgent::send(const QString& text)
         return;
     }
 
+    m_nudges = 0;
+    m_thread.remember(text);
+    m_controller.request(client(), text);
+}
+
+void ChatAgent::finishTurn()
+{
+    const App app(m_thread.app());
+    if (m_nudges >= kMaxNudges || m_tools.activities().isEmpty() || !app.exists())
+        return;
+
+    const QString pending = m_tools.unfinished(app, true);
+    if (pending.isEmpty())
+        return;
+
+    ++m_nudges;
+    const QString text = QStringLiteral("Runtime check — the app is not finished:\n%1\nGo on "
+                                        "until read_log lists nothing undone, then one sentence.")
+                             .arg(pending);
     m_thread.remember(text);
     m_controller.request(client(), text);
 }

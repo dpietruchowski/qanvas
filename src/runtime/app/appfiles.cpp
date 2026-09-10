@@ -16,6 +16,7 @@ constexpr int kMaxReadLines = 2000;
 constexpr int kMaxMatches = 50;
 constexpr int kMaxLineLength = 200;
 constexpr int kMaxRegions = 3;
+constexpr int kShortFileLines = 80;
 
 const QRegularExpression& namePattern()
 {
@@ -393,7 +394,13 @@ Result<QString> AppFiles::replace(const QString& path, const QString& before, co
         spans = looseMatches(content, before);
 
     if (spans.isEmpty())
-        return Result<QString>::failure(QStringLiteral("Anchor not found in %1").arg(path));
+    {
+        if (splitLines(content).size() > kShortFileLines)
+            return Result<QString>::failure(QStringLiteral("Anchor not found in %1").arg(path));
+        return Result<QString>::failure(
+            QStringLiteral("Anchor not found in %1; take the next one from the file itself:\n%2")
+                .arg(path, read(path).value()));
+    }
 
     if (spans.size() > 1 && !all)
     {
@@ -520,6 +527,26 @@ void AppFiles::restore(const AppSources& sources) const
         QString error;
         saveFile(m_dir + QLatin1Char('/') + it.key(), it.value(), &error);
     }
+}
+
+QStringList AppFiles::unused() const
+{
+    const AppSources sources = snapshot();
+    QStringList orphans;
+    for (auto it = sources.cbegin(); it != sources.cend(); ++it)
+    {
+        if (!it.key().endsWith(QStringLiteral(".qml")) || it.key() == QStringLiteral("Main.qml")
+            || it.key() == QStringLiteral("Data.qml"))
+            continue;
+        const QString type = it.key().chopped(4);
+        const QRegularExpression use(QStringLiteral("\\b%1\\s*\\{").arg(type));
+        bool used = false;
+        for (auto other = sources.cbegin(); other != sources.cend() && !used; ++other)
+            used = other.key() != it.key() && other.value().contains(use);
+        if (!used)
+            orphans.append(it.key());
+    }
+    return orphans;
 }
 
 QStringList AppFiles::sourceNames() const

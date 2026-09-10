@@ -15,6 +15,7 @@ public:
 
     AppSources snapshot() const;
     void restore(const AppSources& sources) const;
+    QStringList unused() const;
 
     Result<QString> list() const;
     Result<QString> outline() const;

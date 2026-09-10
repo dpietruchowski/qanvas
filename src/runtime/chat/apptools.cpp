@@ -11,6 +11,8 @@
 #include "runtime/host/notesbridge.h"
 #include "runtime/host/tasksbridge.h"
 
+#include <algorithm>
+
 #include <QFile>
 #include <QRegularExpression>
 #include <QStringList>
@@ -100,7 +102,8 @@ const char* kReadLogDocstring
       "@details Lists the runtime errors an app has raised since it last loaded: failed bindings, "
       "exceptions in handlers and timers, including ones the user triggered by using the app\n"
       "@param app (string) app id\n"
-      "@return one \"File.qml:line:column: message\" line per error, oldest first";
+      "@return one \"File.qml:line:column: message\" line per error, oldest first, then the "
+      "writes rejected this turn and never redone, and the files no other file uses";
 
 const char* kCheckLayoutDocstring
     = "@brief check_layout\n"
@@ -238,6 +241,8 @@ void AppTools::clearActivities()
         return;
 
     m_activities.clear();
+    m_rejected.clear();
+    m_written.clear();
     emit activitiesChanged();
 }
 
@@ -475,7 +480,10 @@ void AppTools::addReadLogTool()
             }
 
             const QStringList lines = m_warnings ? m_warnings->lines(app.id()) : QStringList();
-            finish(index, Result<QString>::success(logText(lines)), done);
+            const QString pending = unfinished(app);
+            const QString text
+                = pending.isEmpty() ? logText(lines) : logText(lines) + QLatin1Char('\n') + pending;
+            finish(index, Result<QString>::success(text), done);
         });
 }
 
@@ -503,8 +511,59 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
                                  return;
                              }
 
-                             show(app, result.value(), index, done, previous, priorError);
+                             const QString key
+                                 = app.id() + QLatin1Char('/') + argument(arguments, "path");
+                             show(
+                                 app, result.value(), index,
+                                 [this, key, done](const QVariant& answer)
+                                 {
+                                     noteOutcome(key, answer.toString());
+                                     done(answer);
+                                 },
+                                 previous, priorError);
                          });
+}
+
+void AppTools::noteOutcome(const QString& key, const QString& answer)
+{
+    if (answer.startsWith(QStringLiteral("Rejected and undone")))
+    {
+        m_rejected.insert(key);
+        return;
+    }
+    m_rejected.remove(key);
+    m_written.insert(key);
+}
+
+QString AppTools::unfinished(const App& app, bool thisTurnOnly) const
+{
+    QStringList lines;
+    QStringList rejected;
+    const QString prefix = app.id() + QLatin1Char('/');
+    for (const QString& key : m_rejected)
+    {
+        if (key.startsWith(prefix))
+            rejected.append(key.mid(prefix.size()));
+    }
+    rejected.sort();
+    if (!rejected.isEmpty())
+        lines.append(QStringLiteral("Rejected earlier this turn and never redone, so still as "
+                                    "they were: %1")
+                         .arg(rejected.join(QStringLiteral(", "))));
+
+    QStringList orphans = AppFiles(app.dir()).unused();
+    if (thisTurnOnly)
+    {
+        orphans.erase(std::remove_if(orphans.begin(), orphans.end(),
+                                     [this, &prefix](const QString& name)
+                                     { return !m_written.contains(prefix + name); }),
+                      orphans.end());
+    }
+    if (!orphans.isEmpty())
+        lines.append(QStringLiteral("Written, but no other file uses them, so the user cannot "
+                                    "reach them: %1")
+                         .arg(orphans.join(QStringLiteral(", "))));
+    return lines.join(QLatin1Char('\n'));
 }
 
 std::optional<QString> AppTools::refusal(const App& app) const

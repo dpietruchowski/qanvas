@@ -337,6 +337,44 @@ TEST_F(AppToolsTest, ReadLogSaysSoWhenTheAppRaisedNothing)
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No errors")));
 }
 
+TEST_F(AppToolsTest, ReadLogNamesTheFilesNoOtherFileUses)
+{
+    QVariantMap card = fileArguments(QStringLiteral("notes"), QStringLiteral("Card.qml"));
+    card[QStringLiteral("content")] = kMainQml;
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(QStringLiteral("write_file"), card),
+          ScriptedClient::toolCall(
+              QStringLiteral("read_log"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    const QString result = client.lastToolResult();
+    EXPECT_TRUE(result.contains(QStringLiteral("No errors"))) << qPrintable(result);
+    EXPECT_TRUE(result.contains(QStringLiteral("cannot reach them: Card.qml")))
+        << qPrintable(result);
+}
+
+TEST_F(AppToolsTest, ReadLogNamesARejectedWriteThatWasNeverRedone)
+{
+    QVariantMap card = fileArguments(QStringLiteral("notes"), QStringLiteral("Card.qml"));
+    card[QStringLiteral("content")] = QStringLiteral("import QtQuick\nItem {\n");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(QStringLiteral("write_file"), card),
+          ScriptedClient::toolCall(
+              QStringLiteral("read_log"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    const QString result = client.lastToolResult();
+    EXPECT_TRUE(result.contains(QStringLiteral("never redone"))
+                && result.contains(QStringLiteral("Card.qml")))
+        << qPrintable(result);
+}
+
 TEST_F(AppToolsTest, FixingTheErrorClearsTheLog)
 {
     QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));

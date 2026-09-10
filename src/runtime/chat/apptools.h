@@ -5,6 +5,7 @@
 #include <optional>
 
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
@@ -30,6 +31,7 @@ public:
 
     QVariantList activities() const { return m_activities; }
     void clearActivities();
+    QString unfinished(const App& app, bool thisTurnOnly = false) const;
 
 signals:
     void activitiesChanged();
@@ -62,6 +64,7 @@ private:
     QString currentError(const App& app) const;
     int beginActivity(const Activity& activity, const QVariantMap& arguments);
     void endActivity(int index, bool ok);
+    void noteOutcome(const QString& key, const QString& answer);
     QString unknownApp(const QString& id) const;
 
     AgentController& m_controller;
@@ -69,4 +72,6 @@ private:
     QQmlEngine* m_engine = nullptr;
     std::unique_ptr<AppWarnings> m_warnings;
     QVariantList m_activities;
+    QSet<QString> m_rejected;
+    QSet<QString> m_written;
 };

@@ -96,7 +96,8 @@ def apply(root, steps):
 
 
 def run(root, config, label):
-    driver = UiDriver.from_config(repo_root=REPO)
+    port = int(os.environ.get("QANVAS_TEST_PORT", "0")) or None
+    driver = UiDriver.from_config(repo_root=REPO, port=port)
     driver.launch(BINARY, env={"QANVAS_APPS_ROOT": root, "QT_QPA_PLATFORM": "offscreen", "XDG_CONFIG_HOME": config})
     time.sleep(1.0)
     try:

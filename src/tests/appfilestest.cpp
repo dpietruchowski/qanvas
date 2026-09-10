@@ -262,7 +262,10 @@ TEST_F(AppFilesTest, SaysWhenTheAnchorIsNotThere)
         QStringLiteral("Main.qml"), QStringLiteral("Repeater"), QStringLiteral("Row"));
 
     ASSERT_TRUE(changed.isFailure());
-    EXPECT_EQ(changed.error(), QStringLiteral("Anchor not found in Main.qml"));
+    EXPECT_TRUE(changed.error().startsWith(QStringLiteral("Anchor not found in Main.qml")))
+        << qPrintable(changed.error());
+    EXPECT_TRUE(changed.error().contains(QStringLiteral("1: import QtQuick")))
+        << qPrintable(changed.error());
 }
 
 TEST_F(AppFilesTest, MatchesAnAnchorThatDiffersOnlyInTrailingBlanks)

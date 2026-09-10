@@ -74,6 +74,7 @@ signals:
 private:
     void load();
     void loadProviderSettings();
+    void finishTurn();
 #ifdef QANVAS_KEY_IMPORT
     void importKeys();
 #endif
@@ -94,4 +95,5 @@ private:
     QString m_clientProvider;
     QString m_clientApiKey;
     QString m_error;
+    int m_nudges = 0;
 };
