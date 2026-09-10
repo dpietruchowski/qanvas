@@ -63,6 +63,7 @@ ThemedPage {
         id: stage
 
         anchors.fill: parent
+        anchors.topMargin: Theme.agentBar.headerHeight + Theme.spacing.small
         visible: root.openedId !== ""
         appId: root.openedId
     }
