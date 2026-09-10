@@ -75,6 +75,7 @@ private:
     void load();
     void loadProviderSettings();
     void finishTurn();
+    QString withOpenApp(const QString& text) const;
 #ifdef QANVAS_KEY_IMPORT
     void importKeys();
 #endif

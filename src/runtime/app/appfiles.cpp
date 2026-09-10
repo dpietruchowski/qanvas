@@ -144,6 +144,43 @@ QList<Span> looseMatches(const QString& content, const QString& needle)
     return spans;
 }
 
+QList<Span> lineMatches(const QString& content, const QString& needle)
+{
+    QStringList wanted = needle.split(QLatin1Char('\n'));
+    for (QString& line : wanted)
+        line = line.trimmed();
+    while (!wanted.isEmpty() && wanted.constFirst().isEmpty())
+        wanted.removeFirst();
+    while (!wanted.isEmpty() && wanted.constLast().isEmpty())
+        wanted.removeLast();
+    if (wanted.isEmpty())
+        return {};
+
+    const QStringList lines = splitLines(content);
+    QList<qsizetype> starts;
+    qsizetype offset = 0;
+    for (const QString& line : lines)
+    {
+        starts.append(offset);
+        offset += line.size() + 1;
+    }
+
+    QList<Span> spans;
+    for (qsizetype i = 0; i + wanted.size() <= lines.size(); ++i)
+    {
+        bool same = true;
+        for (qsizetype k = 0; k < wanted.size() && same; ++k)
+            same = lines.at(i + k).trimmed() == wanted.at(k);
+        if (!same)
+            continue;
+        const qsizetype last = i + wanted.size() - 1;
+        const qsizetype end = starts.at(last) + lines.at(last).size();
+        spans.append(Span { starts.at(i), end - starts.at(i) });
+        i = last;
+    }
+    return spans;
+}
+
 bool loadFile(const QString& path, QString* content, QString* error)
 {
     QFile file(path);
@@ -392,6 +429,8 @@ Result<QString> AppFiles::replace(const QString& path, const QString& before, co
     QList<Span> spans = exactMatches(content, before);
     if (spans.isEmpty())
         spans = looseMatches(content, before);
+    if (spans.isEmpty())
+        spans = lineMatches(content, before);
 
     if (spans.isEmpty())
     {

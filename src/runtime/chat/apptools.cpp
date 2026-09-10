@@ -298,7 +298,8 @@ void AppTools::addCheckLayoutTool()
         {
             const Activity activity { "measuring", "measured", "could not measure", "app" };
             const int index = beginActivity(activity, arguments);
-            const App app(argument(arguments, "app"));
+            QString note;
+            const App app = appFor(arguments, &note);
             if (const std::optional<QString> refused = refusal(app))
             {
                 finish(index, Result<QString>::failure(*refused), done);
@@ -311,7 +312,7 @@ void AppTools::addCheckLayoutTool()
                        Result<QString>::failure(
                            QStringLiteral("\"%1\" is not on screen, so it cannot be measured")
                                .arg(app.id())),
-                       done);
+                       done, note);
                 return;
             }
 
@@ -319,7 +320,7 @@ void AppTools::addCheckLayoutTool()
             finish(index,
                    Result<QString>::success(
                        layout.isEmpty() ? QStringLiteral("The layout fits the screen") : layout),
-                   done);
+                   done, note);
         });
 }
 
@@ -331,7 +332,8 @@ void AppTools::addDescribeAppTool()
                              const Activity activity { "inspecting", "inspected",
                                                        "could not inspect", "app" };
                              const int index = beginActivity(activity, arguments);
-                             const App app(argument(arguments, "app"));
+                             QString note;
+                             const App app = appFor(arguments, &note);
                              if (const std::optional<QString> refused = refusal(app))
                              {
                                  finish(index, Result<QString>::failure(*refused), done);
@@ -341,14 +343,14 @@ void AppTools::addDescribeAppTool()
                              const Result<QString> files = AppFiles(app.dir()).outline();
                              if (files.isFailure())
                              {
-                                 finish(index, files, done);
+                                 finish(index, files, done, note);
                                  return;
                              }
 
                              finish(index,
                                     Result<QString>::success(files.value() + QStringLiteral("\n\n")
                                                              + AppSchema(app).describe()),
-                                    done);
+                                    done, note);
                          });
 }
 
@@ -360,7 +362,8 @@ void AppTools::addGrantAccessTool()
         {
             const Activity activity { "sharing", "shared", "could not share", "store" };
             const int index = beginActivity(activity, arguments);
-            const App app(argument(arguments, "app"));
+            QString note;
+            const App app = appFor(arguments, &note);
             if (const std::optional<QString> refused = refusal(app))
             {
                 finish(index, Result<QString>::failure(*refused), done);
@@ -387,7 +390,8 @@ void AppTools::addGrantAccessTool()
                 return;
             }
 
-            show(app, QStringLiteral("\"%1\" may use %2 now").arg(app.id(), storeObject(store)),
+            show(app,
+                 note + QStringLiteral("\"%1\" may use %2 now").arg(app.id(), storeObject(store)),
                  index, done);
         });
 }
@@ -472,7 +476,8 @@ void AppTools::addReadLogTool()
         {
             const Activity activity { "checking", "checked", "could not check", "app" };
             const int index = beginActivity(activity, arguments);
-            const App app(argument(arguments, "app"));
+            QString note;
+            const App app = appFor(arguments, &note);
             if (const std::optional<QString> refused = refusal(app))
             {
                 finish(index, Result<QString>::failure(*refused), done);
@@ -483,7 +488,7 @@ void AppTools::addReadLogTool()
             const QString pending = unfinished(app);
             const QString text
                 = pending.isEmpty() ? logText(lines) : logText(lines) + QLatin1Char('\n') + pending;
-            finish(index, Result<QString>::success(text), done);
+            finish(index, Result<QString>::success(text), done, note);
         });
 }
 
@@ -494,7 +499,8 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
                          [this, activity, reloads, operation](QVariantMap arguments, ToolDone done)
                          {
                              const int index = beginActivity(activity, arguments);
-                             const App app(argument(arguments, "app"));
+                             QString note;
+                             const App app = appFor(arguments, &note);
                              if (const std::optional<QString> refused = refusal(app))
                              {
                                  finish(index, Result<QString>::failure(*refused), done);
@@ -507,14 +513,14 @@ void AppTools::addFileTool(const char* docstring, const Activity& activity, bool
                              const Result<QString> result = operation(files, arguments);
                              if (result.isFailure() || !reloads)
                              {
-                                 finish(index, result, done);
+                                 finish(index, result, done, note);
                                  return;
                              }
 
                              const QString key
                                  = app.id() + QLatin1Char('/') + argument(arguments, "path");
                              show(
-                                 app, result.value(), index,
+                                 app, note + result.value(), index,
                                  [this, key, done](const QVariant& answer)
                                  {
                                      noteOutcome(key, answer.toString());
@@ -575,10 +581,24 @@ std::optional<QString> AppTools::refusal(const App& app) const
     return std::nullopt;
 }
 
-void AppTools::finish(int index, const Result<QString>& result, const ToolDone& done)
+void AppTools::finish(int index, const Result<QString>& result, const ToolDone& done,
+                      const QString& note)
 {
     endActivity(index, result.isSuccess());
-    done(result.isSuccess() ? result.value() : result.error());
+    done(note + (result.isSuccess() ? result.value() : result.error()));
+}
+
+void AppTools::setCurrentApp(const QString& id) { m_currentApp = id; }
+
+App AppTools::appFor(const QVariantMap& arguments, QString* note) const
+{
+    const App named(argument(arguments, "app"));
+    if (named.exists() || m_currentApp.isEmpty() || !App(m_currentApp).exists())
+        return named;
+
+    *note = QStringLiteral("No app \"%1\" — the open app is \"%2\", so this went to it:\n")
+                .arg(named.id(), m_currentApp);
+    return App(m_currentApp);
 }
 
 QString AppTools::currentError(const App& app) const
@@ -594,6 +614,7 @@ void AppTools::show(const App& app, const QString& result, int index, const Tool
 {
     const Result<void> compiled
         = m_engine ? AppCompiler(*m_engine).compile(app) : Result<void>::success();
+    m_currentApp = app.id();
     if (m_warnings)
     {
         m_warnings->clear(app.id());

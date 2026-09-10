@@ -281,6 +281,20 @@ TEST_F(AppFilesTest, MatchesAnAnchorThatDiffersOnlyInTrailingBlanks)
     EXPECT_EQ(readAll(path(QStringLiteral("Main.qml"))), QStringLiteral("Item {\n    c: 3\n}\n"));
 }
 
+TEST_F(AppFilesTest, MatchesAnAnchorWhoseIndentationIsOff)
+{
+    files.write(QStringLiteral("Main.qml"),
+                QStringLiteral("Item {\n    Row {\n        a: 1\n    }\n    b: 2\n}\n"));
+
+    const Result<QString> changed
+        = files.replace(QStringLiteral("Main.qml"), QStringLiteral("     Row {\n a: 1\n   }"),
+                        QStringLiteral("    Column {\n        a: 1\n    }"));
+
+    ASSERT_TRUE(changed.isSuccess()) << changed.error().toStdString();
+    EXPECT_EQ(readAll(path(QStringLiteral("Main.qml"))),
+              QStringLiteral("Item {\n    Column {\n        a: 1\n    }\n    b: 2\n}\n"));
+}
+
 TEST_F(AppFilesTest, RemovesAComponentButNotTheEntryPoint)
 {
     files.write(QStringLiteral("Main.qml"), kMain);

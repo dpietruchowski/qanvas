@@ -129,6 +129,7 @@ ChatAgent::ChatAgent(QObject* parent)
             [this]
             {
                 store(QStringLiteral("lastApp"), m_thread.app());
+                m_tools.setCurrentApp(m_thread.app());
                 emit lastAppIdChanged();
             });
     connect(&AppRegistry::instance(), &AppRegistry::appRemoving, this,
@@ -255,7 +256,15 @@ void ChatAgent::send(const QString& text)
 
     m_nudges = 0;
     m_thread.remember(text);
-    m_controller.request(client(), text);
+    m_controller.request(client(), withOpenApp(text));
+}
+
+QString ChatAgent::withOpenApp(const QString& text) const
+{
+    const QString app = m_thread.app();
+    if (app.isEmpty() || !App(app).exists())
+        return text;
+    return text + QStringLiteral("\n[open app: %1]").arg(app);
 }
 
 void ChatAgent::finishTurn()

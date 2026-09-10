@@ -12,9 +12,9 @@
 
 #include "agent/agentcontroller.h"
 #include "async/result.h"
+#include "runtime/app/app.h"
 #include "runtime/app/appfiles.h"
 
-class App;
 class AppRegistry;
 class AppWarnings;
 class QQmlEngine;
@@ -31,6 +31,7 @@ public:
 
     QVariantList activities() const { return m_activities; }
     void clearActivities();
+    void setCurrentApp(const QString& id);
     QString unfinished(const App& app, bool thisTurnOnly = false) const;
 
 signals:
@@ -58,7 +59,9 @@ private:
     void addFileTool(const char* docstring, const Activity& activity, bool reloads,
                      const FileOperation& operation);
     std::optional<QString> refusal(const App& app) const;
-    void finish(int index, const Result<QString>& result, const ToolDone& done);
+    App appFor(const QVariantMap& arguments, QString* note) const;
+    void finish(int index, const Result<QString>& result, const ToolDone& done,
+                const QString& note = QString());
     void show(const App& app, const QString& result, int index, const ToolDone& done,
               const AppSources& restoreTo = AppSources(), const QString& priorError = QString());
     QString currentError(const App& app) const;
@@ -74,4 +77,5 @@ private:
     QVariantList m_activities;
     QSet<QString> m_rejected;
     QSet<QString> m_written;
+    QString m_currentApp;
 };

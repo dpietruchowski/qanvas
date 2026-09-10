@@ -162,21 +162,37 @@ TEST_F(AppToolsTest, CreateAppRejectsAnInvalidIdAndMarksTheStepFailed)
     EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
 }
 
-TEST_F(AppToolsTest, FileToolsRefuseAnUnknownAppAndNameTheOnesThatExist)
+TEST_F(AppToolsTest, FileToolsRefuseAnUnknownAppWhenNoneIsOpen)
 {
-    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
-                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
-          ScriptedClient::toolCall(
+    run({ ScriptedClient::toolCall(
               QStringLiteral("read_file"),
               fileArguments(QStringLiteral("timer"), QStringLiteral("Main.qml"))),
           ScriptedClient::reply(QStringLiteral("done")) });
 
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No app \\\"timer\\\"")));
-    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("notes")));
-    ASSERT_EQ(tools->activities().size(), 2);
-    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(),
+    ASSERT_EQ(tools->activities().size(), 1);
+    EXPECT_EQ(activity(0).value(QStringLiteral("text")).toString(),
               QStringLiteral("could not read"));
-    EXPECT_EQ(activity(1).value(QStringLiteral("detail")).toString(), QStringLiteral("Main.qml"));
+    EXPECT_EQ(activity(0).value(QStringLiteral("detail")).toString(), QStringLiteral("Main.qml"));
+}
+
+TEST_F(AppToolsTest, AWrongAppIdGoesToTheOpenAppWithANote)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("read_file"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notatki") },
+                            { QStringLiteral("path"), QStringLiteral("Main.qml") },
+                            { QStringLiteral("from"), 0 },
+                            { QStringLiteral("lines"), 0 } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    const QString result = client.lastToolResult();
+    EXPECT_TRUE(result.contains(QStringLiteral("the open app is \\\"notes\\\"")))
+        << qPrintable(result);
+    EXPECT_TRUE(result.contains(QStringLiteral("import QtQuick"))) << qPrintable(result);
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
 }
 
 TEST_F(AppToolsTest, WritingAFileShowsTheAppAgainButReadingDoesNot)
