@@ -48,11 +48,11 @@ ChatHost::ChatHost(const Config& config, QQmlEngine& engine, BackendWorker& work
 {
 #ifdef Q_OS_ANDROID
     m_providers = std::make_unique<ProviderSettings>();
-    start(config, m_providers->clients(), engine, worker);
+    start(config, m_providers->clients(), {}, engine, worker);
 #else
     start(config,
           chat::ChatModule::claudeClients(QDir(config.dataDirectory).filePath(kClaudeDirectory)),
-          engine, worker);
+          BuilderAgent::desktopConfig(), engine, worker);
 #endif
 }
 
@@ -63,13 +63,13 @@ ChatHost::ChatHost(const Config& config, chat::ChatModule::Clients clients, QQml
     , m_registry(registry)
     , m_lastApp(readLastApp())
 {
-    start(config, std::move(clients), engine, worker);
+    start(config, std::move(clients), {}, engine, worker);
 }
 
 ChatHost::~ChatHost() = default;
 
-void ChatHost::start(const Config& config, chat::ChatModule::Clients clients, QQmlEngine& engine,
-                     BackendWorker& worker)
+void ChatHost::start(const Config& config, chat::ChatModule::Clients clients,
+                     const ModelConfig& builderConfig, QQmlEngine& engine, BackendWorker& worker)
 {
     QDir().mkpath(config.dataDirectory);
     m_module = chat::ChatModule::create(moduleConfig(config, worker), std::move(clients));
@@ -79,7 +79,8 @@ void ChatHost::start(const Config& config, chat::ChatModule::Clients clients, QQ
         return;
     }
 
-    m_builder = std::make_unique<BuilderAgent>(m_registry, engine, m_module->chat().model());
+    m_builder = std::make_unique<BuilderAgent>(m_registry, engine, m_module->chat().model(),
+                                               builderConfig);
     m_module->addAgent(m_builder->entry());
     m_builder->tools().setCurrentApp(lastAppId());
     if (m_providers)
