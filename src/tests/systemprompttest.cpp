@@ -76,6 +76,17 @@ TEST(SystemPromptTest, NamesEveryComponent)
         EXPECT_TRUE(prompt.contains(QLatin1String(component))) << component;
 }
 
+TEST(SystemPromptTest, SaysHowAScrollLaysOutItsChildren)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype line = prompt.indexOf(QStringLiteral("QanvasScroll  scrolls"));
+    ASSERT_GE(line, 0);
+    const QString entry = prompt.mid(line, 220);
+    EXPECT_TRUE(entry.contains(QStringLiteral("stacked as a column")));
+    EXPECT_TRUE(entry.contains(QStringLiteral("Layout.fillWidth: true")));
+    EXPECT_TRUE(entry.contains(QStringLiteral("Repeater")));
+}
+
 TEST(SystemPromptTest, EveryTransitionLeadsToADefinedState)
 {
     const QString prompt = SystemPrompt::text();

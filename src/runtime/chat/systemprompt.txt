@@ -379,8 +379,9 @@ Anything you would write as a ternary inside a ternary is a function instead.
 ## COMPONENTS
 QanvasPage{title scrollable showBack onBack}  QanvasPanel{title open() close()}
 QanvasCard{clickable onClicked}  QanvasSection{title}
-QanvasColumn QanvasRow QanvasGrid{columns} QanvasFlow QanvasScroll QanvasSpacer
-QanvasSeparator
+QanvasColumn QanvasRow QanvasGrid{columns} QanvasFlow QanvasSpacer QanvasSeparator
+QanvasScroll  scrolls its children stacked as a column, each as wide as the
+    scroll when it has Layout.fillWidth: true; a Repeater straight inside works
 QanvasText{text type}  type takes one size word (display|title|subtitle|body|
     caption|muted) and optionally an alignment word (center|right), as in
     type: "display center"; display is for the one big number on a screen
