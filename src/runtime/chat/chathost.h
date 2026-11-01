@@ -58,8 +58,8 @@ signals:
     void appShown(const QString& id, const QString& conversationId);
 
 private:
-    void start(const Config& config, chat::ChatModule::Clients clients, QQmlEngine& engine,
-               BackendWorker& worker);
+    void start(const Config& config, chat::ChatModule::Clients clients,
+               const ModelConfig& builderConfig, QQmlEngine& engine, BackendWorker& worker);
     void showApp(const QString& appId);
     void turnStarted(const QUuid& conversationId);
     void turnFinished(const QUuid& conversationId);

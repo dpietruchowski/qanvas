@@ -13,7 +13,9 @@ class BuilderAgent
 {
 public:
     BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
-                 const QString& notesPath);
+                 const QString& notesPath, const ModelConfig& config = {});
+
+    static ModelConfig desktopConfig();
 
     BuilderAgent(const BuilderAgent&) = delete;
     BuilderAgent& operator=(const BuilderAgent&) = delete;
@@ -27,4 +29,5 @@ public:
 private:
     ::Agent m_agent;
     AppTools m_tools;
+    ModelConfig m_config;
 };

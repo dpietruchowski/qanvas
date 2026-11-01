@@ -84,6 +84,38 @@ TEST_F(BuilderAgentTest, IsRegisteredUnderTheBuilderKeyWithADescriptionOfItsJob)
     EXPECT_TRUE(static_cast<bool>(entry.followUp));
 }
 
+TEST_F(BuilderAgentTest, WithoutAConfigTheEntryFollowsTheModelAndEffortOfTheChat)
+{
+    const chat::AppAgent entry = builder->entry();
+
+    EXPECT_TRUE(entry.config.model.isEmpty());
+    EXPECT_TRUE(entry.config.reasoningEffort.isEmpty());
+}
+
+TEST_F(BuilderAgentTest, TheEntryCarriesTheModelAndEffortOfItsConfig)
+{
+    BuilderAgent configured(*registry, engine, QStringLiteral("test-model"), notesPath(),
+                            ModelConfig { .model = QStringLiteral("big-model"),
+                                          .reasoningEffort = QStringLiteral("max") });
+
+    const chat::AppAgent entry = configured.entry();
+
+    EXPECT_EQ(entry.config.model, QStringLiteral("big-model"));
+    EXPECT_EQ(entry.config.reasoningEffort, QStringLiteral("max"));
+}
+
+TEST_F(BuilderAgentTest, TheDesktopConfigIsOpusOnHighEffort)
+{
+    const ModelConfig config = BuilderAgent::desktopConfig();
+
+    EXPECT_EQ(config.model, QStringLiteral("opus"));
+    EXPECT_EQ(config.reasoningEffort, QStringLiteral("high"));
+
+    BuilderAgent desktop(*registry, engine, QStringLiteral("test-model"), notesPath(), config);
+    EXPECT_EQ(desktop.entry().config.model, QStringLiteral("opus"));
+    EXPECT_EQ(desktop.entry().config.reasoningEffort, QStringLiteral("high"));
+}
+
 TEST_F(BuilderAgentTest, RunsOnTheSystemPromptWithTheAppTools)
 {
     run({ ScriptedClient::toolCall(QStringLiteral("create_app"), createApp()),
