@@ -116,6 +116,12 @@ TEST_F(BuilderAgentTest, TheDesktopConfigIsSonnetOnHighEffort)
     EXPECT_EQ(desktop.entry().config.reasoningEffort, QStringLiteral("high"));
 }
 
+TEST_F(BuilderAgentTest, MayCallFortyToolsInATurnWhereTheDefaultAllowsTwenty)
+{
+    EXPECT_EQ(builder->entry().agent.maxToolCalls(), 40);
+    EXPECT_GT(builder->entry().agent.maxToolCalls(), ::Agent::kDefaultMaxToolCalls);
+}
+
 TEST_F(BuilderAgentTest, RunsOnTheSystemPromptWithTheAppTools)
 {
     run({ ScriptedClient::toolCall(QStringLiteral("create_app"), createApp()),

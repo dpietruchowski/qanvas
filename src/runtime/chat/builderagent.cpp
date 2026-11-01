@@ -3,12 +3,18 @@
 #include "runtime/app/app.h"
 #include "runtime/chat/systemprompt.h"
 
+namespace
+{
+const int kMaxToolCalls = 40;
+}
+
 BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
                            const QString& notesPath, const ModelConfig& config)
     : m_agent(model, SystemPrompt::text())
     , m_tools(m_agent, registry, notesPath)
     , m_config(config)
 {
+    m_agent.setMaxToolCalls(kMaxToolCalls);
     m_tools.setEngine(&engine);
 }
 

@@ -94,13 +94,6 @@ bool isLayout(const QQuickItem* item) { return item->inherits("QQuickLayout"); }
 
 bool isFlickable(const QQuickItem* item) { return item->inherits("QQuickFlickable"); }
 
-bool isSpacer(const QQuickItem* item)
-{
-    const QString name = typeName(item);
-    return name.contains(QStringLiteral("Spacer")) || name.contains(QStringLiteral("Separator"))
-        || name.contains(QStringLiteral("Countdown")) || name.contains(QStringLiteral("Stopwatch"));
-}
-
 bool hasVisibleChildren(const QQuickItem* item)
 {
     const QList<QQuickItem*> children = item->childItems();
@@ -110,6 +103,11 @@ bool hasVisibleChildren(const QQuickItem* item)
             return true;
     }
     return false;
+}
+
+bool showsSomething(const QQuickItem* item)
+{
+    return (item->flags() & QQuickItem::ItemHasContents) || hasVisibleChildren(item);
 }
 
 qreal childrenRight(const QQuickItem* item)
@@ -224,11 +222,11 @@ void checkOwned(QQuickItem* item, Walk& walk, bool inScroll, bool heightDone, bo
     const QVariant count = item->property("count");
     if (count.isValid() && count.toInt() == 0)
         return;
-    if (isLayout(item) && !hasVisibleChildren(item))
+    if (!showsSomething(item))
         return;
-    if (item->height() < kSlack && !isSpacer(item) && !emptyText)
+    if (item->height() < kSlack && !emptyText)
         add(walk, QStringLiteral("%1 has no height, so it is invisible").arg(name));
-    else if (item->width() < kSlack && !isSpacer(item) && !emptyText)
+    else if (item->width() < kSlack && !emptyText)
         add(walk, QStringLiteral("%1 has no width, so it is invisible").arg(name));
 
     if (isText(item) && !emptyText)
