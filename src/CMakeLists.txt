@@ -33,6 +33,7 @@ target_link_libraries(${APP_TARGET}
         app_theme_qml
         app_themed_qml
         app_components_qml
+        app_chat_qml
         app_icons
         qanvas_components_qml
         ${APP_QML_TARGET}
