@@ -8,9 +8,12 @@
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QUuid>
+#include <QVariantMap>
 
+#include "agent/agent.h"
 #include "agent/claudesession.h"
 #include "async/backendworker.h"
+#include "chat/application/agentcatalog.h"
 #include "chat/chatmodule.h"
 #include "chat/ui/chat.h"
 #include "isolatedsettings.h"
@@ -82,10 +85,19 @@ protected:
             },
             settings.clients());
         ASSERT_NE(module, nullptr);
+        ASSERT_TRUE(module->addAgent(
+            chat::AppAgent { QStringLiteral("courses"), QStringLiteral("Courses"),
+                             QStringLiteral("Handles courses."),
+                             ::Agent(QStringLiteral("haiku"), QStringLiteral("prompt")) }));
         settings.bind(module->chat());
     }
 
     chat::Chat& chat() { return module->chat(); }
+
+    QString chosenAgentModel()
+    {
+        return chat().agents().first().toMap().value(QStringLiteral("chosen")).toString();
+    }
 
     IsolatedSettings isolated;
     QTemporaryDir directory;
@@ -292,4 +304,70 @@ TEST_F(ProviderSettingsTest, TheModelChosenForAProviderSurvivesARestart)
     bindToChat(*settings);
 
     EXPECT_EQ(chat().model(), QStringLiteral("gpt-5"));
+}
+
+TEST_F(ProviderSettingsTest, BindingStartsEveryAgentWithoutAChosenModel)
+{
+    const auto settings = make();
+
+    bindToChat(*settings);
+
+    EXPECT_TRUE(chosenAgentModel().isEmpty());
+}
+
+TEST_F(ProviderSettingsTest, TheModelChosenForAnAgentComesBackWithItsProvider)
+{
+    const auto settings = make();
+    bindToChat(*settings);
+    chat().setAgentModel(QStringLiteral("courses"), QStringLiteral("gpt-5"));
+
+    settings->setProvider(QStringLiteral("Claude"));
+    EXPECT_TRUE(chosenAgentModel().isEmpty());
+    chat().setAgentModel(QStringLiteral("courses"), QStringLiteral("claude-opus-4-1"));
+
+    settings->setProvider(QStringLiteral("OpenAI"));
+    EXPECT_EQ(chosenAgentModel(), QStringLiteral("gpt-5"));
+    settings->setProvider(QStringLiteral("Claude"));
+    EXPECT_EQ(chosenAgentModel(), QStringLiteral("claude-opus-4-1"));
+}
+
+TEST_F(ProviderSettingsTest, SwitchingTheProviderKeepsTheAgentModelOfTheOldOne)
+{
+    const auto settings = make();
+    bindToChat(*settings);
+    chat().setAgentModel(QStringLiteral("courses"), QStringLiteral("gpt-5"));
+
+    settings->setProvider(QStringLiteral("OpenRouter"));
+    settings->setProvider(QStringLiteral("Claude"));
+    settings->setProvider(QStringLiteral("OpenAI"));
+
+    EXPECT_EQ(chosenAgentModel(), QStringLiteral("gpt-5"));
+}
+
+TEST_F(ProviderSettingsTest, ClearingTheModelOfAnAgentIsRememberedForItsProvider)
+{
+    const auto settings = make();
+    bindToChat(*settings);
+    chat().setAgentModel(QStringLiteral("courses"), QStringLiteral("gpt-5"));
+    chat().setAgentModel(QStringLiteral("courses"), QString());
+
+    settings->setProvider(QStringLiteral("Claude"));
+    settings->setProvider(QStringLiteral("OpenAI"));
+
+    EXPECT_TRUE(chosenAgentModel().isEmpty());
+}
+
+TEST_F(ProviderSettingsTest, TheModelChosenForAnAgentSurvivesARestart)
+{
+    {
+        const auto settings = make();
+        bindToChat(*settings);
+        chat().setAgentModel(QStringLiteral("courses"), QStringLiteral("gpt-5"));
+        module.reset();
+    }
+
+    const auto settings = make();
+    bindToChat(*settings);
+
+    EXPECT_EQ(chosenAgentModel(), QStringLiteral("gpt-5"));
 }
