@@ -91,7 +91,7 @@ void ChatHost::start(const Config& config, chat::ChatModule::Clients clients, QQ
             &ChatHost::turnFinished);
     connect(&m_module->chat().runner(), &chat::TurnRunner::conversationRemoved, this,
             &ChatHost::conversationRemoved);
-    connect(&m_builder->tools(), &AppTools::appShown, this, &ChatHost::appShown);
+    connect(&m_builder->tools(), &AppTools::appShown, this, &ChatHost::showApp);
     connect(&m_registry, &AppRegistry::appRemoving, this,
             [this](const QString& id)
             {
@@ -148,9 +148,16 @@ void ChatHost::registerQml(QmlRegistrator& registrator)
     registrator.registerSingletonInstance("ChatHost", this);
 }
 
+void ChatHost::showApp(const QString& appId)
+{
+    m_conversations.bind(appId, m_turnConversation);
+    emit appShown(appId, m_turnConversation);
+}
+
 void ChatHost::turnStarted(const QUuid& conversationId)
 {
     const bool wasBusy = busy();
+    m_turnConversation = conversationId.toString(QUuid::WithoutBraces);
     m_running.insert(conversationId);
     m_builder->tools().clearActivities();
     if (!wasBusy)

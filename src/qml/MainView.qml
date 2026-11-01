@@ -58,7 +58,7 @@ AppShell {
         onAppActivated: function (id) {
             root.openConversation(id, ChatHost.conversationFor(id))
         }
-        onAppClosed: root.openApp("")
+        onAppClosed: root.openConversation("", "")
 
         Connections {
             target: root
@@ -97,9 +97,9 @@ AppShell {
     Connections {
         target: ChatHost
 
-        function onAppShown(id) {
-            if (chatSession.conversationId !== "")
-                ChatHost.bind(id, chatSession.conversationId)
+        function onAppShown(id, conversationId) {
+            if (conversationId !== chatSession.conversationId)
+                return
             const sameApp = root.openedAppId === id
             root.openApp(id)
             if (sameApp)
@@ -114,7 +114,7 @@ AppShell {
 
         function onAppRemoving(id) {
             if (root.openedAppId === id)
-                root.openApp("")
+                root.openConversation("", "")
         }
     }
 
