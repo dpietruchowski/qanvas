@@ -14,7 +14,7 @@ BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QStr
 
 ModelConfig BuilderAgent::desktopConfig()
 {
-    return ModelConfig { .model = QStringLiteral("opus"),
+    return ModelConfig { .model = QStringLiteral("sonnet"),
                          .reasoningEffort = QStringLiteral("high") };
 }
 

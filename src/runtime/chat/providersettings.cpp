@@ -4,6 +4,7 @@
 
 #include <QCoreApplication>
 #include <QSettings>
+#include <QVariantMap>
 #ifdef QANVAS_KEY_IMPORT
 #include <QFile>
 #include <QStandardPaths>
@@ -34,6 +35,11 @@ QString defaultModel(const QString& provider)
 QString providerKey(const QString& provider, const QString& key)
 {
     return provider + QLatin1Char('/') + key;
+}
+
+QString agentModelSetting(const QString& agentKey)
+{
+    return QStringLiteral("agentModels/") + agentKey;
 }
 
 QString providerUrl(const QString& provider)
@@ -125,7 +131,22 @@ void ProviderSettings::bind(chat::Chat& chat)
                 store(providerKey(m_provider, QStringLiteral("reasoning")),
                       m_chat->reasoningEffort());
             });
+    connect(&chat, &chat::Chat::agentsChanged, this, [this] { storeAgentModels(); });
     applyToChat();
+}
+
+void ProviderSettings::storeAgentModels()
+{
+    if (m_applying)
+        return;
+
+    for (const QVariant& agent : m_chat->agents())
+    {
+        const QVariantMap entry = agent.toMap();
+        const QString key = entry.value(QStringLiteral("key")).toString();
+        store(providerKey(m_provider, agentModelSetting(key)),
+              entry.value(QStringLiteral("chosen")).toString());
+    }
 }
 
 void ProviderSettings::applyToChat()
@@ -133,6 +154,7 @@ void ProviderSettings::applyToChat()
     if (!m_chat)
         return;
 
+    m_applying = true;
     QSettings settings;
     settings.beginGroup(QString::fromLatin1(kSettingsGroup));
     m_chat->setModel(
@@ -142,6 +164,13 @@ void ProviderSettings::applyToChat()
                                    .value(providerKey(m_provider, QStringLiteral("reasoning")),
                                           QString::fromLatin1(kDefaultReasoning))
                                    .toString());
+    for (const QVariant& agent : m_chat->agents())
+    {
+        const QString key = agent.toMap().value(QStringLiteral("key")).toString();
+        m_chat->setAgentModel(
+            key, settings.value(providerKey(m_provider, agentModelSetting(key))).toString());
+    }
+    m_applying = false;
 }
 
 std::unique_ptr<Client> ProviderSettings::createClient() const
