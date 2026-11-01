@@ -2,12 +2,15 @@
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
 #include <QQuickStyle>
+#include <QStandardPaths>
 
+#include "async/backendworker.h"
 #include "platform/keyboardinsetprovider.h"
 #include "qmlutils/coloredsvgprovider.h"
 #include "qmlutils/qmlregistrator.h"
 #include "runtime/app/appregistry.h"
 #include "runtime/chat/chatagent.h"
+#include "runtime/chat/chathost.h"
 #include "runtime/host/apploader.h"
 
 #ifdef LIBS_AUTOMATION
@@ -37,6 +40,14 @@ int main(int argc, char* argv[])
     registrator.registerType<AppLoader>("AppLoader");
     registrator.registerType<ChatAgent>("ChatAgent");
     qmlRegisterSingletonType<AppRegistry>(APP_QML_URI, 1, 0, "AppRegistry", &AppRegistry::create);
+
+    BackendWorker worker;
+    ChatHost chatHost(ChatHost::Config { .dataDirectory = QStandardPaths::writableLocation(
+                                             QStandardPaths::AppDataLocation),
+                                         .settingsOrganization = app.organizationName(),
+                                         .settingsApplication = app.applicationName() },
+                      engine, worker, AppRegistry::instance());
+    chatHost.registerQml(registrator);
 
     engine.load(registrator.getMainQmlUrl());
 

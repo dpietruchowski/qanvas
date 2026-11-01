@@ -13,6 +13,8 @@
 
 #include <algorithm>
 
+#include <utility>
+
 #include <QFile>
 #include <QRegularExpression>
 #include <QStringList>
@@ -227,9 +229,9 @@ QString withLayout(const QString& result, const QString& appId)
 }
 }
 
-AppTools::AppTools(AgentController& controller, AppRegistry& registry, QObject* parent)
+AppTools::AppTools(ToolRegistrar registrar, AppRegistry& registry, QObject* parent)
     : QObject(parent)
-    , m_controller(controller)
+    , m_register(std::move(registrar))
     , m_registry(registry)
 {
     registerTools();
@@ -300,7 +302,7 @@ void AppTools::registerTools()
 
 void AppTools::addCheckLayoutTool()
 {
-    m_controller.addTool(
+    m_register(
         QString::fromLatin1(kCheckLayoutDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -329,42 +331,44 @@ void AppTools::addCheckLayoutTool()
                    Result<QString>::success(
                        layout.isEmpty() ? QStringLiteral("The layout fits the screen") : layout),
                    done, note);
-        });
+        },
+        ToolEffect::Reads);
 }
 
 void AppTools::addDescribeAppTool()
 {
-    m_controller.addTool(QString::fromLatin1(kDescribeAppDocstring),
-                         [this](QVariantMap arguments, ToolDone done)
-                         {
-                             const Activity activity { "inspecting", "inspected",
-                                                       "could not inspect", "app" };
-                             const int index = beginActivity(activity, arguments);
-                             QString note;
-                             const App app = appFor(arguments, &note);
-                             if (const std::optional<QString> refused = refusal(app))
-                             {
-                                 finish(index, Result<QString>::failure(*refused), done);
-                                 return;
-                             }
+    m_register(
+        QString::fromLatin1(kDescribeAppDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "inspecting", "inspected", "could not inspect", "app" };
+            const int index = beginActivity(activity, arguments);
+            QString note;
+            const App app = appFor(arguments, &note);
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
 
-                             const Result<QString> files = AppFiles(app.dir()).outline();
-                             if (files.isFailure())
-                             {
-                                 finish(index, files, done, note);
-                                 return;
-                             }
+            const Result<QString> files = AppFiles(app.dir()).outline();
+            if (files.isFailure())
+            {
+                finish(index, files, done, note);
+                return;
+            }
 
-                             finish(index,
-                                    Result<QString>::success(files.value() + QStringLiteral("\n\n")
-                                                             + AppSchema(app).describe()),
-                                    done, note);
-                         });
+            finish(index,
+                   Result<QString>::success(files.value() + QStringLiteral("\n\n")
+                                            + AppSchema(app).describe()),
+                   done, note);
+        },
+        ToolEffect::Reads);
 }
 
 void AppTools::addGrantAccessTool()
 {
-    m_controller.addTool(
+    m_register(
         QString::fromLatin1(kGrantAccessDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -401,12 +405,13 @@ void AppTools::addGrantAccessTool()
             show(app,
                  note + QStringLiteral("\"%1\" may use %2 now").arg(app.id(), storeObject(store)),
                  index, done);
-        });
+        },
+        ToolEffect::Writes);
 }
 
 void AppTools::addDeleteAppTool()
 {
-    m_controller.addTool(
+    m_register(
         QString::fromLatin1(kDeleteAppDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -430,12 +435,13 @@ void AppTools::addDeleteAppTool()
 
             finish(index, Result<QString>::success(QStringLiteral("Deleted \"%1\"").arg(app.id())),
                    done);
-        });
+        },
+        ToolEffect::Writes);
 }
 
 void AppTools::addCreateAppTool()
 {
-    m_controller.addTool(
+    m_register(
         QString::fromLatin1(kCreateAppDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -473,12 +479,13 @@ void AppTools::addCreateAppTool()
 
             m_registry.record(id, argument(arguments, "title"));
             show(app, QStringLiteral("ok"), index, done, previous, priorError);
-        });
+        },
+        ToolEffect::Writes);
 }
 
 void AppTools::addReadLogTool()
 {
-    m_controller.addTool(
+    m_register(
         QString::fromLatin1(kReadLogDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -497,45 +504,47 @@ void AppTools::addReadLogTool()
             const QString text
                 = pending.isEmpty() ? logText(lines) : logText(lines) + QLatin1Char('\n') + pending;
             finish(index, Result<QString>::success(text), done, note);
-        });
+        },
+        ToolEffect::Reads);
 }
 
 void AppTools::addFileTool(const char* docstring, const Activity& activity, bool reloads,
                            const FileOperation& operation)
 {
-    m_controller.addTool(QString::fromLatin1(docstring),
-                         [this, activity, reloads, operation](QVariantMap arguments, ToolDone done)
-                         {
-                             const int index = beginActivity(activity, arguments);
-                             QString note;
-                             const App app = appFor(arguments, &note);
-                             if (const std::optional<QString> refused = refusal(app))
-                             {
-                                 finish(index, Result<QString>::failure(*refused), done);
-                                 return;
-                             }
+    m_register(
+        QString::fromLatin1(docstring),
+        [this, activity, reloads, operation](QVariantMap arguments, ToolDone done)
+        {
+            const int index = beginActivity(activity, arguments);
+            QString note;
+            const App app = appFor(arguments, &note);
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
 
-                             AppFiles files(app.dir());
-                             const AppSources previous = files.snapshot();
-                             const QString priorError = reloads ? currentError(app) : QString();
-                             const Result<QString> result = operation(files, arguments);
-                             if (result.isFailure() || !reloads)
-                             {
-                                 finish(index, result, done, note);
-                                 return;
-                             }
+            AppFiles files(app.dir());
+            const AppSources previous = files.snapshot();
+            const QString priorError = reloads ? currentError(app) : QString();
+            const Result<QString> result = operation(files, arguments);
+            if (result.isFailure() || !reloads)
+            {
+                finish(index, result, done, note);
+                return;
+            }
 
-                             const QString key
-                                 = app.id() + QLatin1Char('/') + argument(arguments, "path");
-                             show(
-                                 app, note + result.value(), index,
-                                 [this, key, done](const QVariant& answer)
-                                 {
-                                     noteOutcome(key, answer.toString());
-                                     done(answer);
-                                 },
-                                 previous, priorError);
-                         });
+            const QString key = app.id() + QLatin1Char('/') + argument(arguments, "path");
+            show(
+                app, note + result.value(), index,
+                [this, key, done](const QVariant& answer)
+                {
+                    noteOutcome(key, answer.toString());
+                    done(answer);
+                },
+                previous, priorError);
+        },
+        reloads ? ToolEffect::Writes : ToolEffect::Reads);
 }
 
 void AppTools::noteOutcome(const QString& key, const QString& answer)
@@ -582,6 +591,20 @@ QString AppTools::unfinished(const App& app, bool thisTurnOnly) const
         lines.append(QStringLiteral("Will throw when that screen opens:\n%1")
                          .arg(calls.join(QLatin1Char('\n'))));
     return lines.join(QLatin1Char('\n'));
+}
+
+QString AppTools::runtimeCheck(const App& app) const
+{
+    if (m_activities.isEmpty() || !app.exists())
+        return QString();
+
+    const QString pending = unfinished(app, true);
+    if (pending.isEmpty())
+        return QString();
+
+    return QStringLiteral("Runtime check — the app is not finished:\n%1\nGo on until read_log "
+                          "lists nothing undone, then one sentence.")
+        .arg(pending);
 }
 
 std::optional<QString> AppTools::refusal(const App& app) const

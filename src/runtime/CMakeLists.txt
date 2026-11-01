@@ -4,6 +4,7 @@ app_add_module(qanvas_runtime
     DEPS
         app_agent
         app_async
+        app_chat
         app_platform
         Qt6::Core
         Qt6::Gui

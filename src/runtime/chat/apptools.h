@@ -10,7 +10,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 
-#include "agent/agentcontroller.h"
+#include "agent/structures.h"
+#include "agent/tooleffect.h"
 #include "async/result.h"
 #include "runtime/app/app.h"
 #include "runtime/app/appfiles.h"
@@ -24,7 +25,9 @@ class AppTools : public QObject
     Q_OBJECT
 
 public:
-    AppTools(AgentController& controller, AppRegistry& registry, QObject* parent = nullptr);
+    using ToolRegistrar = std::function<void(const QString&, const Tool&, ToolEffect)>;
+
+    AppTools(ToolRegistrar registrar, AppRegistry& registry, QObject* parent = nullptr);
     ~AppTools() override;
 
     void setEngine(QQmlEngine* engine);
@@ -32,7 +35,9 @@ public:
     QVariantList activities() const { return m_activities; }
     void clearActivities();
     void setCurrentApp(const QString& id);
+    QString currentApp() const { return m_currentApp; }
     QString unfinished(const App& app, bool thisTurnOnly = false) const;
+    QString runtimeCheck(const App& app) const;
 
 signals:
     void activitiesChanged();
@@ -70,7 +75,7 @@ private:
     void noteOutcome(const QString& key, const QString& answer);
     QString unknownApp(const QString& id) const;
 
-    AgentController& m_controller;
+    ToolRegistrar m_register;
     AppRegistry& m_registry;
     QQmlEngine* m_engine = nullptr;
     std::unique_ptr<AppWarnings> m_warnings;

@@ -105,7 +105,8 @@ QString errorText(const QString& error)
 ChatAgent::ChatAgent(QObject* parent)
     : QObject(parent)
     , m_controller(QString::fromLatin1(kDefaultModel), SystemPrompt::text())
-    , m_tools(m_controller, AppRegistry::instance(), this)
+    , m_tools([this](const QString& docstring, const Tool& tool, ToolEffect)
+              { m_controller.addTool(docstring, tool); }, AppRegistry::instance(), this)
     , m_thread(m_controller, m_store, this)
     , m_secrets(QCoreApplication::organizationName(), QStringLiteral("agent"))
 {
@@ -269,18 +270,14 @@ QString ChatAgent::withOpenApp(const QString& text) const
 
 void ChatAgent::finishTurn()
 {
-    const App app(m_thread.app());
-    if (m_nudges >= kMaxNudges || m_tools.activities().isEmpty() || !app.exists())
+    if (m_nudges >= kMaxNudges)
         return;
 
-    const QString pending = m_tools.unfinished(app, true);
-    if (pending.isEmpty())
+    const QString text = m_tools.runtimeCheck(App(m_thread.app()));
+    if (text.isEmpty())
         return;
 
     ++m_nudges;
-    const QString text = QStringLiteral("Runtime check — the app is not finished:\n%1\nGo on "
-                                        "until read_log lists nothing undone, then one sentence.")
-                             .arg(pending);
     m_thread.remember(text);
     m_controller.request(client(), text);
 }
