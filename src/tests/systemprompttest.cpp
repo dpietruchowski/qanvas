@@ -97,6 +97,43 @@ TEST(SystemPromptTest, SaysWhereAToastGoes)
     EXPECT_TRUE(entry.contains(QStringLiteral("needs no size")));
 }
 
+TEST(SystemPromptTest, NamesEveryCataloguePropertyAndTypeWord)
+{
+    const QString prompt = SystemPrompt::text();
+    for (const char* word :
+         { "QanvasButton{text iconName onClicked type enabled}", "enabled: false", "badgeRole",
+           "typeRole", "badgeFormat", "typeFormat", "\"done\"",
+           "QanvasProgress{value from to type:success|warning|danger}", "type: \"centiseconds\"",
+           "centiseconds", "m:ss.cc" })
+        EXPECT_TRUE(prompt.contains(QLatin1String(word))) << word;
+}
+
+TEST(SystemPromptTest, TabsSayTheyCarryTheOptionTextNotTheIndex)
+{
+    const QString prompt = SystemPrompt::text();
+    EXPECT_TRUE(prompt.contains(QStringLiteral("carry the text of")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral("never its index")));
+}
+
+TEST(SystemPromptTest, TheLayoutSectionPointsAtTheCheckboxRow)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype start = prompt.indexOf(QStringLiteral("\n## LAYOUT"));
+    const qsizetype end = prompt.indexOf(QStringLiteral("\n## SCREENS"));
+    ASSERT_GE(start, 0);
+    ASSERT_GT(end, start);
+    const QString layout = prompt.mid(start, end - start);
+    EXPECT_TRUE(layout.contains(QStringLiteral("QanvasListItem with\n    checkable")));
+    EXPECT_TRUE(layout.contains(QStringLiteral("QanvasList has no checked column")));
+}
+
+TEST(SystemPromptTest, TheTimeRuleNamesTheSubSecondStopwatch)
+{
+    const QString prompt = SystemPrompt::text();
+    EXPECT_TRUE(prompt.contains(QStringLiteral("Hundredths of a second are a\nQanvasStopwatch")));
+    EXPECT_FALSE(prompt.contains(QStringLiteral("does not fit a property int")));
+}
+
 TEST(SystemPromptTest, EveryTransitionLeadsToADefinedState)
 {
     const QString prompt = SystemPrompt::text();

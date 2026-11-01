@@ -240,6 +240,14 @@ DefaultTheme {
             readonly property color border: Qt.rgba(theme.colors.error.r, theme.colors.error.g, theme.colors.error.b, 0.60)
             readonly property color text: theme.colors.error
         }
+
+        readonly property QtObject disabled: QtObject {
+            readonly property color background: theme.colors.surface
+            readonly property color hovered: theme.colors.surface
+            readonly property color pressed: theme.colors.surface
+            readonly property color border: theme.colors.border
+            readonly property color text: theme.colors.textDisabled
+        }
     }
 
     property QtObject appList: QtObject {
@@ -389,6 +397,16 @@ DefaultTheme {
         if (theme.hasType(type, "primary"))
             return theme.badge.primary
         return theme.badge.neutral
+    }
+
+    function progressColor(type) {
+        if (theme.hasType(type, "danger"))
+            return theme.colors.error
+        if (theme.hasType(type, "success"))
+            return theme.colors.success
+        if (theme.hasType(type, "warning"))
+            return theme.colors.warning
+        return theme.colors.primary
     }
 
     function statValueStyle(type) {
