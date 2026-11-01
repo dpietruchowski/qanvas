@@ -58,7 +58,7 @@ AppShell {
         onAppActivated: function (id) {
             root.openConversation(id, ChatHost.conversationFor(id))
         }
-        onBackClicked: root.openApp("")
+        onAppClosed: root.openApp("")
 
         Connections {
             target: root

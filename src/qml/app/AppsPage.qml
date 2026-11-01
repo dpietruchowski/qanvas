@@ -13,7 +13,7 @@ ThemedPage {
     property string removingId: ""
 
     signal appActivated(string id)
-    signal backClicked()
+    signal appClosed()
 
     function reload() {
         stage.reload()
@@ -70,7 +70,7 @@ ThemedPage {
         onSent: function (text) { root.session.send(text) }
         onStopRequested: root.session.cancel()
         onRetryRequested: root.session.retry()
-        onBackClicked: root.backClicked()
+        onBackClicked: root.appClosed()
     }
 
     ThemedDialog {
