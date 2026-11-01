@@ -1,38 +1,70 @@
 import QtQuick
 
 import App.Components
+import Chat.Components
 import Qanvas
 import Themed.Components
 
 AppShell {
     id: root
 
-    property Component chatPage: ChatPage {
-        messages: agent.messages
-        activities: agent.activities
-        busy: agent.busy
+    readonly property string openedAppId: chatSession.context.data?.id ?? ""
+    readonly property bool chatLocked: ChatHost.busy && !chatSession.busy
 
-        onSent: function (text) { agent.send(text) }
-        onSettingsClicked: settingsPanel.open()
-        onNewChatRequested: agent.clear()
+    signal appReloadRequested()
+
+    function appTitle(id) {
+        const apps = AppRegistry.apps
+        for (let i = 0; i < apps.length; ++i) {
+            if (apps[i].id === id)
+                return apps[i].title
+        }
+        return ""
+    }
+
+    function openApp(id) {
+        chatSession.context = id === "" ? {} : {
+            key: "app",
+            title: root.appTitle(id),
+            data: { id: id }
+        }
+    }
+
+    function openConversation(appId, conversationId) {
+        root.openApp(appId)
+        chatSession.conversationId = conversationId
+    }
+
+    objectName: "mainView"
+
+    property Component chatPage: ChatPage {
+        session: chatSession
+        locked: root.chatLocked
+
+        onSettingsClicked: settings.item.open()
+        onNewChatRequested: root.openConversation("", "")
+        onConversationPicked: function (conversationId) {
+            root.openConversation(ChatHost.appFor(conversationId), conversationId)
+        }
     }
 
     property Component appPage: AppsPage {
         id: appsView
 
-        openedId: agent.lastAppId
-        messages: agent.messages
-        activities: agent.activities
-        busy: agent.busy
+        session: chatSession
+        openedId: root.openedAppId
+        locked: root.chatLocked
 
-        onAppActivated: function (id) { agent.openApp(id) }
-        onSent: function (text) { agent.send(text) }
+        onAppActivated: function (id) {
+            root.openConversation(id, ChatHost.conversationFor(id))
+        }
+        onBackClicked: root.openApp("")
 
         Connections {
-            target: agent
+            target: root
 
-            function onAppShown(id) {
-                appsView.open(id)
+            function onAppReloadRequested() {
+                appsView.reload()
             }
         }
     }
@@ -42,30 +74,83 @@ AppShell {
         { name: "navApp", icon: Theme.icons.aiApp, screen: root.appPage }
     ]
 
-    ChatAgent {
-        id: agent
+    onOpenedAppIdChanged: ChatHost.lastAppId = root.openedAppId
 
-        objectName: "chatAgent"
+    Component.onCompleted: {
+        if (ChatHost.lastAppId !== "")
+            root.openConversation(ChatHost.lastAppId, ChatHost.conversationFor(ChatHost.lastAppId))
+    }
 
-        onAppShown: {
+    ChatSession {
+        id: chatSession
+
+        objectName: "chatSession"
+        chat: Chat
+
+        onConversationIdChanged: {
+            if (chatSession.conversationId !== "" && root.openedAppId !== ""
+                    && ChatHost.appFor(chatSession.conversationId) !== root.openedAppId)
+                ChatHost.bind(root.openedAppId, chatSession.conversationId)
+        }
+    }
+
+    Connections {
+        target: ChatHost
+
+        function onAppShown(id) {
+            if (chatSession.conversationId !== "")
+                ChatHost.bind(id, chatSession.conversationId)
+            const sameApp = root.openedAppId === id
+            root.openApp(id)
+            if (sameApp)
+                root.appReloadRequested()
             if (root.currentName !== "navApp")
                 root.selectNext()
         }
     }
 
-    SettingsPanel {
-        id: settingsPanel
+    Connections {
+        target: AppRegistry
 
-        providers: agent.providers
-        provider: agent.provider
-        modelName: agent.model
-        reasoning: agent.reasoning
-        apiKeyPreview: agent.apiKeyPreview
-        apiKeyHint: agent.apiKeyHint
+        function onAppRemoving(id) {
+            if (root.openedAppId === id)
+                root.openApp("")
+        }
+    }
 
-        onProviderSelected: function (provider) { agent.provider = provider }
-        onModelNameEdited: function (modelName) { agent.model = modelName }
-        onReasoningSelected: function (reasoning) { agent.reasoning = reasoning }
-        onApiKeyEdited: function (apiKey) { agent.apiKey = apiKey }
+    Loader {
+        id: settings
+
+        sourceComponent: Qt.platform.os === "android" ? providerSettings : chatSettings
+    }
+
+    Component {
+        id: chatSettings
+
+        ChatSettingsPanel {
+            model: Chat.model
+            reasoningEffort: Chat.reasoningEffort
+
+            onModelChosen: function (model) { Chat.model = model }
+            onReasoningEffortChosen: function (effort) { Chat.reasoningEffort = effort }
+        }
+    }
+
+    Component {
+        id: providerSettings
+
+        SettingsPanel {
+            providers: ChatHost.providerSettings.providers
+            provider: ChatHost.providerSettings.provider
+            modelName: Chat.model
+            reasoning: Chat.reasoningEffort
+            apiKeyPreview: ChatHost.providerSettings.apiKeyPreview
+            apiKeyHint: ChatHost.providerSettings.apiKeyHint
+
+            onProviderSelected: function (provider) { ChatHost.providerSettings.provider = provider }
+            onModelNameEdited: function (modelName) { Chat.model = modelName }
+            onReasoningSelected: function (reasoning) { Chat.reasoningEffort = reasoning }
+            onApiKeyEdited: function (apiKey) { ChatHost.providerSettings.apiKey = apiKey }
+        }
     }
 }
