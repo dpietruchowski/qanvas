@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include <QFile>
+#include <QMap>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QStringList>
@@ -50,7 +52,13 @@ protected:
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         registry = std::make_unique<AppRegistry>(nullptr);
         engine.setOutputWarningsToStandardError(false);
-        tools = std::make_unique<AppTools>(controller, *registry);
+        tools = std::make_unique<AppTools>(
+            [this](const QString& docstring, const Tool& tool, ToolEffect effect)
+            {
+                registered.push_back({ docstring, effect });
+                controller.addTool(docstring, tool);
+            },
+            *registry);
         tools->setEngine(&engine);
         QObject::connect(tools.get(), &AppTools::appShown,
                          [this](const QString& id)
@@ -85,6 +93,7 @@ protected:
     std::unique_ptr<QObject> running;
     ScriptedClient client;
     QStringList shown;
+    std::vector<std::pair<QString, ToolEffect>> registered;
 };
 
 TEST_F(AppToolsTest, CreateAppWritesTheEntryFileAndRegistersTheApp)
@@ -554,6 +563,40 @@ TEST_F(AppToolsTest, DescribeAppRefusesAnAppThatIsNotThere)
 
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No app")));
     EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, RegistersEveryToolThroughTheRegistrarWithItsEffect)
+{
+    QMap<QString, ToolEffect> effects;
+    for (const auto& [docstring, effect] : registered)
+    {
+        const QString name
+            = docstring.section(QLatin1Char('\n'), 0, 0).mid(QStringLiteral("@brief ").size());
+        effects.insert(name, effect);
+    }
+
+    const QStringList reads { "list_files",   "read_file", "search_files",
+                              "describe_app", "read_log",  "check_layout" };
+    const QStringList writes { "create_app",  "write_file", "edit_file",
+                               "delete_file", "delete_app", "grant_access" };
+    EXPECT_EQ(effects.size(), reads.size() + writes.size());
+    for (const QString& name : reads)
+        EXPECT_EQ(effects.value(name, ToolEffect::Writes), ToolEffect::Reads) << qPrintable(name);
+    for (const QString& name : writes)
+        EXPECT_EQ(effects.value(name, ToolEffect::Reads), ToolEffect::Writes) << qPrintable(name);
+}
+
+TEST_F(AppToolsTest, ClearActivitiesForgetsTheTurnState)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+    ASSERT_FALSE(tools->activities().isEmpty());
+
+    tools->clearActivities();
+
+    EXPECT_TRUE(tools->activities().isEmpty());
+    EXPECT_TRUE(tools->unfinished(App(QStringLiteral("notes")), true).isEmpty());
 }
 
 TEST_F(AppToolsTest, DeleteAppRefusesAnAppThatIsNotThere)
