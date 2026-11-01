@@ -4,9 +4,11 @@
 #include <utility>
 #include <vector>
 
+#include <QDir>
 #include <QFile>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QRegularExpression>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QUrl>
@@ -34,6 +36,11 @@ QVariantMap fileArguments(const QString& app, const QString& path)
     return QVariantMap { { QStringLiteral("app"), app }, { QStringLiteral("path"), path } };
 }
 
+QVariantMap noteArguments(const QString& app, const QString& text)
+{
+    return QVariantMap { { QStringLiteral("app"), app }, { QStringLiteral("text"), text } };
+}
+
 QString readAll(const QString& path)
 {
     QFile file(path);
@@ -51,7 +58,7 @@ protected:
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         registry = std::make_unique<AppRegistry>(nullptr);
         engine.setOutputWarningsToStandardError(false);
-        tools = std::make_unique<AppTools>(agent, *registry);
+        tools = std::make_unique<AppTools>(agent, *registry, notesPath());
         tools->setEngine(&engine);
         QObject::connect(tools.get(), &AppTools::appShown,
                          [this](const QString& id)
@@ -79,7 +86,10 @@ protected:
 
     QVariantMap activity(int index) const { return tools->activities().at(index).toMap(); }
 
+    QString notesPath() const { return notesRoot.filePath(QStringLiteral("builder-notes.md")); }
+
     QTemporaryDir root;
+    QTemporaryDir notesRoot;
     QQmlEngine engine;
     ::Agent agent { QStringLiteral("test-model"), QStringLiteral("system") };
     std::unique_ptr<AppRegistry> registry;
@@ -563,8 +573,8 @@ TEST_F(AppToolsTest, GivesTheAgentEveryToolWithItsEffect)
 {
     run({ ScriptedClient::reply(QStringLiteral("hi")) });
 
-    const QStringList reads { "list_files",   "read_file", "search_files",
-                              "describe_app", "read_log",  "check_layout" };
+    const QStringList reads { "list_files", "read_file",    "search_files", "describe_app",
+                              "read_log",   "check_layout", "note" };
     const QStringList writes { "create_app",  "write_file", "edit_file",
                                "delete_file", "delete_app", "grant_access" };
     EXPECT_EQ(client.lastTools.size(), reads.size() + writes.size());
@@ -602,4 +612,107 @@ TEST_F(AppToolsTest, DeleteAppRefusesAnAppThatIsNotThere)
 
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No app")));
     EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, TheFirstNoteCreatesTheNotebookWithAHeadingAndTheText)
+{
+    ASSERT_FALSE(QFile::exists(notesPath()));
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(QStringLiteral("note"),
+                                   noteArguments(QStringLiteral("notes"),
+                                                 QStringLiteral("No retries. Nothing missing."))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    const QString content = readAll(notesPath());
+    EXPECT_TRUE(
+        QRegularExpression(QStringLiteral("\\A## \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2} notes\\n"
+                                          "No retries\\. Nothing missing\\.\\n\\n\\z"))
+            .match(content)
+            .hasMatch())
+        << qPrintable(content);
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("\"value\":\"ok\"")));
+    ASSERT_EQ(tools->activities().size(), 2);
+    EXPECT_EQ(activity(1).value(QStringLiteral("text")).toString(), QStringLiteral("noted"));
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, ASecondNoteIsAppendedAndTheFirstStays)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("note"),
+              noteArguments(QStringLiteral("notes"), QStringLiteral("first entry"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("note"),
+              noteArguments(QStringLiteral("notes"), QStringLiteral("second entry"))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    const QString content = readAll(notesPath());
+    EXPECT_EQ(content.count(QStringLiteral("## ")), 2) << qPrintable(content);
+    const qsizetype first = content.indexOf(QStringLiteral("first entry\n\n"));
+    const qsizetype second = content.indexOf(QStringLiteral("second entry\n\n"));
+    EXPECT_GE(first, 0) << qPrintable(content);
+    EXPECT_GT(second, first) << qPrintable(content);
+}
+
+TEST_F(AppToolsTest, ANoteDoesNotReloadTheApp)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("note"),
+              noteArguments(QStringLiteral("notes"), QStringLiteral("nothing to add"))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_EQ(shown, QStringList { QStringLiteral("notes") });
+}
+
+TEST_F(AppToolsTest, ANoteForAnUnknownAppIsRefusedAndWritesNothing)
+{
+    run({ ScriptedClient::toolCall(
+              QStringLiteral("note"),
+              noteArguments(QStringLiteral("timer"), QStringLiteral("a note"))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No app \\\"timer\\\"")));
+    EXPECT_FALSE(QFile::exists(notesPath()));
+    ASSERT_EQ(tools->activities().size(), 1);
+    EXPECT_EQ(activity(0).value(QStringLiteral("text")).toString(),
+              QStringLiteral("could not note"));
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, ANoteWithAWrongAppIdGoesToTheOpenAppWithANote)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("note"),
+              noteArguments(QStringLiteral("notatki"), QStringLiteral("a note"))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    const QString result = client.lastToolResult();
+    EXPECT_TRUE(result.contains(QStringLiteral("the open app is \\\"notes\\\"")))
+        << qPrintable(result);
+    EXPECT_TRUE(readAll(notesPath()).contains(QStringLiteral(" notes\na note\n\n")));
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, ANoteThatCannotBeSavedSaysWhy)
+{
+    ASSERT_TRUE(QDir().mkpath(notesPath()));
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("note"),
+              noteArguments(QStringLiteral("notes"), QStringLiteral("a note"))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("Could not save the note")))
+        << qPrintable(client.lastToolResult());
+    EXPECT_TRUE(activity(1).value(QStringLiteral("failed")).toBool());
 }

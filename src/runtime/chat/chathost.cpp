@@ -20,6 +20,7 @@ const QString kAppPurpose = QStringLiteral(
     "language the user writes in. Answer questions about Qanvas and plain conversation "
     "yourself, briefly.");
 const QString kChatDatabase = QStringLiteral("chat.db");
+const QString kBuilderNotes = QStringLiteral("builder-notes.md");
 const QString kClaudeDirectory = QStringLiteral("claude");
 const QString kSettingsGroup = QStringLiteral("chat");
 const QString kLastAppKey = QStringLiteral("lastApp");
@@ -79,7 +80,8 @@ void ChatHost::start(const Config& config, chat::ChatModule::Clients clients, QQ
         return;
     }
 
-    m_builder = std::make_unique<BuilderAgent>(m_registry, engine, m_module->chat().model());
+    m_builder = std::make_unique<BuilderAgent>(m_registry, engine, m_module->chat().model(),
+                                               QDir(config.dataDirectory).filePath(kBuilderNotes));
     m_module->addAgent(m_builder->entry());
     m_builder->tools().setCurrentApp(lastAppId());
     if (m_providers)

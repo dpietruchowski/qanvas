@@ -256,6 +256,35 @@ TEST_F(ChatHostTest, AnAppTheBuilderBuildsIsAnnounced)
     ASSERT_TRUE(waitUntilIdle());
 }
 
+TEST_F(ChatHostTest, TheBuilderKeepsItsNotesInTheDataDirectory)
+{
+    start();
+    startConversation();
+    ASSERT_TRUE(waitForRequest(0));
+    delegateToTheBuilder(client(0));
+    ASSERT_TRUE(waitForRequest(1));
+    client(1).completeNext(toolCallCompletion(QStringLiteral("call-create"),
+                                              QStringLiteral("create_app"),
+                                              createApp(QStringLiteral("notes"))));
+    ASSERT_TRUE(waitForRequest(1));
+
+    client(1).completeNext(
+        toolCallCompletion(QStringLiteral("call-note"), QStringLiteral("note"),
+                           { { QStringLiteral("app"), QStringLiteral("notes") },
+                             { QStringLiteral("text"), QStringLiteral("nothing missing") } }));
+    ASSERT_TRUE(waitForRequest(1));
+
+    QFile file(QDir(data.path()).filePath(QStringLiteral("builder-notes.md")));
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    EXPECT_TRUE(
+        QString::fromUtf8(file.readAll()).contains(QStringLiteral(" notes\nnothing missing\n\n")));
+
+    answer(client(1), QStringLiteral("Built the notes app."));
+    ASSERT_TRUE(waitForRequest(0));
+    answer(client(0), QStringLiteral("Your notes app is ready."));
+    ASSERT_TRUE(waitUntilIdle());
+}
+
 TEST_F(ChatHostTest, AnAppTheBuilderShowsIsBoundToTheRunningConversation)
 {
     start();

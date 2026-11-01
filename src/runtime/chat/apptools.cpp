@@ -14,6 +14,7 @@
 
 #include <algorithm>
 
+#include <QDateTime>
 #include <QFile>
 #include <QRegularExpression>
 #include <QStringList>
@@ -123,6 +124,18 @@ const char* kGrantAccessDocstring
       "@param store (string) the store to share: notes or tasks\n"
       "@return confirmation, or the reason it was refused";
 
+const char* kNoteDocstring
+    = "@brief note\n"
+      "@details Writes one entry into the builder's notebook, which the developers read later to "
+      "improve the runtime and this prompt; the user never sees it. Call it as the last step of "
+      "every turn that built, changed or fixed an app, and at once when the same error comes back "
+      "twice\n"
+      "@param app (string) app id\n"
+      "@param text (string) short and concrete, in English: what took retries and why, which "
+      "components, component properties or Data and runtime functions were missing, which rule of "
+      "the prompt misled you; when nothing was missing, one line saying so and what was hardest\n"
+      "@return ok, or why the note could not be saved";
+
 QStringList sharedStores() { return { NotesBridge::capability(), TasksBridge::capability() }; }
 
 QString storeObject(const QString& store) { return store.left(1).toUpper() + store.mid(1); }
@@ -218,6 +231,22 @@ QString missingFunctions(const QStringList& calls)
         .arg(calls.join(QLatin1Char('\n')));
 }
 
+Result<QString> appendNote(const QString& path, const QString& appId, const QString& text)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Append))
+        return Result<QString>::failure(
+            QStringLiteral("Could not save the note: %1").arg(file.errorString()));
+
+    const QString entry
+        = QStringLiteral("## %1 %2\n%3\n\n")
+              .arg(QDateTime::currentDateTime().toString(Qt::ISODate), appId, text.trimmed());
+    if (file.write(entry.toUtf8()) < 0)
+        return Result<QString>::failure(
+            QStringLiteral("Could not save the note: %1").arg(file.errorString()));
+    return Result<QString>::success(QStringLiteral("ok"));
+}
+
 QString withLayout(const QString& result, const QString& appId)
 {
     const QString layout = AppLayout::reportFor(appId);
@@ -228,10 +257,11 @@ QString withLayout(const QString& result, const QString& appId)
 }
 }
 
-AppTools::AppTools(::Agent& agent, AppRegistry& registry, QObject* parent)
+AppTools::AppTools(::Agent& agent, AppRegistry& registry, const QString& notesPath, QObject* parent)
     : QObject(parent)
     , m_agent(agent)
     , m_registry(registry)
+    , m_notesPath(notesPath)
 {
     registerTools();
 }
@@ -297,6 +327,29 @@ void AppTools::registerTools()
     addReadLogTool();
     addCheckLayoutTool();
     addGrantAccessTool();
+    addNoteTool();
+}
+
+void AppTools::addNoteTool()
+{
+    m_agent.addTool(
+        QString::fromLatin1(kNoteDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "noting", "noted", "could not note", "app" };
+            const int index = beginActivity(activity, arguments);
+            QString note;
+            const App app = appFor(arguments, &note);
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
+
+            finish(index, appendNote(m_notesPath, app.id(), argument(arguments, "text")), done,
+                   note);
+        },
+        ToolEffect::Reads);
 }
 
 void AppTools::addCheckLayoutTool()

@@ -26,7 +26,8 @@ class AppTools : public QObject
     Q_OBJECT
 
 public:
-    AppTools(::Agent& agent, AppRegistry& registry, QObject* parent = nullptr);
+    AppTools(::Agent& agent, AppRegistry& registry, const QString& notesPath,
+             QObject* parent = nullptr);
     ~AppTools() override;
 
     void setEngine(QQmlEngine* engine);
@@ -60,6 +61,7 @@ private:
     void addReadLogTool();
     void addCheckLayoutTool();
     void addGrantAccessTool();
+    void addNoteTool();
     void addFileTool(const char* docstring, const Activity& activity, bool reloads,
                      const FileOperation& operation);
     std::optional<QString> refusal(const App& app) const;
@@ -76,6 +78,7 @@ private:
 
     ::Agent& m_agent;
     AppRegistry& m_registry;
+    QString m_notesPath;
     QQmlEngine* m_engine = nullptr;
     std::unique_ptr<AppWarnings> m_warnings;
     QVariantList m_activities;

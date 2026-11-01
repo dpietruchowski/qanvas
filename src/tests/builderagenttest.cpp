@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include <QFile>
 #include <QQmlEngine>
 #include <QTemporaryDir>
 #include <QVariantMap>
@@ -42,7 +43,8 @@ protected:
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         registry = std::make_unique<AppRegistry>(nullptr);
         engine.setOutputWarningsToStandardError(false);
-        builder = std::make_unique<BuilderAgent>(*registry, engine, QStringLiteral("test-model"));
+        builder = std::make_unique<BuilderAgent>(*registry, engine, QStringLiteral("test-model"),
+                                                 notesPath());
     }
 
     void TearDown() override
@@ -60,7 +62,10 @@ protected:
         ASSERT_FALSE(requestAndWait(agent, client, QStringLiteral("go")).isEmpty());
     }
 
+    QString notesPath() const { return notesRoot.filePath(QStringLiteral("builder-notes.md")); }
+
     QTemporaryDir root;
+    QTemporaryDir notesRoot;
     QQmlEngine engine;
     std::unique_ptr<AppRegistry> registry;
     std::unique_ptr<BuilderAgent> builder;
@@ -88,6 +93,21 @@ TEST_F(BuilderAgentTest, RunsOnTheSystemPromptWithTheAppTools)
     EXPECT_EQ(client.lastMessages.first().content, SystemPrompt::text());
     EXPECT_TRUE(App(QStringLiteral("notes")).exists());
     EXPECT_EQ(builder->tools().currentApp(), QStringLiteral("notes"));
+}
+
+TEST_F(BuilderAgentTest, NotesGoToTheNotebookItWasGiven)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), createApp()),
+          ScriptedClient::toolCall(
+              QStringLiteral("note"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") },
+                            { QStringLiteral("text"), QStringLiteral("nothing missing") } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    QFile file(notesPath());
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    EXPECT_TRUE(
+        QString::fromUtf8(file.readAll()).contains(QStringLiteral(" notes\nnothing missing\n\n")));
 }
 
 TEST_F(BuilderAgentTest, FollowUpIsEmptyBeforeAnythingWasDone)

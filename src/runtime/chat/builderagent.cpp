@@ -3,9 +3,10 @@
 #include "runtime/app/app.h"
 #include "runtime/chat/systemprompt.h"
 
-BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model)
+BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
+                           const QString& notesPath)
     : m_agent(model, SystemPrompt::text())
-    , m_tools(m_agent, registry)
+    , m_tools(m_agent, registry, notesPath)
 {
     m_tools.setEngine(&engine);
 }

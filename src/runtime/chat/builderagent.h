@@ -12,7 +12,8 @@ class QQmlEngine;
 class BuilderAgent
 {
 public:
-    BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model);
+    BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
+                 const QString& notesPath);
 
     BuilderAgent(const BuilderAgent&) = delete;
     BuilderAgent& operator=(const BuilderAgent&) = delete;
