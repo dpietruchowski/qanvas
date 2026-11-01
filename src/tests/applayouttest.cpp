@@ -109,6 +109,46 @@ TEST_F(AppLayoutTest, AnItemWithoutHeightIsReported)
     EXPECT_TRUE(report.contains(QStringLiteral("has no height"))) << report.toStdString();
 }
 
+TEST_F(AppLayoutTest, AnItemWhoseContentLivesOnTheOverlayIsNotReported)
+{
+    const QString report = show(QStringLiteral(
+        "import QtQuick.Controls\n"
+        "Item { id: page; ColumnLayout { anchors.fill: parent; Text { text: \"hi\" } Item { "
+        "Rectangle { parent: Overlay.overlay ? Overlay.overlay : page; width: 50; height: 20 } } "
+        "} }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AnItemHostingAPopupIsNotReported)
+{
+    const QString report = show(QStringLiteral(
+        "import QtQuick.Controls\n"
+        "Item { ColumnLayout { anchors.fill: parent; Text { text: \"hi\" } Item { Dialog { "
+        "title: \"t\" } } } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AnItemThatDrawsNothingAndHoldsNothingIsNotReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; Text { text: \"hi\" } Item { "
+        "Layout.fillWidth: true } } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AnItemThatDrawsAndHasNoHeightIsStillReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; Text { text: \"hi\" } Rectangle { color: "
+        "\"red\"; Layout.fillWidth: true } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("Rectangle"))) << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("has no height"))) << report.toStdString();
+}
+
 TEST_F(AppLayoutTest, HiddenItemsAreSkipped)
 {
     const QString report = show(QStringLiteral(

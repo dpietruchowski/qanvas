@@ -87,6 +87,16 @@ TEST(SystemPromptTest, SaysHowAScrollLaysOutItsChildren)
     EXPECT_TRUE(entry.contains(QStringLiteral("Repeater")));
 }
 
+TEST(SystemPromptTest, SaysWhereAToastGoes)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype line = prompt.indexOf(QStringLiteral("QanvasToast{show(text)}"));
+    ASSERT_GE(line, 0);
+    const QString entry = prompt.mid(line, 200);
+    EXPECT_TRUE(entry.contains(QStringLiteral("on the page itself, outside any column or row")));
+    EXPECT_TRUE(entry.contains(QStringLiteral("needs no size")));
+}
+
 TEST(SystemPromptTest, EveryTransitionLeadsToADefinedState)
 {
     const QString prompt = SystemPrompt::text();

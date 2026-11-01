@@ -417,7 +417,9 @@ QanvasGridView{model columns textRole onItemClicked(index,item)}
 QanvasEmpty{text iconName}
 QanvasDialog{title message acceptText rejectText showCancel type:danger|success
     open() onAccepted}
-QanvasToast{show(text)}  QanvasBusy{running}
+QanvasToast{show(text)}  one on the page itself, outside any column or row; it
+    appears over the page, so it needs no size
+QanvasBusy{running}
 iconName picks from: plus minus remove check close edit copy search settings
 list menu star star-half star-full timer calendar home user info warning error
 success chat send globe next previous chevron-down chevron-up chevron-right
