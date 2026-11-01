@@ -9,7 +9,6 @@
 #include "qmlutils/coloredsvgprovider.h"
 #include "qmlutils/qmlregistrator.h"
 #include "runtime/app/appregistry.h"
-#include "runtime/chat/chatagent.h"
 #include "runtime/chat/chathost.h"
 #include "runtime/host/apploader.h"
 
@@ -38,7 +37,6 @@ int main(int argc, char* argv[])
     registrator.registerSingletonInstance("Themed.Components", "KeyboardInset", &keyboardInset);
     registrator.registerType<ColoredSvgProvider>("Themed.Components", "ColoredSvgProvider");
     registrator.registerType<AppLoader>("AppLoader");
-    registrator.registerType<ChatAgent>("ChatAgent");
     qmlRegisterSingletonType<AppRegistry>(APP_QML_URI, 1, 0, "AppRegistry", &AppRegistry::create);
 
     BackendWorker worker;

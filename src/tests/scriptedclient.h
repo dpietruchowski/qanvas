@@ -2,27 +2,28 @@
 
 #include <vector>
 
-#include <QEventLoop>
-#include <QObject>
 #include <QString>
+#include <QTest>
 #include <QVariantMap>
 
-#include "agent/agentcontroller.h"
+#include "agent/agent.h"
 #include "agent/client.h"
 #include "agent/structures.h"
 
-inline void requestAndWait(AgentController& controller, const Client& client, const QString& text)
+inline QString requestAndWait(::Agent& agent, const Client& client, const QString& text)
 {
-    QEventLoop loop;
-    QObject::connect(&controller, &AgentController::busyChanged, &loop,
-                     [&controller, &loop]
-                     {
-                         if (!controller.isBusy())
-                             loop.quit();
-                     });
-    controller.request(client, text);
-    if (controller.isBusy())
-        loop.exec();
+    constexpr int waitMilliseconds = 5000;
+
+    QString answer;
+    agent.requestAsync(client, text,
+                       [&answer](const QString& response)
+                       {
+                           if (!response.isEmpty())
+                               answer = response;
+                       });
+    const bool answered
+        = QTest::qWaitFor([&answer] { return !answer.isEmpty(); }, waitMilliseconds);
+    return answered ? answer : QString();
 }
 
 class ScriptedClient : public Client
@@ -86,16 +87,18 @@ public:
     }
 
     Completion createCompletion(const ModelConfig&, const Messages& messages,
-                                const ToolsMap&) const override
+                                const ToolsMap& tools) const override
     {
         lastMessages = messages;
+        lastTools = tools;
         return script.at(calls++);
     }
 
-    void createCompletionAsync(const ModelConfig&, const Messages& messages, const ToolsMap&,
+    void createCompletionAsync(const ModelConfig&, const Messages& messages, const ToolsMap& tools,
                                const CompletionCreatedCallback& callback) const override
     {
         lastMessages = messages;
+        lastTools = tools;
         Completion completion = script.at(calls++);
         callback(completion);
     }
@@ -103,4 +106,5 @@ public:
     std::vector<Completion> script;
     mutable int calls = 0;
     mutable Messages lastMessages;
+    mutable ToolsMap lastTools;
 };

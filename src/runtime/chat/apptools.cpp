@@ -1,5 +1,6 @@
 #include "runtime/chat/apptools.h"
 
+#include "agent/agent.h"
 #include "runtime/app/app.h"
 #include "runtime/app/appcompiler.h"
 #include "runtime/app/appfiles.h"
@@ -12,8 +13,6 @@
 #include "runtime/host/tasksbridge.h"
 
 #include <algorithm>
-
-#include <utility>
 
 #include <QFile>
 #include <QRegularExpression>
@@ -229,9 +228,9 @@ QString withLayout(const QString& result, const QString& appId)
 }
 }
 
-AppTools::AppTools(ToolRegistrar registrar, AppRegistry& registry, QObject* parent)
+AppTools::AppTools(::Agent& agent, AppRegistry& registry, QObject* parent)
     : QObject(parent)
-    , m_register(std::move(registrar))
+    , m_agent(agent)
     , m_registry(registry)
 {
     registerTools();
@@ -302,7 +301,7 @@ void AppTools::registerTools()
 
 void AppTools::addCheckLayoutTool()
 {
-    m_register(
+    m_agent.addTool(
         QString::fromLatin1(kCheckLayoutDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -337,7 +336,7 @@ void AppTools::addCheckLayoutTool()
 
 void AppTools::addDescribeAppTool()
 {
-    m_register(
+    m_agent.addTool(
         QString::fromLatin1(kDescribeAppDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -368,7 +367,7 @@ void AppTools::addDescribeAppTool()
 
 void AppTools::addGrantAccessTool()
 {
-    m_register(
+    m_agent.addTool(
         QString::fromLatin1(kGrantAccessDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -411,7 +410,7 @@ void AppTools::addGrantAccessTool()
 
 void AppTools::addDeleteAppTool()
 {
-    m_register(
+    m_agent.addTool(
         QString::fromLatin1(kDeleteAppDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -441,7 +440,7 @@ void AppTools::addDeleteAppTool()
 
 void AppTools::addCreateAppTool()
 {
-    m_register(
+    m_agent.addTool(
         QString::fromLatin1(kCreateAppDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -485,7 +484,7 @@ void AppTools::addCreateAppTool()
 
 void AppTools::addReadLogTool()
 {
-    m_register(
+    m_agent.addTool(
         QString::fromLatin1(kReadLogDocstring),
         [this](QVariantMap arguments, ToolDone done)
         {
@@ -511,7 +510,7 @@ void AppTools::addReadLogTool()
 void AppTools::addFileTool(const char* docstring, const Activity& activity, bool reloads,
                            const FileOperation& operation)
 {
-    m_register(
+    m_agent.addTool(
         QString::fromLatin1(docstring),
         [this, activity, reloads, operation](QVariantMap arguments, ToolDone done)
         {

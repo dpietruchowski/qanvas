@@ -5,8 +5,7 @@
 
 BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model)
     : m_agent(model, SystemPrompt::text())
-    , m_tools([this](const QString& docstring, const Tool& tool, ToolEffect effect)
-              { m_agent.addTool(docstring, tool, effect); }, registry)
+    , m_tools(m_agent, registry)
 {
     m_tools.setEngine(&engine);
 }

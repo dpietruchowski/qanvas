@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <QFile>
-#include <QMap>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QStringList>
@@ -13,7 +12,7 @@
 #include <QUrl>
 #include <QVariantMap>
 
-#include "agent/agentcontroller.h"
+#include "agent/agent.h"
 #include "runtime/app/app.h"
 #include "runtime/app/appregistry.h"
 #include "runtime/chat/apptools.h"
@@ -52,13 +51,7 @@ protected:
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         registry = std::make_unique<AppRegistry>(nullptr);
         engine.setOutputWarningsToStandardError(false);
-        tools = std::make_unique<AppTools>(
-            [this](const QString& docstring, const Tool& tool, ToolEffect effect)
-            {
-                registered.push_back({ docstring, effect });
-                controller.addTool(docstring, tool);
-            },
-            *registry);
+        tools = std::make_unique<AppTools>(agent, *registry);
         tools->setEngine(&engine);
         QObject::connect(tools.get(), &AppTools::appShown,
                          [this](const QString& id)
@@ -80,20 +73,21 @@ protected:
     void run(std::vector<Completion> script)
     {
         client.script = std::move(script);
-        requestAndWait(controller, client, QStringLiteral("go"));
+        response = requestAndWait(agent, client, QStringLiteral("go"));
+        ASSERT_FALSE(response.isEmpty());
     }
 
     QVariantMap activity(int index) const { return tools->activities().at(index).toMap(); }
 
     QTemporaryDir root;
     QQmlEngine engine;
-    AgentController controller { QStringLiteral("test-model"), QStringLiteral("system") };
+    ::Agent agent { QStringLiteral("test-model"), QStringLiteral("system") };
     std::unique_ptr<AppRegistry> registry;
     std::unique_ptr<AppTools> tools;
     std::unique_ptr<QObject> running;
     ScriptedClient client;
     QStringList shown;
-    std::vector<std::pair<QString, ToolEffect>> registered;
+    QString response;
 };
 
 TEST_F(AppToolsTest, CreateAppWritesTheEntryFileAndRegistersTheApp)
@@ -108,7 +102,7 @@ TEST_F(AppToolsTest, CreateAppWritesTheEntryFileAndRegistersTheApp)
               QStringLiteral("Notatki"));
     EXPECT_EQ(shown, QStringList { QStringLiteral("notes") });
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("\"value\":\"ok\"")));
-    EXPECT_EQ(controller.lastResponse(), QStringLiteral("done"));
+    EXPECT_EQ(response, QStringLiteral("done"));
 }
 
 TEST_F(AppToolsTest, CreateAppWritesTheDataComponentBesideTheEntryFile)
@@ -565,25 +559,25 @@ TEST_F(AppToolsTest, DescribeAppRefusesAnAppThatIsNotThere)
     EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
 }
 
-TEST_F(AppToolsTest, RegistersEveryToolThroughTheRegistrarWithItsEffect)
+TEST_F(AppToolsTest, GivesTheAgentEveryToolWithItsEffect)
 {
-    QMap<QString, ToolEffect> effects;
-    for (const auto& [docstring, effect] : registered)
-    {
-        const QString name
-            = docstring.section(QLatin1Char('\n'), 0, 0).mid(QStringLiteral("@brief ").size());
-        effects.insert(name, effect);
-    }
+    run({ ScriptedClient::reply(QStringLiteral("hi")) });
 
     const QStringList reads { "list_files",   "read_file", "search_files",
                               "describe_app", "read_log",  "check_layout" };
     const QStringList writes { "create_app",  "write_file", "edit_file",
                                "delete_file", "delete_app", "grant_access" };
-    EXPECT_EQ(effects.size(), reads.size() + writes.size());
+    EXPECT_EQ(client.lastTools.size(), reads.size() + writes.size());
     for (const QString& name : reads)
-        EXPECT_EQ(effects.value(name, ToolEffect::Writes), ToolEffect::Reads) << qPrintable(name);
+    {
+        ASSERT_TRUE(client.lastTools.contains(name)) << qPrintable(name);
+        EXPECT_EQ(client.lastTools.value(name).effect, ToolEffect::Reads) << qPrintable(name);
+    }
     for (const QString& name : writes)
-        EXPECT_EQ(effects.value(name, ToolEffect::Reads), ToolEffect::Writes) << qPrintable(name);
+    {
+        ASSERT_TRUE(client.lastTools.contains(name)) << qPrintable(name);
+        EXPECT_EQ(client.lastTools.value(name).effect, ToolEffect::Writes) << qPrintable(name);
+    }
 }
 
 TEST_F(AppToolsTest, ClearActivitiesForgetsTheTurnState)

@@ -8,7 +8,7 @@ A Qt/QML runtime where an LLM writes small apps on demand — each sandboxed wit
 | --- | --- |
 | `app.env` | Every app parameter: name, targets, version, Android package, keystore, AppImage metadata. CMake reads it through `app_load_env()`, the scripts in `libs/scripts` source it |
 | `src/main.cpp` | Entry point: engine, `QmlRegistrator`, the `Theme` singleton, the runtime types, the automation server |
-| `src/runtime/` | The runtime library `qanvas_runtime`: apps on disk, `system.db` stores, host bridges, the chat agent and its tools |
+| `src/runtime/` | The runtime library `qanvas_runtime`: apps on disk, `system.db` stores, host bridges, the builder agent and its tools, `ChatHost` over the libs chat |
 | `src/qml/` | The host shell, QML module `Qanvas` |
 | `src/components/` | `Theme` and the `Qanvas*` components agent-written apps are built from, QML module `Qanvas.Components` |
 | `src/tests/` | GoogleTest suite, built with `BUILD_TESTING` (on by default in Debug) |
