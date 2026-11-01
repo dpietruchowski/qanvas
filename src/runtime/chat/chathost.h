@@ -59,7 +59,7 @@ signals:
 
 private:
     void start(const Config& config, chat::ChatModule::Clients clients,
-               const BuilderAgent::Profile& profile, QQmlEngine& engine, BackendWorker& worker);
+               const ModelConfig& builderConfig, QQmlEngine& engine, BackendWorker& worker);
     void showApp(const QString& appId);
     void turnStarted(const QUuid& conversationId);
     void turnFinished(const QUuid& conversationId);
