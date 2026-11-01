@@ -26,6 +26,45 @@ TEST(SystemPromptTest, NamesEveryTool)
                               "list_files", "read_file", "search_files", "describe_app", "read_log",
                               "check_layout", "grant_access" })
         EXPECT_TRUE(prompt.contains(QLatin1String(tool))) << tool;
+    EXPECT_TRUE(prompt.contains(QStringLiteral("\nnote   "))) << "note";
+}
+
+TEST(SystemPromptTest, EveryPathThatChangesAnAppEndsInTheNoteBeforeDone)
+{
+    const QStringList sections = SystemPrompt::text().split(QStringLiteral("\n## "));
+    int checked = 0;
+    for (const QString& section : sections)
+    {
+        const QString name = section.section(QLatin1Char('\n'), 0, 0);
+        if (name.startsWith(QStringLiteral("STATE: NOTE")))
+        {
+            EXPECT_TRUE(section.contains(QStringLiteral("-> DONE")));
+            continue;
+        }
+        if (!name.startsWith(QStringLiteral("STATE: ")))
+            continue;
+        EXPECT_FALSE(section.contains(QStringLiteral("-> DONE"))) << qPrintable(name);
+        for (const char* state : { "BUILD", "MODIFY", "FIX", "DEBUG" })
+        {
+            if (name.startsWith(QStringLiteral("STATE: ") + QLatin1String(state)))
+            {
+                EXPECT_TRUE(section.contains(QStringLiteral("NOTE"))) << qPrintable(name);
+                ++checked;
+            }
+        }
+    }
+    EXPECT_EQ(checked, 5);
+}
+
+TEST(SystemPromptTest, EveryExampleThatEndsInDoneWritesTheNoteFirst)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype examples = prompt.indexOf(QStringLiteral("## EXAMPLE 1"));
+    ASSERT_GE(examples, 0);
+    const QStringList parts = prompt.mid(examples).split(QStringLiteral("\nDONE:"));
+    ASSERT_EQ(parts.size(), 3);
+    EXPECT_TRUE(parts[0].contains(QStringLiteral("\nnote  app=")));
+    EXPECT_TRUE(parts[1].contains(QStringLiteral("note  app=")));
 }
 
 TEST(SystemPromptTest, NamesEveryComponent)

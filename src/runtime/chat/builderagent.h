@@ -13,7 +13,7 @@ class BuilderAgent
 {
 public:
     BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
-                 const ModelConfig& config = {});
+                 const QString& notesPath, const ModelConfig& config = {});
 
     static ModelConfig desktopConfig();
 

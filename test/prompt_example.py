@@ -21,7 +21,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO + "/libs/tools")
 from ui_driver import UiDriver
 
-BINARY = REPO + "/build-desktop/src/appqanvas"
+BINARY = os.environ.get("QANVAS_BINARY", REPO + "/build-desktop/src/appqanvas")
 SCRATCH = REPO + "/tmp"
 PROMPT = REPO + "/src/runtime/chat/systemprompt.txt"
 APP = "shopping-list"
