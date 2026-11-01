@@ -19,7 +19,6 @@ app_project_setup(
     FORMAT_DIRS src
 )
 
-app_option_debug_default(QANVAS_CLAUDE_CLI "Offer the local claude CLI as a provider")
 app_option_debug_default(QANVAS_KEY_IMPORT "Import API keys from import_keys.ini on startup")
 
 set(LIBS_CHAT ON)

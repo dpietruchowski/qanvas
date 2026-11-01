@@ -6,7 +6,6 @@
 
 #include <QQmlEngine>
 #include <QTemporaryDir>
-#include <QTest>
 #include <QVariantMap>
 
 #include "agent/agent.h"
@@ -18,7 +17,6 @@
 
 namespace
 {
-constexpr int kWaitMilliseconds = 5000;
 const QString kMainQml = QStringLiteral("import QtQuick\nItem {}\n");
 
 QVariantMap createApp()
@@ -59,14 +57,7 @@ protected:
         client.script = std::move(script);
         client.calls = 0;
         ::Agent agent = builder->entry().agent;
-        bool finished = false;
-        agent.requestAsync(client, QStringLiteral("go"),
-                           [&finished](const QString& response)
-                           {
-                               if (!response.isEmpty())
-                                   finished = true;
-                           });
-        ASSERT_TRUE(QTest::qWaitFor([&finished] { return finished; }, kWaitMilliseconds));
+        ASSERT_FALSE(requestAndWait(agent, client, QStringLiteral("go")).isEmpty());
     }
 
     QTemporaryDir root;

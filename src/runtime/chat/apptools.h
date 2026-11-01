@@ -16,6 +16,7 @@
 #include "runtime/app/app.h"
 #include "runtime/app/appfiles.h"
 
+class Agent;
 class AppRegistry;
 class AppWarnings;
 class QQmlEngine;
@@ -25,9 +26,7 @@ class AppTools : public QObject
     Q_OBJECT
 
 public:
-    using ToolRegistrar = std::function<void(const QString&, const Tool&, ToolEffect)>;
-
-    AppTools(ToolRegistrar registrar, AppRegistry& registry, QObject* parent = nullptr);
+    AppTools(::Agent& agent, AppRegistry& registry, QObject* parent = nullptr);
     ~AppTools() override;
 
     void setEngine(QQmlEngine* engine);
@@ -75,7 +74,7 @@ private:
     void noteOutcome(const QString& key, const QString& answer);
     QString unknownApp(const QString& id) const;
 
-    ToolRegistrar m_register;
+    ::Agent& m_agent;
     AppRegistry& m_registry;
     QQmlEngine* m_engine = nullptr;
     std::unique_ptr<AppWarnings> m_warnings;
