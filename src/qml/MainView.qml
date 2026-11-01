@@ -129,9 +129,11 @@ AppShell {
 
         ChatSettingsPanel {
             model: Chat.model
+            agents: Chat.agents
             reasoningEffort: Chat.reasoningEffort
 
             onModelChosen: function (model) { Chat.model = model }
+            onAgentModelChosen: function (key, model) { Chat.setAgentModel(key, model) }
             onReasoningEffortChosen: function (effort) { Chat.reasoningEffort = effort }
         }
     }
@@ -143,12 +145,14 @@ AppShell {
             providers: ChatHost.providerSettings.providers
             provider: ChatHost.providerSettings.provider
             modelName: Chat.model
+            agents: Chat.agents
             reasoning: Chat.reasoningEffort
             apiKeyPreview: ChatHost.providerSettings.apiKeyPreview
             apiKeyHint: ChatHost.providerSettings.apiKeyHint
 
             onProviderSelected: function (provider) { ChatHost.providerSettings.provider = provider }
             onModelNameEdited: function (modelName) { Chat.model = modelName }
+            onAgentModelEdited: function (key, model) { Chat.setAgentModel(key, model) }
             onReasoningSelected: function (reasoning) { Chat.reasoningEffort = reasoning }
             onApiKeyEdited: function (apiKey) { ChatHost.providerSettings.apiKey = apiKey }
         }

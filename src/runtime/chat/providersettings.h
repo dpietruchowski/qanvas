@@ -51,6 +51,7 @@ signals:
 private:
     void load();
     void applyToChat();
+    void storeAgentModels();
     void assignApiKey(const QString& apiKey);
     void store(const QString& key, const QString& value);
     QString effectiveApiKey() const;
@@ -62,4 +63,5 @@ private:
     chat::Chat* m_chat = nullptr;
     QString m_provider;
     QString m_apiKey;
+    bool m_applying = false;
 };

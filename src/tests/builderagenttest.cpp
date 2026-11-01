@@ -104,15 +104,15 @@ TEST_F(BuilderAgentTest, TheEntryCarriesTheModelAndEffortOfItsConfig)
     EXPECT_EQ(entry.config.reasoningEffort, QStringLiteral("max"));
 }
 
-TEST_F(BuilderAgentTest, TheDesktopConfigIsOpusOnHighEffort)
+TEST_F(BuilderAgentTest, TheDesktopConfigIsSonnetOnHighEffort)
 {
     const ModelConfig config = BuilderAgent::desktopConfig();
 
-    EXPECT_EQ(config.model, QStringLiteral("opus"));
+    EXPECT_EQ(config.model, QStringLiteral("sonnet"));
     EXPECT_EQ(config.reasoningEffort, QStringLiteral("high"));
 
     BuilderAgent desktop(*registry, engine, QStringLiteral("test-model"), notesPath(), config);
-    EXPECT_EQ(desktop.entry().config.model, QStringLiteral("opus"));
+    EXPECT_EQ(desktop.entry().config.model, QStringLiteral("sonnet"));
     EXPECT_EQ(desktop.entry().config.reasoningEffort, QStringLiteral("high"));
 }
 

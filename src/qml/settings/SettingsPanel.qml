@@ -9,6 +9,7 @@ ThemedPanel {
     property var providers: ["OpenAI", "OpenRouter"]
     property string provider: ""
     property string modelName: ""
+    property var agents: []
     property var reasoningLevels: ["Minimal", "Low", "Medium", "High"]
     property string reasoning: ""
     property string apiKeyPreview: ""
@@ -16,6 +17,7 @@ ThemedPanel {
 
     signal providerSelected(string provider)
     signal modelNameEdited(string modelName)
+    signal agentModelEdited(string key, string model)
     signal reasoningSelected(string reasoning)
     signal apiKeyEdited(string apiKey)
 
@@ -46,6 +48,31 @@ ThemedPanel {
             monospace: true
 
             onEdited: function (text) { root.modelNameEdited(text) }
+        }
+    }
+
+    Repeater {
+        model: root.agents
+
+        SettingsSection {
+            id: agentSection
+
+            required property var modelData
+
+            Layout.fillWidth: true
+            label: qsTr("%1 model").arg(agentSection.modelData.title)
+
+            SettingsField {
+                objectName: "settingsAgentModel_" + agentSection.modelData.key
+                Layout.fillWidth: true
+                text: agentSection.modelData.chosen
+                placeholder: agentSection.modelData.model
+                monospace: true
+
+                onEdited: function (text) {
+                    root.agentModelEdited(agentSection.modelData.key, text)
+                }
+            }
         }
     }
 
