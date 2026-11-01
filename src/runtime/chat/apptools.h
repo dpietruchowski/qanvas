@@ -57,6 +57,7 @@ private:
     void registerTools();
     void addCreateAppTool();
     void addDeleteAppTool();
+    void addListAppsTool();
     void addDescribeAppTool();
     void addReadLogTool();
     void addCheckLayoutTool();
@@ -74,6 +75,7 @@ private:
     int beginActivity(const Activity& activity, const QVariantMap& arguments);
     void endActivity(int index, bool ok);
     void noteOutcome(const QString& key, const QString& answer);
+    QString appList() const;
     QString unknownApp(const QString& id) const;
 
     ::Agent& m_agent;

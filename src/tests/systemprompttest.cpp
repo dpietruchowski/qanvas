@@ -23,8 +23,8 @@ TEST(SystemPromptTest, NamesEveryTool)
 {
     const QString prompt = SystemPrompt::text();
     for (const char* tool : { "create_app", "write_file", "edit_file", "delete_file", "delete_app",
-                              "list_files", "read_file", "search_files", "describe_app", "read_log",
-                              "check_layout", "grant_access" })
+                              "list_apps", "list_files", "read_file", "search_files",
+                              "describe_app", "read_log", "check_layout", "grant_access" })
         EXPECT_TRUE(prompt.contains(QLatin1String(tool))) << tool;
     EXPECT_TRUE(prompt.contains(QStringLiteral("\nnote   "))) << "note";
 }
@@ -72,15 +72,56 @@ TEST(SystemPromptTest, NamesEveryComponent)
     const QString prompt = SystemPrompt::text();
     for (const char* component :
          { "QanvasCountdown", "QanvasStopwatch", "QanvasStat", "QanvasBadge", "QanvasTabs",
-           "QanvasProgress", "QanvasStepper", "QanvasPanel", "emptyText" })
+           "QanvasProgress", "QanvasStepper", "QanvasPanel", "emptyText", "QanvasChart" })
         EXPECT_TRUE(prompt.contains(QLatin1String(component))) << component;
+}
+
+TEST(SystemPromptTest, SaysWhereToLookBeforeBuildingASecondApp)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype start = prompt.indexOf(QStringLiteral("## STATE: DESIGN"));
+    const qsizetype end = prompt.indexOf(QStringLiteral("## STATE: BUILD SMALL"));
+    ASSERT_GE(start, 0);
+    ASSERT_GT(end, start);
+    const QString design = prompt.mid(start, end - start);
+    EXPECT_TRUE(design.contains(QStringLiteral("list_apps")));
+    EXPECT_TRUE(design.contains(QStringLiteral("create_app replaces the app of that id")));
+}
+
+TEST(SystemPromptTest, ACategoryColourIsKeptAsATypeWord)
+{
+    const QString prompt = SystemPrompt::text();
+    EXPECT_TRUE(prompt.contains(QStringLiteral("is kept as one of\nthe words primary|success|warning|danger")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral("QanvasSelect { options: [\"primary\", \"success\", \"warning\", \"danger\"] }")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral("(no type: the neutral grey one)")));
+}
+
+TEST(SystemPromptTest, TheDataSectionSaysHowNullAndAnEmptyStringBind)
+{
+    const QString prompt = SystemPrompt::text();
+    EXPECT_TRUE(prompt.contains(QStringLiteral("null and undefined are stored as NULL")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral("\"\" stays an\nempty string")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral("IS NULL or\nIS ?, never = ?")));
+}
+
+TEST(SystemPromptTest, TheSelectShowsItsPlaceholderForAnEmptyValue)
+{
+    const QString prompt = SystemPrompt::text();
+    EXPECT_TRUE(prompt.contains(QStringLiteral("QanvasSelect{options value placeholder onSelected(value)}")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral("an empty or unknown value shows placeholder")));
+}
+
+TEST(SystemPromptTest, TheStepperSaysNumbersCarryNoThousandsSeparator)
+{
+    EXPECT_TRUE(SystemPrompt::text().contains(QStringLiteral("it reads 2026, never 2,026")));
 }
 
 TEST(SystemPromptTest, NamesEveryCataloguePropertyAndTypeWord)
 {
     const QString prompt = SystemPrompt::text();
     for (const char* word :
-         { "QanvasButton{text iconName onClicked type enabled}", "enabled: false", "badgeRole",
+         { "QanvasButton{text iconName onClicked type enabled}", "enabled: false",
+           "(primary|secondary|danger|success|warning|ghost)", "badgeRole",
            "typeRole", "badgeFormat", "typeFormat", "\"done\"",
            "QanvasProgress{value from to type:success|warning|danger}", "type: \"centiseconds\"",
            "centiseconds", "m:ss.cc" })

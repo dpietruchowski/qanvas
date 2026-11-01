@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QJSEngine>
+#include <QJSValue>
 #include <QRegularExpression>
 #include <QSqlDatabase>
 #include <QSqlError>
@@ -27,8 +28,23 @@ bool escapesTheFile(const QString& sql)
     return re.match(sql).hasMatch();
 }
 
-void bindParams(QSqlQuery& q, const QVariant& params)
+QVariant bindable(const QVariant& value)
 {
+    if (value.typeId() == QMetaType::QString && value.toString().isNull())
+        return QStringLiteral("");
+    return value;
+}
+
+QVariant plain(const QVariant& params)
+{
+    if (params.metaType() == QMetaType::fromType<QJSValue>())
+        return params.value<QJSValue>().toVariant();
+    return params;
+}
+
+void bindParams(QSqlQuery& q, const QVariant& rawParams)
+{
+    const QVariant params = plain(rawParams);
     if (params.typeId() == QMetaType::QVariantMap)
     {
         const QVariantMap map = params.toMap();
@@ -36,14 +52,14 @@ void bindParams(QSqlQuery& q, const QVariant& params)
         {
             const QString key
                 = it.key().startsWith(QLatin1Char(':')) ? it.key() : QStringLiteral(":") + it.key();
-            q.bindValue(key, it.value());
+            q.bindValue(key, bindable(it.value()));
         }
         return;
     }
 
     const QVariantList list = params.toList();
     for (const QVariant& value : list)
-        q.addBindValue(value);
+        q.addBindValue(bindable(value));
 }
 
 }  // namespace

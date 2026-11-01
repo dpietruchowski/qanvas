@@ -569,12 +569,36 @@ TEST_F(AppToolsTest, DescribeAppRefusesAnAppThatIsNotThere)
     EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
 }
 
+TEST_F(AppToolsTest, ListAppsNamesEveryAppWithItsTitle)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("budget"), QStringLiteral("Budżet"))),
+          ScriptedClient::toolCall(QStringLiteral("list_apps"), QVariantMap()),
+          ScriptedClient::reply(QStringLiteral("seen")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("notes  Notatki")));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("budget  Budżet")));
+    EXPECT_EQ(activity(2).value(QStringLiteral("text")).toString(), QStringLiteral("listed apps"));
+    EXPECT_FALSE(activity(2).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, ListAppsSaysWhenThereAreNone)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("list_apps"), QVariantMap()),
+          ScriptedClient::reply(QStringLiteral("seen")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("There are no apps yet")));
+    EXPECT_EQ(shown.size(), 0);
+}
+
 TEST_F(AppToolsTest, GivesTheAgentEveryToolWithItsEffect)
 {
     run({ ScriptedClient::reply(QStringLiteral("hi")) });
 
-    const QStringList reads { "list_files", "read_file",    "search_files", "describe_app",
-                              "read_log",   "check_layout", "note" };
+    const QStringList reads { "list_apps",    "list_files",   "read_file", "search_files",
+                              "describe_app", "read_log",     "check_layout", "note" };
     const QStringList writes { "create_app",  "write_file", "edit_file",
                                "delete_file", "delete_app", "grant_access" };
     EXPECT_EQ(client.lastTools.size(), reads.size() + writes.size());

@@ -362,6 +362,8 @@ DefaultTheme {
             return theme.button.danger
         if (theme.hasType(type, "success"))
             return theme.button.success
+        if (theme.hasType(type, "warning"))
+            return theme.button.warning
         if (theme.hasType(type, "secondary"))
             return theme.button.secondary
         if (theme.hasType(type, "ghost"))
