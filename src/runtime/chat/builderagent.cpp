@@ -3,11 +3,18 @@
 #include "runtime/app/app.h"
 #include "runtime/chat/systemprompt.h"
 
-BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model)
+BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
+                           const Profile& profile)
     : m_agent(model, SystemPrompt::text())
     , m_tools(m_agent, registry)
+    , m_profile(profile)
 {
     m_tools.setEngine(&engine);
+}
+
+BuilderAgent::Profile BuilderAgent::desktopProfile()
+{
+    return Profile { .model = QStringLiteral("opus"), .reasoningEffort = QStringLiteral("high") };
 }
 
 QString BuilderAgent::key() { return QStringLiteral("builder"); }
@@ -23,6 +30,8 @@ chat::AppAgent BuilderAgent::entry() const
             "open, name its id in the task."),
         .agent = m_agent,
         .followUp = [this] { return followUp(); },
+        .model = m_profile.model,
+        .reasoningEffort = m_profile.reasoningEffort,
     };
 }
 

@@ -79,6 +79,38 @@ TEST_F(BuilderAgentTest, IsRegisteredUnderTheBuilderKeyWithADescriptionOfItsJob)
     EXPECT_TRUE(static_cast<bool>(entry.followUp));
 }
 
+TEST_F(BuilderAgentTest, WithoutAProfileTheEntryFollowsTheModelAndEffortOfTheChat)
+{
+    const chat::AppAgent entry = builder->entry();
+
+    EXPECT_TRUE(entry.model.isEmpty());
+    EXPECT_TRUE(entry.reasoningEffort.isEmpty());
+}
+
+TEST_F(BuilderAgentTest, TheEntryCarriesTheModelAndEffortOfItsProfile)
+{
+    BuilderAgent profiled(*registry, engine, QStringLiteral("test-model"),
+                          BuilderAgent::Profile { .model = QStringLiteral("big-model"),
+                                                  .reasoningEffort = QStringLiteral("max") });
+
+    const chat::AppAgent entry = profiled.entry();
+
+    EXPECT_EQ(entry.model, QStringLiteral("big-model"));
+    EXPECT_EQ(entry.reasoningEffort, QStringLiteral("max"));
+}
+
+TEST_F(BuilderAgentTest, TheDesktopProfileIsOpusOnHighEffort)
+{
+    const BuilderAgent::Profile profile = BuilderAgent::desktopProfile();
+
+    EXPECT_EQ(profile.model, QStringLiteral("opus"));
+    EXPECT_EQ(profile.reasoningEffort, QStringLiteral("high"));
+
+    BuilderAgent desktop(*registry, engine, QStringLiteral("test-model"), profile);
+    EXPECT_EQ(desktop.entry().model, QStringLiteral("opus"));
+    EXPECT_EQ(desktop.entry().reasoningEffort, QStringLiteral("high"));
+}
+
 TEST_F(BuilderAgentTest, RunsOnTheSystemPromptWithTheAppTools)
 {
     run({ ScriptedClient::toolCall(QStringLiteral("create_app"), createApp()),

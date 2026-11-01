@@ -12,7 +12,16 @@ class QQmlEngine;
 class BuilderAgent
 {
 public:
-    BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model);
+    struct Profile
+    {
+        QString model;
+        QString reasoningEffort;
+    };
+
+    BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
+                 const Profile& profile = {});
+
+    static Profile desktopProfile();
 
     BuilderAgent(const BuilderAgent&) = delete;
     BuilderAgent& operator=(const BuilderAgent&) = delete;
@@ -26,4 +35,5 @@ public:
 private:
     ::Agent m_agent;
     AppTools m_tools;
+    Profile m_profile;
 };
