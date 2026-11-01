@@ -58,5 +58,7 @@ int main(int argc, char* argv[])
     new UiAutomationServer(&engine, port, &app);
 #endif
 
-    return app.exec();
+    const int result = app.exec();
+    qDeleteAll(engine.rootObjects());
+    return result;
 }

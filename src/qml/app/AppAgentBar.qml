@@ -1,54 +1,27 @@
 import QtQuick
 import QtQuick.Layouts
 
-import Qanvas
+import Chat.Components
 import Themed.Components
 
 Rectangle {
     id: root
 
-    property var messages: []
-    property var activities: []
+    property var messages: null
+    property string activity: ""
     property bool busy: false
+    property bool locked: false
     property bool expanded: false
-    property string userRole: "user"
 
-    readonly property var recentMessages: {
-        var recent = []
-        for (var i = root.messages.length - 1; i >= 0; --i) {
-            recent.unshift(root.messages[i])
-            if (root.messages[i].sender === root.userRole)
-                break
-        }
-        return recent
-    }
-    readonly property var askedMessage: root.recentMessages.length > 0
-                                        && root.recentMessages[0].sender === root.userRole
-                                        ? root.recentMessages[0]
-                                        : null
-    readonly property var replyMessages: root.askedMessage ? root.recentMessages.slice(1)
-                                                           : root.recentMessages
-    readonly property bool hasTurn: root.busy || root.recentMessages.length > 0
-                                    || root.activities.length > 0
-
-    readonly property var lastActivity: root.activities.length > 0
-                                        ? root.activities[root.activities.length - 1]
-                                        : null
-    readonly property int doneCount: {
-        var count = 0
-        for (var i = 0; i < root.activities.length; ++i) {
-            if (!root.activities[i].running)
-                count += 1
-        }
-        return count
-    }
     readonly property string statusText: {
-        if (root.lastActivity)
-            return root.lastActivity.text
+        if (root.activity !== "")
+            return root.activity
         return root.busy ? qsTr("thinking") : qsTr("ask for a change")
     }
 
     signal sent(string text)
+    signal stopRequested()
+    signal retryRequested()
     signal backClicked()
 
     function toggle() {
@@ -132,16 +105,6 @@ Rectangle {
                     font.family: Theme.agentBar.fontFamily
                 }
 
-                Text {
-                    objectName: "appAgentCounter"
-                    Layout.alignment: Qt.AlignVCenter
-                    visible: root.activities.length > 0
-                    text: root.doneCount + "/" + root.activities.length
-                    color: Theme.agentBar.counterText
-                    font.pixelSize: Theme.agentBar.fontSize
-                    font.family: Theme.agentBar.fontFamily
-                }
-
                 ThemedButton {
                     objectName: "appAgentToggle"
                     Layout.alignment: Qt.AlignVCenter
@@ -185,36 +148,26 @@ Rectangle {
                 enabled: root.expanded
                 visible: reveal.revealedHeight > 0
 
-                ThemedScroll {
-                    id: turnScroll
-
-                    objectName: "appAgentTurnScroll"
+                ChatMessageList {
+                    objectName: "appAgentMessages"
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.min(turn.implicitHeight,
-                                                     Theme.agentBar.logMaxHeight)
-                    visible: root.hasTurn
+                    Layout.preferredHeight: Math.min(contentHeight, Theme.agentBar.logMaxHeight)
+                    visible: count > 0 || root.busy
+                    model: root.messages
+                    busy: root.busy
+                    activity: root.activity
 
-                    onContentHeightChanged: Qt.callLater(function () {
-                        turnScroll.contentY = Math.max(0, turnScroll.contentHeight
-                                                          - turnScroll.height)
-                    })
-
-                    AppAgentTurn {
-                        id: turn
-
-                        width: turnScroll.width
-                        askedMessage: root.askedMessage
-                        replyMessages: root.replyMessages
-                        activities: root.activities
-                        busy: root.busy
-                    }
+                    onRetryRequested: root.retryRequested()
                 }
 
                 ChatComposer {
                     objectName: "appAgentComposer"
                     Layout.fillWidth: true
+                    enabled: !root.locked
+                    busy: root.busy
 
                     onSent: function (text) { root.sent(text) }
+                    onStopRequested: root.stopRequested()
                 }
             }
         }

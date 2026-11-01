@@ -1,19 +1,21 @@
 import QtQuick
 import QtQuick.Layouts
 
+import Chat.Components
 import Themed.Components
 
 ThemedPage {
     id: root
 
-    property alias messages: messageList.messages
-    property alias activities: messageList.activities
-    property alias busy: messageList.busy
-    property string userRole: "user"
+    required property var session
 
-    signal sent(string text)
+    property bool locked: false
+
+    readonly property var chat: root.session.chat
+
     signal settingsClicked()
     signal newChatRequested()
+    signal conversationPicked(string conversationId)
 
     objectName: "chatPage"
     showBackButton: true
@@ -30,9 +32,19 @@ ThemedPage {
             text: qsTr("New")
             iconSource: Theme.icons.plus
             iconColor: Theme.colors.primary
-            enabled: !root.busy
 
             onClicked: root.newChatRequested()
+        }
+
+        ThemedButton {
+            objectName: "chatHistoryButton"
+            Layout.alignment: Qt.AlignVCenter
+            buttonSize: Theme.button.icon
+            buttonStyle: Theme.button.ghost
+            iconSource: Theme.icons.history
+            Accessible.name: qsTr("Conversations")
+
+            onClicked: historyDrawer.open()
         }
 
         ThemedButton {
@@ -41,30 +53,46 @@ ThemedPage {
             buttonSize: Theme.button.icon
             buttonStyle: Theme.button.ghost
             iconSource: Theme.icons.sliders
+            Accessible.name: qsTr("Chat settings")
 
             onClicked: root.settingsClicked()
         }
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: Theme.spacing.medium
+    ThemedSideDrawer {
+        id: historyDrawer
 
-        ChatMessageList {
-            id: messageList
+        objectName: "chatHistoryDrawer"
+        drawerTitle: qsTr("Conversations")
 
-            objectName: "chatMessageList"
+        ThemedEmpty {
+            objectName: "chatHistoryEmpty"
+            Layout.fillWidth: true
+            visible: historyList.count === 0
+            iconSource: Theme.icons.chat
+            text: qsTr("No conversations yet")
+        }
+
+        ChatConversationList {
+            id: historyList
+
+            objectName: "chatConversationList"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            userRole: root.userRole
-        }
+            visible: count > 0
+            model: root.chat.conversations
 
-        ChatComposer {
-            objectName: "chatComposer"
-            Layout.fillWidth: true
-            Layout.bottomMargin: Theme.spacing.small
-
-            onSent: function (text) { root.sent(text) }
+            onOpened: function (conversationId) {
+                historyDrawer.close()
+                root.conversationPicked(conversationId)
+            }
+            onRemoveRequested: function (conversationId) { root.chat.remove(conversationId) }
         }
+    }
+
+    ChatConversation {
+        anchors.fill: parent
+        session: root.session
+        inputEnabled: !root.locked
     }
 }
