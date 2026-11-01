@@ -100,6 +100,43 @@ TEST_F(AppConversationsTest, RemoveForgetsOnlyThatApp)
     EXPECT_EQ(store.conversationFor(QStringLiteral("timer")), QStringLiteral("c-2"));
 }
 
+TEST_F(AppConversationsTest, RemoveConversationForgetsOnlyThatConversation)
+{
+    AppConversations store;
+    store.bind(QStringLiteral("notes"), QStringLiteral("c-1"));
+    store.bind(QStringLiteral("timer"), QStringLiteral("c-2"));
+
+    EXPECT_TRUE(store.removeConversation(QStringLiteral("c-1")));
+
+    EXPECT_TRUE(store.conversationFor(QStringLiteral("notes")).isEmpty());
+    EXPECT_TRUE(store.appFor(QStringLiteral("c-1")).isEmpty());
+    EXPECT_EQ(store.conversationFor(QStringLiteral("timer")), QStringLiteral("c-2"));
+}
+
+TEST_F(AppConversationsTest, RemoveConversationForgetsEveryAppBoundToIt)
+{
+    AppConversations store;
+    store.bind(QStringLiteral("notes"), QStringLiteral("c-1"));
+    store.bind(QStringLiteral("timer"), QStringLiteral("c-1"));
+    store.bind(QStringLiteral("tasks"), QStringLiteral("c-2"));
+
+    store.removeConversation(QStringLiteral("c-1"));
+
+    EXPECT_TRUE(store.conversationFor(QStringLiteral("notes")).isEmpty());
+    EXPECT_TRUE(store.conversationFor(QStringLiteral("timer")).isEmpty());
+    EXPECT_EQ(store.conversationFor(QStringLiteral("tasks")), QStringLiteral("c-2"));
+}
+
+TEST_F(AppConversationsTest, RemovingAConversationThatWasNeverBoundChangesNothing)
+{
+    AppConversations store;
+    store.bind(QStringLiteral("notes"), QStringLiteral("c-1"));
+
+    EXPECT_TRUE(store.removeConversation(QStringLiteral("c-9")));
+
+    EXPECT_EQ(store.conversationFor(QStringLiteral("notes")), QStringLiteral("c-1"));
+}
+
 TEST_F(AppConversationsTest, BindingsSurviveReopeningTheStore)
 {
     {

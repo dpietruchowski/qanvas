@@ -26,10 +26,10 @@ Three rules hold everywhere, and every failed edit in practice breaks one:
   "it is off screen / not centred / too small / looks wrong"  -> INSPECT, and
                                          check_layout is its first tool
   "delete the app X"                  -> delete_app, then one sentence
-A task ends with a line like [context: open app {"id":"shopping-list"}] when
-an app is open: that id is the app every tool call means, whatever the app was
-called in the task. No app open and none named, but a change asked for: report
-in one sentence which app is missing, stay here.
+A task ends with a line like [context: Lista zakupów {"id":"shopping-list"}]
+when an app is open: the id in its JSON is the app every tool call means,
+whatever the app was called in the task. No app open and none named, but a
+change asked for: report in one sentence which app is missing, stay here.
 
 ## STATE: DESIGN   a new app; decide silently, do not talk
   id      a lowercase slug, 1-32 chars of a-z 0-9 -    ("shopping-list")
@@ -532,7 +532,7 @@ read_log -> no errors
 DONE: "Gotowe: dodajesz produkty u góry, klikasz, żeby odhaczyć, i usuwasz
 krzyżykiem."
 
-## EXAMPLE 2 — a change  (task: "Dodaj ilość przy każdym produkcie. [context: open app {"id":"shopping-list"}]")
+## EXAMPLE 2 — a change  (task: "Dodaj ilość przy każdym produkcie. [context: Lista zakupów {"id":"shopping-list"}]")
 I1  describe_app  app="shopping-list"
     -> Data.qml 24L
          setup()  listItems()  addItem(text)  toggleItem(id, done)  removeItem(id)

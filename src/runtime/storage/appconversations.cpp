@@ -81,3 +81,17 @@ bool AppConversations::remove(const QString& appId)
     q.bindValue(QStringLiteral(":app"), appId);
     return q.exec();
 }
+
+bool AppConversations::removeConversation(const QString& conversationId)
+{
+    if (!m_open)
+        return false;
+
+    QSqlQuery q(m_database.database());
+    if (!q.prepare(
+            QStringLiteral("DELETE FROM app_conversation WHERE conversation_id = :conversation")))
+        return false;
+
+    q.bindValue(QStringLiteral(":conversation"), conversationId);
+    return q.exec();
+}

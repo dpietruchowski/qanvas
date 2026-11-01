@@ -62,6 +62,7 @@ private:
                BackendWorker& worker);
     void turnStarted(const QUuid& conversationId);
     void turnFinished(const QUuid& conversationId);
+    void conversationRemoved(const QUuid& conversationId);
 
     QString readLastApp() const;
 

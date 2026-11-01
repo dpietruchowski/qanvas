@@ -389,6 +389,28 @@ TEST_F(ChatHostTest, RemovingAnAppForgetsItsConversationAndNoOtherOne)
     EXPECT_EQ(host->conversationFor(QStringLiteral("timer")), QStringLiteral("c-2"));
 }
 
+TEST_F(ChatHostTest, RemovingAConversationForgetsItsAppAndNoOtherOne)
+{
+    start();
+    const QString removed = awaitOk(host->chat()->store().createConversation(QStringLiteral("one")))
+                                .id()
+                                .toString(QUuid::WithoutBraces);
+    const QString kept = awaitOk(host->chat()->store().createConversation(QStringLiteral("two")))
+                             .id()
+                             .toString(QUuid::WithoutBraces);
+    host->bind(QStringLiteral("notes"), removed);
+    host->bind(QStringLiteral("timer"), kept);
+    ASSERT_EQ(host->conversationFor(QStringLiteral("notes")), removed);
+
+    host->chat()->remove(removed);
+
+    ASSERT_TRUE(
+        QTest::qWaitFor([this] { return host->conversationFor(QStringLiteral("notes")).isEmpty(); },
+                        kWaitMilliseconds));
+    EXPECT_TRUE(host->appFor(removed).isEmpty());
+    EXPECT_EQ(host->conversationFor(QStringLiteral("timer")), kept);
+}
+
 TEST_F(ChatHostTest, HasNoLastAppAtFirst)
 {
     start();

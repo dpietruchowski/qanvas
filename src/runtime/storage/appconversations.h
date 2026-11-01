@@ -15,6 +15,7 @@ public:
     QString appFor(const QString& conversationId) const;
     bool bind(const QString& appId, const QString& conversationId);
     bool remove(const QString& appId);
+    bool removeConversation(const QString& conversationId);
 
 private:
     bool open();

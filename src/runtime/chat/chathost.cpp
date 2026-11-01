@@ -89,6 +89,8 @@ void ChatHost::start(const Config& config, chat::ChatModule::Clients clients, QQ
             &ChatHost::turnStarted);
     connect(&m_module->chat().runner(), &chat::TurnRunner::turnFinished, this,
             &ChatHost::turnFinished);
+    connect(&m_module->chat().runner(), &chat::TurnRunner::conversationRemoved, this,
+            &ChatHost::conversationRemoved);
     connect(&m_builder->tools(), &AppTools::appShown, this, &ChatHost::appShown);
     connect(&m_registry, &AppRegistry::appRemoving, this,
             [this](const QString& id)
@@ -159,4 +161,9 @@ void ChatHost::turnFinished(const QUuid& conversationId)
 {
     if (m_running.remove(conversationId) && !busy())
         emit busyChanged();
+}
+
+void ChatHost::conversationRemoved(const QUuid& conversationId)
+{
+    m_conversations.removeConversation(conversationId.toString(QUuid::WithoutBraces));
 }
