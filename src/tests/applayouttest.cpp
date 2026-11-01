@@ -132,9 +132,9 @@ TEST_F(AppLayoutTest, AnItemHostingAPopupIsNotReported)
 
 TEST_F(AppLayoutTest, AnItemThatDrawsNothingAndHoldsNothingIsNotReported)
 {
-    const QString report = show(QStringLiteral(
-        "Item { ColumnLayout { anchors.fill: parent; Text { text: \"hi\" } Item { "
-        "Layout.fillWidth: true } } }"));
+    const QString report = show(
+        QStringLiteral("Item { ColumnLayout { anchors.fill: parent; Text { text: \"hi\" } Item { "
+                       "Layout.fillWidth: true } } }"));
 
     EXPECT_TRUE(report.isEmpty()) << report.toStdString();
 }
