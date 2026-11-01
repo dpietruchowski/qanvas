@@ -265,35 +265,6 @@ DefaultTheme {
         readonly property int placeholderPadding: theme.padding.large
     }
 
-    property QtObject chat: QtObject {
-        readonly property real bubbleMaxWidthRatio: 0.78
-        readonly property int bubbleRadius: theme.radius.large
-        readonly property int bubblePaddingH: 14
-        readonly property int bubblePaddingV: 10
-        readonly property int fontSize: theme.fontSize.normal
-        readonly property int lineSpacing: 4
-        readonly property int messageSpacing: theme.spacing.large
-        readonly property int composerHeight: theme.scaled(52)
-        readonly property int headerHeight: theme.scaled(48)
-    }
-
-    property QtObject activity: QtObject {
-        readonly property int spacing: theme.spacing.small
-        readonly property int markerSpacing: theme.spacing.small
-        readonly property int markerSize: 8
-        readonly property int markerRadius: 2
-        readonly property int fontSize: theme.fontSize.small
-        readonly property string fontFamily: "monospace"
-        readonly property int tickInterval: 1000
-        readonly property color runningMarker: theme.colors.primary
-        readonly property color doneMarker: theme.colors.textDisabled
-        readonly property color failedMarker: theme.colors.error
-        readonly property color runningText: theme.colors.textPrimary
-        readonly property color doneText: theme.colors.textDisabled
-        readonly property color runningDetail: theme.colors.primary
-        readonly property color doneDetail: theme.colors.textSecondary
-    }
-
     property QtObject agentBar: QtObject {
         readonly property color background: theme.colors.surfaceRaised
         readonly property color border: theme.colors.border
@@ -310,32 +281,9 @@ DefaultTheme {
         readonly property string fontFamily: "monospace"
         readonly property color runningText: theme.colors.textPrimary
         readonly property color idleText: theme.colors.textMuted
-        readonly property color counterText: theme.colors.textDisabled
         readonly property int logMaxHeight: theme.scaled(200)
         readonly property int logSpacing: theme.spacing.medium
         readonly property int expandDuration: 180
-    }
-
-    property QtObject chatBubble: QtObject {
-        readonly property QtObject user: QtObject {
-            readonly property color background: theme.colors.surface
-            readonly property color border: "transparent"
-            readonly property color text: theme.colors.textPrimary
-            readonly property int radius: theme.radius.large
-            readonly property int paddingH: 14
-            readonly property int paddingV: 10
-            readonly property int alignment: Qt.AlignRight
-        }
-
-        readonly property QtObject agent: QtObject {
-            readonly property color background: "transparent"
-            readonly property color border: "transparent"
-            readonly property color text: theme.colors.textPrimary
-            readonly property int radius: 0
-            readonly property int paddingH: 0
-            readonly property int paddingV: 0
-            readonly property int alignment: Qt.AlignLeft
-        }
     }
 
     property QtObject input: QtObject {

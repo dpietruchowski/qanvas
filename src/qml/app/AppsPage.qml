@@ -6,32 +6,20 @@ import Themed.Components
 ThemedPage {
     id: root
 
+    required property var session
+
     property string openedId: ""
+    property bool locked: false
     property string removingId: ""
-    property alias messages: agentBar.messages
-    property alias activities: agentBar.activities
-    property alias busy: agentBar.busy
 
     signal appActivated(string id)
-    signal sent(string text)
+    signal appClosed()
 
-    function open(id) {
-        if (root.openedId === id)
-            stage.reload()
-        else
-            root.openedId = id
+    function reload() {
+        stage.reload()
     }
 
     objectName: "appsPage"
-
-    Connections {
-        target: AppRegistry
-
-        function onAppRemoving(id) {
-            if (root.openedId === id)
-                root.openedId = ""
-        }
-    }
 
     AppList {
         objectName: "appList"
@@ -39,10 +27,7 @@ ThemedPage {
         visible: root.openedId === ""
         apps: AppRegistry.apps
 
-        onAppActivated: function (id) {
-            root.open(id)
-            root.appActivated(id)
-        }
+        onAppActivated: function (id) { root.appActivated(id) }
         onAppRemoveRequested: function (id, title) {
             root.removingId = id
             removeDialog.message = qsTr("Delete \"%1\" with everything it stored?").arg(title)
@@ -77,9 +62,15 @@ ThemedPage {
         anchors.right: parent.right
         z: 1
         visible: root.openedId !== ""
+        messages: root.session.messages
+        activity: root.session.activity
+        busy: root.session.busy
+        locked: root.locked
 
-        onSent: function (text) { root.sent(text) }
-        onBackClicked: root.openedId = ""
+        onSent: function (text) { root.session.send(text) }
+        onStopRequested: root.session.cancel()
+        onRetryRequested: root.session.retry()
+        onBackClicked: root.appClosed()
     }
 
     ThemedDialog {

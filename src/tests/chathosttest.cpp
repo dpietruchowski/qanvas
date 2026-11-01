@@ -233,7 +233,7 @@ TEST_F(ChatHostTest, AnAppTheBuilderBuildsIsAnnounced)
 {
     start();
     QSignalSpy shown(host.get(), &ChatHost::appShown);
-    startConversation();
+    const QUuid conversation = startConversation();
     ASSERT_TRUE(waitForRequest(0));
     delegateToTheBuilder(client(0));
     ASSERT_TRUE(waitForRequest(1));
@@ -244,7 +244,8 @@ TEST_F(ChatHostTest, AnAppTheBuilderBuildsIsAnnounced)
     ASSERT_TRUE(waitForRequest(1));
 
     ASSERT_EQ(shown.count(), 1);
-    EXPECT_EQ(shown.first().first().toString(), QStringLiteral("notes"));
+    EXPECT_EQ(shown.first().at(0).toString(), QStringLiteral("notes"));
+    EXPECT_EQ(shown.first().at(1).toString(), conversation.toString(QUuid::WithoutBraces));
     EXPECT_TRUE(App(QStringLiteral("notes")).exists());
 
     answer(client(1), QStringLiteral("Built the notes app."));
@@ -252,6 +253,71 @@ TEST_F(ChatHostTest, AnAppTheBuilderBuildsIsAnnounced)
     EXPECT_TRUE(lastMessageOf(client(0)).contains(QStringLiteral("Built the notes app.")));
 
     answer(client(0), QStringLiteral("Your notes app is ready."));
+    ASSERT_TRUE(waitUntilIdle());
+}
+
+TEST_F(ChatHostTest, AnAppTheBuilderShowsIsBoundToTheRunningConversation)
+{
+    start();
+    host->bind(QStringLiteral("notes"), QStringLiteral("c-old"));
+    const QUuid conversation = startConversation();
+    ASSERT_TRUE(waitForRequest(0));
+    delegateToTheBuilder(client(0));
+    ASSERT_TRUE(waitForRequest(1));
+
+    client(1).completeNext(toolCallCompletion(QStringLiteral("call-create"),
+                                              QStringLiteral("create_app"),
+                                              createApp(QStringLiteral("notes"))));
+    ASSERT_TRUE(waitForRequest(1));
+
+    const QString running = conversation.toString(QUuid::WithoutBraces);
+    EXPECT_EQ(host->conversationFor(QStringLiteral("notes")), running);
+    EXPECT_EQ(host->appFor(running), QStringLiteral("notes"));
+    EXPECT_TRUE(host->appFor(QStringLiteral("c-old")).isEmpty());
+
+    answer(client(1), QStringLiteral("Built."));
+    ASSERT_TRUE(waitForRequest(0));
+    answer(client(0), QStringLiteral("Ready."));
+    ASSERT_TRUE(waitUntilIdle());
+}
+
+TEST_F(ChatHostTest, AnAppShownByALaterTurnFollowsThatTurnAndLeavesTheEarlierOneAlone)
+{
+    start();
+    QSignalSpy shown(host.get(), &ChatHost::appShown);
+    const QUuid first = startConversation(QStringLiteral("first"));
+    ASSERT_TRUE(waitForRequest(0));
+    delegateToTheBuilder(client(0));
+    ASSERT_TRUE(waitForRequest(1));
+    client(1).completeNext(toolCallCompletion(QStringLiteral("call-create"),
+                                              QStringLiteral("create_app"),
+                                              createApp(QStringLiteral("notes"))));
+    ASSERT_TRUE(waitForRequest(1));
+    answer(client(1), QStringLiteral("Built notes."));
+    ASSERT_TRUE(waitForRequest(0));
+    answer(client(0), QStringLiteral("Notes ready."));
+    ASSERT_TRUE(waitUntilIdle());
+
+    const QUuid second = startConversation(QStringLiteral("second"));
+    ASSERT_TRUE(waitForRequest(2));
+    delegateToTheBuilder(client(2), QStringLiteral("Make a timer app."));
+    ASSERT_TRUE(waitForRequest(3));
+    client(3).completeNext(toolCallCompletion(QStringLiteral("call-create"),
+                                              QStringLiteral("create_app"),
+                                              createApp(QStringLiteral("timer"))));
+    ASSERT_TRUE(waitForRequest(3));
+
+    const QString firstId = first.toString(QUuid::WithoutBraces);
+    const QString secondId = second.toString(QUuid::WithoutBraces);
+    ASSERT_EQ(shown.count(), 2);
+    EXPECT_EQ(shown.at(1).at(0).toString(), QStringLiteral("timer"));
+    EXPECT_EQ(shown.at(1).at(1).toString(), secondId);
+    EXPECT_EQ(host->conversationFor(QStringLiteral("timer")), secondId);
+    EXPECT_EQ(host->conversationFor(QStringLiteral("notes")), firstId);
+
+    answer(client(3), QStringLiteral("Built timer."));
+    ASSERT_TRUE(waitForRequest(2));
+    answer(client(2), QStringLiteral("Timer ready."));
     ASSERT_TRUE(waitUntilIdle());
 }
 

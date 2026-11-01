@@ -55,11 +55,12 @@ public:
 signals:
     void busyChanged();
     void lastAppIdChanged();
-    void appShown(const QString& id);
+    void appShown(const QString& id, const QString& conversationId);
 
 private:
     void start(const Config& config, chat::ChatModule::Clients clients, QQmlEngine& engine,
                BackendWorker& worker);
+    void showApp(const QString& appId);
     void turnStarted(const QUuid& conversationId);
     void turnFinished(const QUuid& conversationId);
     void conversationRemoved(const QUuid& conversationId);
@@ -69,6 +70,7 @@ private:
     Config m_config;
     AppRegistry& m_registry;
     QString m_lastApp;
+    QString m_turnConversation;
     AppConversations m_conversations;
     std::unique_ptr<ProviderSettings> m_providers;
     std::unique_ptr<BuilderAgent> m_builder;
