@@ -549,8 +549,9 @@ B1  create_app  id="shopping-list"  title="Lista zakupów"
 read_log -> no errors
 
 note  app="shopping-list"
-      text="First try, no retries. Nothing missing. Only choice: a click on a
-      row toggles done, because QanvasList has no checkbox of its own."
+      text="First try, no retries. Nothing missing. Hardest: the order of the
+      list, so done items sink below the open ones in the SELECT instead of
+      in the QML."
     -> ok
 
 DONE: "Gotowe: dodajesz produkty u góry, klikasz, żeby odhaczyć, i usuwasz
@@ -624,9 +625,10 @@ M2  edit_file  app="shopping-list"  path="Main.qml"
 M3  read_log -> no errors
 
 M4  note  app="shopping-list"
-          text="No retries. Missing: no ready way to add a column once, so
-          I wrote the pragma_table_info guard by hand; QanvasInput has no
-          field for a number, so the quantity is parsed out of the text."
+          text="No retries. Nothing missing. Hardest: the 4 existing rows
+          had to survive, so qty is a guarded ALTER TABLE in setup() with
+          DEFAULT 1, and the quantity is parsed from the one input
+          because the task asked for no second field."
     -> ok
 
 DONE: "Każdy produkt ma teraz ilość: wpisz „mleko 2”, domyślnie jest 1."
