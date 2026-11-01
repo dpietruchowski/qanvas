@@ -231,6 +231,32 @@ tells you when something does not fit. The rules that keep it fitting:
   - A filter or a mode switch above a list: QanvasTabs, not a row of buttons.
   - A list that may be empty says so itself: emptyText and emptyIcon on the
     QanvasList. A separate QanvasEmpty under a list lands at the bottom edge.
+  - A row that has to stand out is marked in the model, not drawn by hand: a
+    finished one is type "done", one to flag carries badge text and a colour
+    word. Never U+0336 strike-through characters, never a text suffix:
+
+        QanvasList {
+            model: (App.revision, db.listLaps())
+            textRole: "label"
+            badgeFormat: function(item) { return item.best ? "najszybsze" : "" }
+            typeFormat: function(item) { return item.best ? "success" : "" }
+        }
+
+  - A checkbox row (a to-do item, a ticked product) is QanvasListItem with
+    checkable, in a Repeater; a QanvasList has no checked column:
+
+        Repeater {
+            model: (App.revision, db.listTasks())
+
+            QanvasListItem {
+                title: modelData.text
+                checkable: true
+                checked: modelData.done === 1
+                type: modelData.done === 1 ? "done" : ""
+                onToggled: function(checked) { db.setDone(modelData.id, checked) }
+            }
+        }
+
   - A new row with several fields (name, sets, reps) is a form in a
     QanvasPanel, opened by a button; never several values in one input
     separated by commas:
@@ -260,7 +286,8 @@ tells you when something does not fit. The rules that keep it fitting:
         }
 
   - A button that only sometimes applies: visible: done < total, never a
-    Repeater whose model is 1 or 0.
+    Repeater whose model is 1 or 0. A button that exists but cannot be used yet
+    (an empty field, a run in progress) stays in place with enabled: false.
   - Never give an item x, y, width or height, and never anchor: layouts place
     everything.
 
@@ -352,8 +379,10 @@ The page's back arrow is the way out of every screen but the first: showBack
 and onBack as above, on Main.qml, never a "Wstecz" button inside a screen.
 Bottom navigation between top-level screens (Plany | Historia | Statystyki) is
 a QanvasTabs as the LAST child of the page: options are the labels, value is
-bound to the screen, onSelected sets it; showBack is then true only on the
-screens the tabs do not reach.
+bound to the screen and onSelected(value) hands back the label of the tab
+tapped, so the screen names ARE the labels (screen === "Historia") or a
+function maps label to screen; showBack is then true only on the screens the
+tabs do not reach.
 
 ## STATE THAT DOES NOT REFRESH
 A binding only re-runs when something it reads announces a change. Two things
@@ -368,8 +397,10 @@ And one thing breaks the other way: assigning to a property that has a binding
 throws the binding away for good. A Timer with running: resting that does
 running = false inside onTriggered never runs again; set resting = false — the
 thing the binding reads — instead. Time itself is never your own Timer plus
-Date.now() (it does not fit a property int): QanvasCountdown counts down and
-says finished, QanvasStopwatch counts up, both bound through running.
+Date.now(): QanvasCountdown counts down and says finished, QanvasStopwatch
+counts up, both bound through running. Hundredths of a second are a
+QanvasStopwatch { type: "centiseconds" } too: its text reads "m:ss.cc" and its
+centiseconds holds the exact count for laps and best times.
 Check length before indexing: list[i] past the end is undefined, and reading a
 field off it raises an error the user never sees. Do it ONCE, in a property the
 rest of the file reads, instead of guarding at every use:
@@ -387,31 +418,45 @@ QanvasText{text type}  type takes one size word (display|title|subtitle|body|
 QanvasStat{label value type:primary|success|danger}  a tile: big value, small
     label; put them in a QanvasGrid or a QanvasRow
 QanvasBadge{text type:primary|success|warning|danger}  a small pill label
-QanvasTabs{options value onSelected(value)}  one row of choices, one active
-QanvasProgress{value from to}
+QanvasTabs{options value onSelected(value)}  one row of choices, one active;
+    options is a list of strings, value and onSelected(value) carry the text of
+    the chosen option, never its index: the second of ["Plany", "Historia"]
+    arrives as "Historia"
+QanvasProgress{value from to type:success|warning|danger}  the bar takes that
+    colour, as in type: spent > limit ? "danger" : "success"
 QanvasStepper{value from to onChanged(value)}  a number with - and +
 QanvasCountdown{seconds running remaining text onFinished restart()}  draws
     nothing, so no Layout or visible on it; running: resting starts it from
     seconds, remaining and text ("0:59") tick down, finished fires at zero
-QanvasStopwatch{running elapsed text reset()}  draws nothing; elapsed seconds
-    since running became true, text is "m:ss". How long a session took:
-    QanvasStopwatch { id: clock; running: true } and db.addSession(clock.elapsed)
-    at the end — never Date.now() in a property
+QanvasStopwatch{running elapsed text reset() type:centiseconds centiseconds}
+    draws nothing; elapsed seconds since running became true, text is "m:ss".
+    How long a session took: QanvasStopwatch { id: clock; running: true } and
+    db.addSession(clock.elapsed) at the end — never Date.now() in a property.
+    type: "centiseconds" makes text "m:ss.cc" and keeps centiseconds, the exact
+    whole count of hundredths, to store or compare (laps, best time)
 QanvasIcon{iconName type:small|medium|large}
-QanvasButton{text iconName onClicked type}  type takes one colour word
+QanvasButton{text iconName onClicked type enabled}  type takes one colour word
     (primary|secondary|danger|success|ghost) and optionally a shape word
-    (small|large|circle|rounded), as in type: "danger small"
+    (small|large|circle|rounded), as in type: "danger small"; enabled: false
+    draws it greyed out and ignores taps
 QanvasFab{iconName onClicked}
 QanvasInput{text placeholder clearOnSubmit onSubmitted(text) type:text|number|search}
 QanvasTextArea{text readOnly}
 QanvasCheckBox{text checked}  QanvasSwitch{text checked}
 QanvasSlider{value from to}  QanvasSelect{options value onSelected(value)}
-QanvasList{model textRole subtitleRole iconRole removable emptyText emptyIcon
-    textFormat subtitleFormat  functions taking the row, for a line the model
-    has no column for: subtitleFormat: function(item) { return item.a + "/" + item.b }
+QanvasList{model textRole subtitleRole iconRole badgeRole typeRole removable
+    emptyText emptyIcon textFormat subtitleFormat badgeFormat typeFormat
+    functions taking the row, for a line the model has no column for:
+    subtitleFormat: function(item) { return item.a + "/" + item.b }
+    badgeRole is the pill text at the end of a row, typeRole the words that
+    style the row: "done" greys it and strikes the title through, a colour word
+    (primary|success|warning|danger) colours the pill; a missing or empty value
+    shows nothing
     onItemClicked(index,item) onRemoveClicked(index,item)}
-QanvasListItem{title subtitle iconName removable checkable checked onClicked
-    onRemoveClicked onToggled(checked)}
+QanvasListItem{title subtitle iconName badge type removable checkable checked
+    onClicked onRemoveClicked onToggled(checked)}  one row; type takes the same
+    words as typeRole. A row with a checkbox is this, in a Repeater — a
+    QanvasList has no checked column
 QanvasGridView{model columns textRole onItemClicked(index,item)}
 QanvasEmpty{text iconName}
 QanvasDialog{title message acceptText rejectText showCancel type:danger|success
@@ -515,6 +560,7 @@ B1  create_app  id="shopping-list"  title="Lista zakupów"
             removable: true
             emptyText: "Pusta lista"
             emptyIcon: "list"
+            typeFormat: function(item) { return item.done ? "done" : "" }
             onItemClicked: function(index, item) { db.toggleItem(item.id, !item.done) }
             onRemoveClicked: function(index, item) { db.removeItem(item.id) }
         }

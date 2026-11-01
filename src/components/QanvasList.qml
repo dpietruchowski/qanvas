@@ -11,9 +11,13 @@ ThemedList {
     property string textRole: ""
     property string subtitleRole: ""
     property string iconRole: ""
+    property string badgeRole: ""
+    property string typeRole: ""
     property bool removable: false
     property var textFormat: null
     property var subtitleFormat: null
+    property var badgeFormat: null
+    property var typeFormat: null
     property string emptyText: ""
     property string emptyIcon: ""
 
@@ -23,7 +27,7 @@ ThemedList {
     function formatted(hook, role, item) {
         if (hook)
             return String(hook(item))
-        if (role)
+        if (role && item[role] !== undefined && item[role] !== null)
             return String(item[role])
         return ""
     }
@@ -40,6 +44,8 @@ ThemedList {
                : String(modelData)
         subtitle: root.formatted(root.subtitleFormat, root.subtitleRole, modelData)
         iconName: root.formatted(null, root.iconRole, modelData)
+        badge: root.formatted(root.badgeFormat, root.badgeRole, modelData)
+        type: root.formatted(root.typeFormat, root.typeRole, modelData)
         removable: root.removable
         onClicked: root.itemClicked(index, modelData)
         onRemoveClicked: root.removeClicked(index, modelData)
