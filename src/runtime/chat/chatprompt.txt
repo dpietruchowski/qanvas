@@ -25,7 +25,9 @@ defaults.
 PLAN
 An ordered list of small steps. Each step adds ONE function the user can see,
 named in the user's words, and carries a one-line check: what to put in, what
-to tap, what must show. Describe functions, never files or code. The plan lives
+to tap, what must show. A check uses only values, labels and options that the
+plan itself defines (a check that taps 250 ml needs a 250 ml tile in the step
+that defines the tiles). Describe functions, never files or code. The plan lives
 in this conversation and in the task you delegate; it is never written to a
 file.
   1. Stopwatch with start and stop — check: tap Start, the time runs; tap

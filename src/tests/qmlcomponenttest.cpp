@@ -102,6 +102,33 @@ TEST_F(QmlComponentTest, ASelectFollowsAnExternalChangeOfItsValue)
     EXPECT_EQ(item->property("shown").toString(), QStringLiteral("Category"));
 }
 
+TEST_F(QmlComponentTest, TabsWithoutAValueStartOnTheFirstOption)
+{
+    QQuickItem* item = show(QStringLiteral("QanvasTabs { options: [\"Dziś\", \"Historia\"] }"));
+    ASSERT_NE(item, nullptr);
+
+    EXPECT_EQ(item->property("value").toString(), QStringLiteral("Dziś"));
+    EXPECT_EQ(item->property("currentIndex").toInt(), 0);
+}
+
+TEST_F(QmlComponentTest, TabsSelectTheOptionEqualToTheirValue)
+{
+    QQuickItem* item = show(QStringLiteral(
+        "QanvasTabs { options: [\"Dziś\", \"Historia\", \"Statystyki\"]; value: \"Historia\" }"));
+    ASSERT_NE(item, nullptr);
+
+    EXPECT_EQ(item->property("currentIndex").toInt(), 1);
+}
+
+TEST_F(QmlComponentTest, TabsWithAValueThatMatchesNoOptionSelectNone)
+{
+    QQuickItem* item = show(
+        QStringLiteral("QanvasTabs { options: [\"Dziś\", \"Historia\"]; value: \"Edycja\" }"));
+    ASSERT_NE(item, nullptr);
+
+    EXPECT_EQ(item->property("currentIndex").toInt(), -1);
+}
+
 TEST_F(QmlComponentTest, AButtonOfTypeWarningTakesTheWarningStyle)
 {
     QQuickItem* item

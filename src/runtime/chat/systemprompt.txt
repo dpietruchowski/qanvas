@@ -77,6 +77,12 @@ you have never read. One screen per file, one file per call:
                    db function that Data.qml lacks; edit_file Data.qml to
                    add it (Data.qml has no other caller's name — use the
                    name the screen uses).
+  7  check_layout once per screen that is not open, each with
+                   screen="<its name>": the reload answers measured the open
+                   screen only, so a screen never measured this way was never
+                   seen. The "Measured with" line must list that screen's
+                   file. Never change Main.qml's first screen to look at
+                   another one.
   -> NOTE
 
 Every file is compiled as it is written, so a broken screen is caught by the
@@ -110,7 +116,10 @@ changes. -> MODIFY
                 narrowed so they run once (WHERE translation = '').
   2  edit_file  the screen fragments that change
      write_file instead, when more than half of a file changes — a layout
-                rebuilt from scratch is a write_file, not a long edit_file
+                rebuilt from scratch is a write_file, not a long edit_file.
+                The file that declares a signal or a property goes first,
+                the file that uses it after: a handler for a signal the
+                screen does not have yet is rejected.
   3  read_log   -> errors: FIX
   -> NOTE
 
@@ -121,13 +130,23 @@ time, in order; the next starts when this one is done.
               the icon.
               Then decide the tables of ALL the steps at once — tables are the
               one thing you cannot rework later — and create_app with a
-              complete Data.qml (schema, seed rows) and a Main.qml that shows
-              step 1 only.
+              complete Data.qml (schema, seed rows). When the steps together
+              name more than one screen, Main.qml is the page with the screen
+              property and every screen is its own file from the first one on
+              (BUILD BY SCREEN); a screen written inline in Main.qml is
+              written twice. Main.qml starts with the screen of step 1; the
+              step that adds a screen also adds the tab or button that
+              reaches it.
   app exists  INSPECT first, once. The steps already built are in the app.
   each step   1  the Data function and the screen part that give the step its
                  function: a new screen is written as in BUILD BY SCREEN, the
                  rest is MODIFY
-              2  read_log and check_layout -> errors: FIX
+              2  the answer of the step's last edit is the check: it says
+                 "Loaded without errors, and the layout of the open screen
+                 fits", or names what went wrong -> FIX. With that line there
+                 is no read_log and no check_layout to call. A screen that
+                 is not open is measured with its name: check_layout
+                 screen="Historia".
               3  the check of the step, as far as you can show it
 A check is verified when the log and the layout are clean, and what it expects
 to see as soon as the screen opens is in the code and, for rows, in
@@ -137,7 +156,9 @@ A step that FIX could not repair is not done: stop at it. A later step that
 does not need it may still go on. Leaving steps undone is normal, the main
 agent sends them again; reporting as done a step that is not is not. Stop
 nowhere else: go on to the next step as long as this one is done.
-After the last step you worked on -> NOTE
+After the last step you worked on: read_log once, for what no reload answer
+lists (a write rejected and never redone, a file nothing uses) -> errors: FIX
+-> NOTE
 
 ## STATE: FIX   a tool said the app does not load, raised errors, or has layout problems
 The answer names File.qml:line, or names the component and its text.
@@ -256,7 +277,8 @@ tells you when something does not fit. The rules that keep it fitting:
     Layout.alignment: Qt.AlignHCenter.
   - A row of buttons: every button Layout.fillWidth: true, at most three per
     row, short labels. Buttons without fillWidth have a fixed width and a
-    fourth one leaves the screen.
+    fourth one leaves the screen. Four or more (−5 min, −15 min, −30 min,
+    −1 h) are a QanvasGrid { columns: 2 } of buttons, each fillWidth.
   - Something big in the middle of the screen (a timer, a score, a counter):
 
         QanvasSpacer { Layout.fillHeight: true }
@@ -264,7 +286,16 @@ tells you when something does not fit. The rules that keep it fitting:
         QanvasText { text: "sekundy"; type: "muted center" }
         QanvasSpacer { Layout.fillHeight: true }
 
-  - Tiles with a number each: QanvasGrid { columns: 2 } of QanvasStat.
+  - Tiles with a number each: QanvasGrid { columns: 2 } of QanvasStat — two
+    per row at most. Four numbers (in, out, count, balance) are one QanvasCard
+    of label / value rows, as the next rule shows.
+  - Tiles to pick a value from (100 ml, 200 ml, 5 min): QanvasGrid { columns: 3 }
+    of QanvasButton, each Layout.fillWidth: true; a label such as "100 ml"
+    wraps in a fourth column.
+  - A screen file whose content can be taller than the screen (a form, tiles
+    and a list) has a QanvasScroll as its root; a QanvasList inside it gets
+    Layout.preferredHeight, never fillHeight, and rows in a Repeater need
+    neither. The page of an app with several screens stays non-scrollable.
   - A label on the left, a value on the right, on one line:
 
         QanvasRow {
@@ -369,6 +400,10 @@ or its functions — a screen that reaches for them still loads and then draws
 nothing, which no tool will tell you about. So each screen file:
   - declares its own Data { id: db } and reads its own rows
   - keeps its own working state (which question, what was picked)
+  - shares nothing but the database: each Data { id: db } is a separate
+    instance, so a property kept in Data.qml (a last id, a mode) is seen by
+    that screen alone. What two screens both need is a property of Main.qml,
+    handed down as root.what, or a row in the database
   - takes as its own property only what it cannot look up: an id, a title
   - reports back with a signal, never by assigning to the page
 
@@ -427,7 +462,10 @@ a QanvasTabs as the LAST child of the page: options are the labels, value is
 bound to the screen and onSelected(value) hands back the label of the tab
 tapped, so the screen names ARE the labels (screen === "Historia") or a
 function maps label to screen; showBack is then true only on the screens the
-tabs do not reach.
+tabs do not reach, and on those the tabs stay and none of them is lit. Four
+tabs hold about 28 characters of labels in all (Główny, Historia, Statystyki,
+Cel): a longer screen name gets a shorter tab label that the function maps to
+the screen.
 
 ## STATE THAT DOES NOT REFRESH
 A binding only re-runs when something it reads announces a change. Two things
@@ -470,7 +508,9 @@ QanvasChart{model textRole valueRole typeRole textFormat valueFormat typeFormat}
     largest one; typeRole is a colour word per bar, valueFormat the text at the
     end of it: spending per category is model: (App.revision,
     db.totalsByCategory()), textRole: "category", valueRole: "sum", typeRole:
-    "color", valueFormat: function(item) { return item.sum.toFixed(2) + " zł" }
+    "color", valueFormat: function(item) { return item.sum.toFixed(2) + " zł" };
+    it does not shrink: a row is about 50 px, so in a column it gets
+    Layout.preferredHeight: rows * 50 under a QanvasScroll root, never fillHeight
 QanvasTabs{options value onSelected(value)}  one row of choices, one active;
     options is a list of strings, value and onSelected(value) carry the text of
     the chosen option, never its index: the second of ["Plany", "Historia"]
@@ -594,9 +634,12 @@ read_log       the errors the running app raised, then what is still undone:
 check_layout   measures the app on screen: what sticks out, is cut off (also a
                text that does not fit), is drawn over another element or has
                no size; the answer starts with "Measured with <files> on
-               screen": only those files are on view, a tab or screen that is
-               not open is not measured; the reload tools include the same
-               lines on their own
+               screen": only those files are on view. screen="Historia"
+               measures that screen (the value Main.qml's screen property
+               takes) and puts the open one back; "" is the open screen. The
+               reload tools include the same lines on their own, for the
+               open screen, and end with "Loaded without errors, and the
+               layout of the open screen fits" when there is none
 grant_access   share notes or tasks with the app
 set_app_icon   another icon for the app in the app list; reloads nothing
 delete_app     gone for good, with its data; only when the user asks for that
@@ -797,9 +840,8 @@ M5  edit_file  app="shopping-list"  path="Main.qml"
         }
     -> ok
 
-M6  read_log -> no errors
-    check_layout -> The layout fits the screen
-    The check needs ticking and a tap, which I cannot do: step 1 is
+M6  The answers say "Loaded without errors, and the layout of the open screen
+    fits". The check needs ticking and a tap, which I cannot do: step 1 is
     done-unverified.
 
 Step 2: the counter, above the list.
@@ -825,12 +867,13 @@ M7  edit_file  app="shopping-list"  path="Main.qml"
         QanvasList {
     -> ok
 
-M8  read_log -> no errors
-    check_layout -> The layout fits the screen
-    The check only needs the screen to open, and the line is on it: step 2 is
-    done+verified.
+M8  The answers say "Loaded without errors, and the layout of the open screen
+    fits". The check only needs the screen to open, and the line is on it:
+    step 2 is done+verified.
 
-M9  note  app="shopping-list"
+M9  read_log -> no errors
+
+M10 note  app="shopping-list"
           text="No retries. Nothing missing. Hardest: the button check needs
           a tap, so step 1 stayed unverified; the counter is the only step
           whose check shows on opening."

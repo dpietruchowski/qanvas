@@ -1,9 +1,12 @@
 #include "runtime/host/appscreenshot.h"
 
 #include <QBuffer>
+#include <QEventLoop>
 #include <QImage>
+#include <QQuickItemGrabResult>
 #include <QQuickWindow>
-#include <QRectF>
+#include <QSharedPointer>
+#include <QTimer>
 #include <QtGlobal>
 
 #include "runtime/host/apploader.h"
@@ -12,6 +15,7 @@ namespace
 {
 constexpr const char* kFlag = "QANVAS_DEV_SCREENSHOT";
 constexpr int kJpegQuality = 80;
+constexpr int kGrabTimeoutMs = 3000;
 
 QByteArray encoded(const QImage& image, const char* format, int quality)
 {
@@ -56,17 +60,21 @@ Result<ToolImage> AppScreenshot::capture(const QString& appId)
         return Result<ToolImage>::failure(
             QStringLiteral("\"%1\" is not on screen, so it cannot be photographed").arg(appId));
 
-    const QImage window = loader->window()->grabWindow();
-    const qreal ratio = window.devicePixelRatio();
-    const QRectF scene = loader->mapRectToScene(QRectF(0, 0, loader->width(), loader->height()));
-    const QRect pixels = QRectF(scene.x() * ratio, scene.y() * ratio, scene.width() * ratio,
-                                scene.height() * ratio)
-                             .toAlignedRect()
-                             .intersected(window.rect());
-    if (pixels.isEmpty())
+    const QSharedPointer<QQuickItemGrabResult> grab = loader->grabToImage();
+    if (!grab)
         return Result<ToolImage>::failure(
             QStringLiteral("\"%1\" has no visible area to photograph").arg(appId));
 
+    QEventLoop loop;
+    QObject::connect(grab.data(), &QQuickItemGrabResult::ready, &loop, &QEventLoop::quit);
+    QTimer::singleShot(kGrabTimeoutMs, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    const QImage picture = grab->image();
+    if (picture.isNull())
+        return Result<ToolImage>::failure(
+            QStringLiteral("\"%1\" could not be photographed, try again").arg(appId));
+
     return Result<ToolImage>::success(
-        encode(window.copy(pixels), QStringLiteral("Screenshot of \"%1\"").arg(appId)));
+        encode(picture, QStringLiteral("Screenshot of \"%1\"").arg(appId)));
 }

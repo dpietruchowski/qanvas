@@ -10,7 +10,7 @@ ThemedSegmented {
     signal selected(string value)
 
     Layout.fillWidth: true
-    currentIndex: Math.max(0, root.options.indexOf(root.value))
+    currentIndex: root.options.indexOf(root.value)
 
     onActivated: function(index) {
         root.value = String(root.options[index])
