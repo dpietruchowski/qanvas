@@ -9,6 +9,7 @@ ThemedText {
     property string type: "body"
 
     Layout.fillWidth: true
+    wrapMode: Text.Wrap
     textStyle: Theme.textStyle(root.type)
     horizontalAlignment: Theme.textAlignment(root.type)
 }

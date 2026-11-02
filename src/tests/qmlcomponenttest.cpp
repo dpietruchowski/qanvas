@@ -255,6 +255,74 @@ TEST_F(QmlComponentTest, PickingADayStoresItAsAnIsoStringAndEmitsPicked)
     EXPECT_TRUE(picker->property("hasValue").toBool());
 }
 
+TEST_F(QmlComponentTest, ALongTextWrapsWithinTheWidthOfItsColumn)
+{
+    QQuickItem* column = show(QStringLiteral(
+        "ColumnLayout { width: 300; "
+        "QanvasText { objectName: \"short\"; text: \"Short\" } "
+        "QanvasText { objectName: \"long\"; text: \"No limit was exceeded this month, so nothing is "
+        "marked red and nothing needs your attention right now\" } }"));
+    ASSERT_NE(column, nullptr);
+
+    QQuickItem* shortText = row(column, QStringLiteral("short"));
+    QQuickItem* longText = row(column, QStringLiteral("long"));
+    ASSERT_NE(shortText, nullptr);
+    ASSERT_NE(longText, nullptr);
+
+    EXPECT_LE(longText->width(), column->width());
+    EXPECT_GT(longText->property("implicitWidth").toDouble(), column->width());
+    EXPECT_GE(longText->height(), 2 * shortText->height());
+}
+
+TEST_F(QmlComponentTest, TheDatePickerClosesOnEscape)
+{
+    QQuickItem* host = show(QStringLiteral(
+        "Item { QanvasDatePicker { objectName: \"picker\"; y: 100; value: \"2026-11-15\" } }"));
+    ASSERT_NE(host, nullptr);
+    QQuickItem* picker = row(host, QStringLiteral("picker"));
+    ASSERT_NE(picker, nullptr);
+    QObject* popup = picker->findChild<QObject*>(QStringLiteral("picker_popup"));
+    ASSERT_NE(popup, nullptr);
+
+    QMetaObject::invokeMethod(picker, "keyActivate");
+    QTest::qWait(100);
+    ASSERT_TRUE(popup->property("visible").toBool());
+
+    QTest::keyClick(&window, Qt::Key_Escape);
+    QTest::qWait(100);
+    EXPECT_FALSE(popup->property("visible").toBool());
+}
+
+TEST_F(QmlComponentTest, TheDatePickerOpensBelowItsFieldAndAboveItWhenThereIsNoRoomBelow)
+{
+    QQuickItem* host = show(QStringLiteral(
+        "Item { QanvasDatePicker { objectName: \"high\"; y: 20; value: \"2026-11-15\" } "
+        "QanvasDatePicker { objectName: \"low\"; y: 740; value: \"2026-11-15\" } }"));
+    ASSERT_NE(host, nullptr);
+
+    for (const auto& [name, below] : { std::pair{ QStringLiteral("high"), true },
+                                       std::pair{ QStringLiteral("low"), false } })
+    {
+        QQuickItem* picker = row(host, name);
+        ASSERT_NE(picker, nullptr) << name.toStdString();
+        QObject* popup = picker->findChild<QObject*>(name + QStringLiteral("_popup"));
+        ASSERT_NE(popup, nullptr) << name.toStdString();
+
+        QMetaObject::invokeMethod(picker, "keyActivate");
+        QTest::qWait(100);
+        ASSERT_TRUE(popup->property("visible").toBool()) << name.toStdString();
+
+        const qreal popupY = popup->property("y").toReal();
+        if (below)
+            EXPECT_GE(popupY, picker->height()) << name.toStdString();
+        else
+            EXPECT_LE(popupY + popup->property("height").toReal(), 0) << name.toStdString();
+
+        QMetaObject::invokeMethod(popup, "close");
+        QTest::qWait(100);
+    }
+}
+
 TEST_F(QmlComponentTest, ACardInAGridIsTallEnoughForItsContentAndItsMargins)
 {
     QQuickItem* grid = show(QStringLiteral(
