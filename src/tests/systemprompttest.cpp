@@ -813,3 +813,55 @@ TEST(SystemPromptTest, TheMainPromptDoesNotTeachTheBuilderStates)
     EXPECT_FALSE(main.contains(QStringLiteral("edit_file")));
     EXPECT_FALSE(SystemPrompt::text().contains(QStringLiteral("\nASK\n")));
 }
+
+TEST(SystemPromptTest, TheCompactionRequestIsExactlyTheAgreedText)
+{
+    const QString agreed = QStringLiteral(
+        R"prompt(Your context is about to be replaced by a summary that you write now. After this you will remember only that summary, plus the app files on disk. Do not call any tools. Reply with the summary only, in exactly this format:
+
+App: <app name> (<app id>)
+Done:
+1. <what you did>
+2. <what you did next>
+...
+Problems:
+- <a problem that is still open or still matters, with the file name if there is one>
+- <or "none">
+
+Rules:
+- Put "Done" in the order things happened. One short line per step: what changed and in which file. Merge repeated attempts into one line that names the final result.
+- Under "Problems", list only what is not solved, what you tried that failed and should not be tried again, and the user's requests that are still open.
+- Do not copy code or file contents. The files are on disk.
+- Keep the whole summary under 300 words.)prompt");
+
+    EXPECT_EQ(SystemPrompt::compactionRequest(), agreed);
+}
+
+TEST(SystemPromptTest, ASummaryWithAnAppLineBecomesTheOneMessageOfTheNewContext)
+{
+    const QString reply
+        = QStringLiteral("App: Courses (courses)\nDone:\n1. built it\nProblems:\n- none\n");
+
+    EXPECT_EQ(SystemPrompt::compactedContext(reply),
+              QStringLiteral("Summary of your earlier work on this app:\n"
+                             "App: Courses (courses)\nDone:\n1. built it\nProblems:\n- none"));
+}
+
+TEST(SystemPromptTest, ASummaryMayStartAfterAShortLeadInAsLongAsItHasTheAppLine)
+{
+    const QString reply = QStringLiteral("Here it is:\nApp: Courses (courses)\nDone:\n1. built it");
+
+    EXPECT_TRUE(SystemPrompt::compactedContext(reply).contains(QStringLiteral("\nApp: Courses")));
+}
+
+TEST(SystemPromptTest, AReplyWithoutAnAppLineGivesNoContext)
+{
+    EXPECT_TRUE(SystemPrompt::compactedContext(QString()).isEmpty());
+    EXPECT_TRUE(SystemPrompt::compactedContext(QStringLiteral("  \n ")).isEmpty());
+    EXPECT_TRUE(
+        SystemPrompt::compactedContext(QStringLiteral("I cannot summarize this.")).isEmpty());
+    EXPECT_TRUE(
+        SystemPrompt::compactedContext(QStringLiteral("Done:\n1. built it\nProblems:\n- none"))
+            .isEmpty());
+    EXPECT_TRUE(SystemPrompt::compactedContext(QStringLiteral("The App: is not named")).isEmpty());
+}

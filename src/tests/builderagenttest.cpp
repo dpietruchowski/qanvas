@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -141,6 +142,30 @@ TEST_F(BuilderAgentTest, MayBeAskedFiveTimesInATurnWhereTheDefaultAllowsThree)
 {
     EXPECT_EQ(builder->entry().maxDelegations, 5);
     EXPECT_GT(builder->entry().maxDelegations, chat::AppAgent::kDefaultMaxDelegations);
+}
+
+TEST_F(BuilderAgentTest,
+       KeepsItsContextBetweenDelegationsUpToAHundredThousandTokensAndFiftyFiveMinutes)
+{
+    const chat::AppAgent entry = builder->entry();
+
+    ASSERT_TRUE(entry.keepContext.has_value());
+    EXPECT_EQ(entry.keepContext->maxInputTokens, 100000);
+    EXPECT_EQ(entry.keepContext->maxAge, std::chrono::minutes(55));
+}
+
+TEST_F(BuilderAgentTest, CompactsWithTheCompactionPromptAndTheSummaryOfTheSystemPrompt)
+{
+    const chat::ContextPolicy policy = *builder->entry().keepContext;
+
+    EXPECT_TRUE(policy.compacts());
+    EXPECT_FALSE(policy.compactionRequest.isEmpty());
+    EXPECT_EQ(policy.compactionRequest, SystemPrompt::compactionRequest());
+    const QString reply
+        = QStringLiteral("App: Courses (courses)\nDone:\n1. built it\nProblems:\n- none");
+    EXPECT_FALSE(policy.compactedContext(reply).isEmpty());
+    EXPECT_EQ(policy.compactedContext(reply), SystemPrompt::compactedContext(reply));
+    EXPECT_TRUE(policy.compactedContext(QStringLiteral("no summary here")).isEmpty());
 }
 
 TEST_F(BuilderAgentTest, TheDescriptionAsksForTheWholePlanAndNamesTheStatusWords)

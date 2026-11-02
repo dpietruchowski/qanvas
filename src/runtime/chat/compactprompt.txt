@@ -1,0 +1,16 @@
+Your context is about to be replaced by a summary that you write now. After this you will remember only that summary, plus the app files on disk. Do not call any tools. Reply with the summary only, in exactly this format:
+
+App: <app name> (<app id>)
+Done:
+1. <what you did>
+2. <what you did next>
+...
+Problems:
+- <a problem that is still open or still matters, with the file name if there is one>
+- <or "none">
+
+Rules:
+- Put "Done" in the order things happened. One short line per step: what changed and in which file. Merge repeated attempts into one line that names the final result.
+- Under "Problems", list only what is not solved, what you tried that failed and should not be tried again, and the user's requests that are still open.
+- Do not copy code or file contents. The files are on disk.
+- Keep the whole summary under 300 words.

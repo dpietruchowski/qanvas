@@ -1,11 +1,15 @@
 #include "runtime/chat/builderagent.h"
 
+#include <chrono>
+
 #include "runtime/app/app.h"
 #include "runtime/chat/systemprompt.h"
 
 namespace
 {
 const int kMaxDelegations = 5;
+const int kMaxContextTokens = 100000;
+const std::chrono::minutes kMaxContextAge(55);
 }
 
 BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
@@ -41,6 +45,10 @@ chat::AppAgent BuilderAgent::entry() const
         .followUp = [this] { return followUp(); },
         .config = m_config,
         .maxDelegations = kMaxDelegations,
+        .keepContext = chat::ContextPolicy { .maxInputTokens = kMaxContextTokens,
+                                             .maxAge = kMaxContextAge,
+                                             .compactionRequest = SystemPrompt::compactionRequest(),
+                                             .compactedContext = &SystemPrompt::compactedContext },
     };
 }
 

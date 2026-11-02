@@ -17,4 +17,5 @@ qt_add_resources(qanvas_runtime "systemprompt"
     PREFIX "/qanvas"
     BASE chat
     FILES chat/systemprompt.txt chat/chatprompt.txt chat/devscreenshotprompt.txt
+        chat/compactprompt.txt
 )
