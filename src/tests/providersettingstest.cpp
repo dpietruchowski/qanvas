@@ -11,6 +11,7 @@
 #include <QVariantMap>
 
 #include "agent/agent.h"
+#include "agent/anthropicclient.h"
 #include "agent/claudesession.h"
 #include "async/backendworker.h"
 #include "chat/application/agentcatalog.h"
@@ -262,6 +263,28 @@ TEST_F(ProviderSettingsTest, TheClientFactoryFollowsTheKey)
     qputenv("OPENAI_API_KEY", "sk-from-environment");
 
     EXPECT_NE(clients.factory(ClaudeSession {}), nullptr);
+}
+
+TEST_F(ProviderSettingsTest, ClaudeGetsTheNativeClientAndTheOtherProvidersTheCompatibleOne)
+{
+    const auto settings = make();
+    const chat::ChatModule::Clients clients = settings->clients();
+    qputenv("OPENAI_API_KEY", "sk-openai-from-environment");
+    qputenv("OPENROUTER_API_KEY", "sk-openrouter-from-environment");
+    qputenv("CLAUDE_API_KEY", "sk-claude-from-environment");
+
+    const auto openAi = clients.factory(ClaudeSession {});
+    settings->setProvider(QStringLiteral("OpenRouter"));
+    const auto openRouter = clients.factory(ClaudeSession {});
+    settings->setProvider(QStringLiteral("Claude"));
+    const auto claude = clients.factory(ClaudeSession {});
+
+    ASSERT_NE(openAi, nullptr);
+    ASSERT_NE(openRouter, nullptr);
+    ASSERT_NE(claude, nullptr);
+    EXPECT_EQ(dynamic_cast<AnthropicClient*>(openAi.get()), nullptr);
+    EXPECT_EQ(dynamic_cast<AnthropicClient*>(openRouter.get()), nullptr);
+    EXPECT_NE(dynamic_cast<AnthropicClient*>(claude.get()), nullptr);
 }
 
 TEST_F(ProviderSettingsTest, BindingGivesTheChatTheDefaultsOfTheProvider)
