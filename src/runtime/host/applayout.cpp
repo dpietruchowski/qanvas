@@ -23,6 +23,7 @@ const qreal kSlack = 1.0;
 const qreal kTolerance = 3.0;
 const int kNoWrap = 0;
 const int kMinWrappedLines = 2;
+const int kMinVisibleRows = 2;
 const int kHorizontalFlick = 1;
 const int kVerticalFlick = 2;
 
@@ -225,16 +226,41 @@ bool tooNarrow(const QQuickItem* item) { return childrenRight(item) > item->widt
 
 bool tooShort(const QQuickItem* item) { return childrenBottom(item) > item->height() + kSlack; }
 
+const QObject* layoutAttached(const QQuickItem* item)
+{
+    const QList<QObject*> children = item->children();
+    for (const QObject* child : children)
+    {
+        if (child->inherits("QQuickLayoutAttached"))
+            return child;
+    }
+    return nullptr;
+}
+
+qreal widthItNeeds(const QQuickItem* item)
+{
+    const QObject* attached = layoutAttached(item);
+    if (!attached)
+        return item->implicitWidth();
+
+    const qreal minimum = attached->property("minimumWidth").toReal();
+    const qreal preferred = attached->property("preferredWidth").toReal();
+    const bool shrinks = attached->property("fillWidth").toBool() && !isLayout(item);
+    if (shrinks)
+        return minimum;
+    return qMax(minimum, preferred >= 0 ? preferred : item->implicitWidth());
+}
+
 QQuickItem* widestChild(QQuickItem* item)
 {
     QQuickItem* widest = nullptr;
     const QList<QQuickItem*> children = item->childItems();
     for (QQuickItem* child : children)
     {
-        if (child->isVisible() && (!widest || child->width() > widest->width()))
+        if (child->isVisible() && (!widest || widthItNeeds(child) > widthItNeeds(widest)))
             widest = child;
     }
-    return widest;
+    return widest && widthItNeeds(widest) > 0 ? widest : nullptr;
 }
 
 bool aChildLayoutIs(QQuickItem* item, bool (*failing)(const QQuickItem*))
@@ -437,6 +463,28 @@ void checkText(QQuickItem* item, Walk& walk)
                              "user's data let it wrap)"));
 }
 
+void checkList(QQuickItem* item, Walk& walk)
+{
+    const QVariant count = item->property("count");
+    if (!isFlickable(item) || !count.isValid() || count.toInt() < kMinVisibleRows
+        || item->height() < kSlack)
+        return;
+
+    const qreal content = item->property("contentHeight").toReal();
+    const qreal row = content / count.toInt();
+    if (content <= item->height() + kSlack || item->height() >= kMinVisibleRows * row)
+        return;
+
+    add(walk,
+        QStringLiteral("%1 is only %2px high for %3 rows of about %4px, so it shows less than two "
+                       "of them (put fewer things above it, or make the screen a QanvasScroll and "
+                       "give the list Layout.preferredHeight: rows * %4)")
+            .arg(describe(item, walk))
+            .arg(qRound(item->height()))
+            .arg(count.toInt())
+            .arg(qRound(row)));
+}
+
 bool checkClip(QQuickItem* item, Walk& walk, const Branch& branch)
 {
     const Clip& clip = branch.clip;
@@ -579,6 +627,7 @@ void walkItem(QQuickItem* item, Walk& walk, Branch branch)
         }
         if (isText(item))
             checkText(item, walk);
+        checkList(item, walk);
         if (cut)
             branch.clip.reported = true;
     }
