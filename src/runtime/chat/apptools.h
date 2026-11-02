@@ -61,6 +61,7 @@ private:
     void addDescribeAppTool();
     void addReadLogTool();
     void addCheckLayoutTool();
+    void addScreenshotTool();
     void addGrantAccessTool();
     void addNoteTool();
     void addFileTool(const char* docstring, const Activity& activity, bool reloads,
