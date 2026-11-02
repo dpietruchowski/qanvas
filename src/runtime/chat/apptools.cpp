@@ -111,8 +111,9 @@ const char* kReadLogDocstring
 const char* kCheckLayoutDocstring
     = "@brief check_layout\n"
       "@details Measures the running app on screen and lists every element that sticks out of "
-      "the screen, is cut off, or has no size; use it after the user says something is off "
-      "screen, not centred, or missing\n"
+      "the screen, is cut off by the screen or by a card or scroll around it, has a text that "
+      "does not fit, is drawn over another element, or has no size; use it after the user says "
+      "something is off screen, not centred, overlapping or missing\n"
       "@param app (string) app id\n"
       "@return the screen size with one line per layout problem, or that the layout fits";
 

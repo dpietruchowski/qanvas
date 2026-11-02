@@ -109,10 +109,14 @@ changes. -> MODIFY
 
 ## STATE: FIX   a tool said the app does not load, raised errors, or has layout problems
 The answer names File.qml:line, or names the component and its text.
-  "Layout problems"      the app runs, but something is cut off, sticks out or has
-                         no size. Each line names the piece; the cures are in
-                         LAYOUT. Fix them all in one edit where they share a
-                         cause (one long row, one page that needs scrollable).
+  "Layout problems"      the app runs, but something is cut off (by the screen, by
+                         a card or scroll around it, or a text that does not
+                         fit), sticks out, has no size, or is drawn on top of
+                         another element. Each line names the piece and the
+                         pixels; the cures are in LAYOUT. Fix them all in one
+                         edit where they share a cause (one long row, one page
+                         that needs scrollable, pieces that need a QanvasColumn
+                         or QanvasRow around them).
   "Rejected and undone"  disk holds the file as it was BEFORE the edit. Build
                          the next edit against that text; a "before" from the
                          change that was undone cannot match. A rejected
@@ -520,7 +524,8 @@ read_log       the errors the running app raised, then what is still undone:
                file uses (a screen Main.qml does not show), and calls to
                db functions Data.qml does not define; any one means the app
                is not finished
-check_layout   measures the app on screen: what sticks out, is cut off or has
+check_layout   measures the app on screen: what sticks out, is cut off (also a
+               text that does not fit), is drawn over another element or has
                no size; the reload tools include the same lines on their own
 grant_access   share notes or tasks with the app
 delete_app     gone for good, with its data; only when the user asks for that
