@@ -10,6 +10,7 @@
 #include "runtime/app/appwarnings.h"
 #include "runtime/host/applayout.h"
 #include "runtime/host/apploader.h"
+#include "runtime/host/appscreenshot.h"
 #include "runtime/host/notesbridge.h"
 #include "runtime/host/tasksbridge.h"
 
@@ -126,6 +127,13 @@ const char* kCheckLayoutDocstring
       "@param app (string) app id\n"
       "@return the files measured, then the screen size with one line per layout problem, or "
       "that the layout fits";
+
+const char* kScreenshotDocstring
+    = "@brief screenshot\n"
+      "@details Takes a picture of the running app on screen, the way the user sees it; use it "
+      "after you built or changed a screen, once the app has loaded\n"
+      "@param app (string) app id\n"
+      "@return the picture of the app, or why it could not be taken";
 
 const char* kGrantAccessDocstring
     = "@brief grant_access\n"
@@ -344,6 +352,8 @@ void AppTools::registerTools()
     addDeleteAppTool();
     addReadLogTool();
     addCheckLayoutTool();
+    if (AppScreenshot::enabled())
+        addScreenshotTool();
     addGrantAccessTool();
     addSetAppIconTool();
     addNoteTool();
@@ -413,6 +423,38 @@ void AppTools::addCheckLayoutTool()
 
             finish(index, Result<QString>::success(AppLayout::measureApp(app.id()).text()), done,
                    note);
+        },
+        ToolEffect::Reads);
+}
+
+void AppTools::addScreenshotTool()
+{
+    m_agent.addTool(
+        QString::fromLatin1(kScreenshotDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "photographing", "photographed", "could not photograph",
+                                      "app" };
+            const int index = beginActivity(activity, arguments);
+            QString note;
+            const App app = appFor(arguments, &note);
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
+
+            Result<ToolImage> shot = AppScreenshot::capture(app.id());
+            if (shot.isFailure())
+            {
+                finish(index, Result<QString>::failure(shot.error()), done, note);
+                return;
+            }
+
+            ToolImage image = shot.value();
+            image.text = note + image.text;
+            endActivity(index, true);
+            done(QVariant::fromValue(image));
         },
         ToolEffect::Reads);
 }

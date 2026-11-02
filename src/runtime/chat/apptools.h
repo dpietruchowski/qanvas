@@ -61,6 +61,7 @@ private:
     void addDescribeAppTool();
     void addReadLogTool();
     void addCheckLayoutTool();
+    void addScreenshotTool();
     void addGrantAccessTool();
     void addSetAppIconTool();
     void addNoteTool();

@@ -48,6 +48,45 @@ QString mainStage(const QString& stage)
 
 TEST(SystemPromptTest, LoadsFromTheResource) { EXPECT_FALSE(SystemPrompt::text().isEmpty()); }
 
+TEST(SystemPromptTest, SaysNothingOfScreenshotsOrTaggedNotesWithoutTheFlag)
+{
+    qunsetenv("QANVAS_DEV_SCREENSHOT");
+
+    const QString prompt = SystemPrompt::text();
+
+    EXPECT_FALSE(prompt.contains(QStringLiteral("screenshot")));
+    for (const char* tag : { "[layout-fail]", "[retry]", "[missing]", "[prompt]", "[clean]" })
+        EXPECT_FALSE(prompt.contains(QLatin1String(tag))) << tag;
+}
+
+TEST(SystemPromptTest, TeachesScreenshotsAndEveryNoteTagWithTheFlagAfterTheNormalPrompt)
+{
+    qunsetenv("QANVAS_DEV_SCREENSHOT");
+    const QString plain = SystemPrompt::text();
+
+    qputenv("QANVAS_DEV_SCREENSHOT", "1");
+    const QString flagged = SystemPrompt::text();
+    qunsetenv("QANVAS_DEV_SCREENSHOT");
+
+    EXPECT_TRUE(flagged.startsWith(plain));
+    const QString addOn = flagged.mid(plain.size());
+    EXPECT_TRUE(addOn.contains(QStringLiteral("screenshot(app)")));
+    for (const char* tag : { "[layout-fail]", "[retry]", "[missing]", "[prompt]", "[clean]" })
+        EXPECT_TRUE(addOn.contains(QLatin1String(tag))) << tag;
+}
+
+TEST(SystemPromptTest, TheMainPromptIsTheSameWithTheFlag)
+{
+    qunsetenv("QANVAS_DEV_SCREENSHOT");
+    const QString plain = SystemPrompt::mainText();
+
+    qputenv("QANVAS_DEV_SCREENSHOT", "1");
+    const QString flagged = SystemPrompt::mainText();
+    qunsetenv("QANVAS_DEV_SCREENSHOT");
+
+    EXPECT_EQ(flagged, plain);
+}
+
 TEST(SystemPromptTest, NamesEveryTool)
 {
     const QString prompt = SystemPrompt::text();
