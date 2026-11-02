@@ -281,6 +281,8 @@ TEST(SystemPromptTest, AStepThatCouldNotBeRepairedIsNotDoneAndStoppingEarlyIsNor
                                               "at it")));
     EXPECT_TRUE(steps.contains(QStringLiteral("Leaving steps undone is normal")));
     EXPECT_TRUE(steps.contains(QStringLiteral("reporting as done a step that is not is not")));
+    EXPECT_TRUE(steps.contains(QStringLiteral("Stop nowhere else: go on to the next step as long "
+                                              "as this one is done")));
 }
 
 TEST(SystemPromptTest, TheReportOfATaskWithStepsHasOneLinePerStep)
@@ -294,6 +296,8 @@ TEST(SystemPromptTest, TheReportOfATaskWithStepsHasOneLinePerStep)
     EXPECT_TRUE(done.contains(QStringLiteral("3 not done: ")));
     EXPECT_TRUE(
         done.contains(QStringLiteral("one you never reached is \"not done: not started\"")));
+    EXPECT_TRUE(done.contains(QStringLiteral("Report only the steps the task lists, numbered as "
+                                             "there: a step it does not list gets no line")));
 }
 
 TEST(SystemPromptTest, ThirdExampleBuildsTwoStepsOneAfterTheOtherAndReportsBoth)
@@ -442,6 +446,18 @@ TEST(SystemPromptTest, AnUnverifiedStepIsNotDelegatedAgainButHandedToTheUserWith
     EXPECT_TRUE(report.contains(QStringLiteral("with its check, so they can try it")));
     EXPECT_TRUE(report.contains(QStringLiteral("Finish with a reply that lists the steps, each "
                                                "with what came of it")));
+}
+
+TEST(SystemPromptTest, TheStatusOfAStepComesFromTheDelegationThatContainedItAndIsNeverUpgraded)
+{
+    const QString report = mainStage(QStringLiteral("REPORT"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("the status of a step is the one the builder gave "
+                                               "in the delegation that contained it"),
+                                Qt::CaseInsensitive));
+    EXPECT_TRUE(report.contains(QStringLiteral("a line about a step that delegation did not "
+                                               "contain is ignored")));
+    EXPECT_TRUE(report.contains(QStringLiteral("no later delegation upgrades a status")));
 }
 
 TEST(SystemPromptTest, BothPromptsUseTheSameWordsForTheStateOfAStep)

@@ -131,7 +131,8 @@ describe_app. A check that needs a tap or typed text is NOT verified, because
 you cannot do either: it is done-unverified.
 A step that FIX could not repair is not done: stop at it. A later step that
 does not need it may still go on. Leaving steps undone is normal, the main
-agent sends them again; reporting as done a step that is not is not.
+agent sends them again; reporting as done a step that is not is not. Stop
+nowhere else: go on to the next step as long as this one is done.
 After the last step you worked on -> NOTE
 
 ## STATE: FIX   a tool said the app does not load, raised errors, or has layout problems
@@ -199,7 +200,8 @@ step, numbered as in the task, then the sentence:
   3 not done: the screen kept failing to load
   Now there is a stopwatch with laps; the history is missing.
 A step is done+verified only as STEPS defines it; one you never reached is "not
-done: not started". Still no file names and no code.
+done: not started". Report only the steps the task lists, numbered as there:
+a step it does not list gets no line. Still no file names and no code.
 A message that starts with "Runtime check" is not the main agent: it lists what
 the runtime found undone. Do not answer it — go straight back to the step that
 did not land (write the rejected file, put the unused screens into Main.qml).

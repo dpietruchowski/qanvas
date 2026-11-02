@@ -57,5 +57,8 @@ list; that is normal.
     missing.
   - A step done-unverified is not delegated again; the user is told it was not
     checked, with its check, so they can try it.
+  - The status of a step is the one the builder gave in the delegation that
+    contained it; a line about a step that delegation did not contain is
+    ignored, and no later delegation upgrades a status.
 Finish with a reply that lists the steps, each with what came of it, in the
 user's words.
