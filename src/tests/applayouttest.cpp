@@ -213,12 +213,11 @@ TEST_F(AppLayoutTest, ATextCutOffInsideAComponentIsReportedUnderTheOwner)
 {
     const QString report = show(QStringLiteral(
         "import Qanvas.Components\n"
-        "Item { QanvasColumn { anchors.fill: parent; QanvasListItem { Layout.fillWidth: false; "
-        "Layout.preferredWidth: 90; title: \"Kup mleko i chleb w sklepie\" } } }"));
+        "Item { QanvasColumn { anchors.fill: parent; QanvasStat { Layout.fillWidth: false; "
+        "Layout.preferredWidth: 70; label: \"Czas\"; value: \"00:01:23.45\" } } }"));
 
-    EXPECT_TRUE(report.contains(QStringLiteral("QanvasListItem \"Kup mleko i chleb w skl…\" "
-                                               "(Main.qml): the text \"Kup mleko i chleb w "
-                                               "skl…\" does not fit: it needs")))
+    EXPECT_TRUE(report.contains(QStringLiteral("QanvasStat \"Czas\" (Main.qml): the text "
+                                               "\"00:01:23.45\" does not fit: it needs")))
         << report.toStdString();
     EXPECT_EQ(report.count(QStringLiteral("\n- ")), 1) << report.toStdString();
 }
@@ -486,7 +485,7 @@ TEST_F(AppLayoutTest, AListTitleLongerThanOneLineWrapsInsteadOfBeingCutOff)
     EXPECT_EQ(textLines(title), 2);
 }
 
-TEST_F(AppLayoutTest, AListTitleLongerThanTwoLinesIsStillReported)
+TEST_F(AppLayoutTest, AListTitleCutAfterTwoLinesIsNotReported)
 {
     const QString title = QStringLiteral(
         "Kup mleko i chleb w sklepie osiedlowym oraz jeszcze bułki i masło na kanapki");
@@ -497,8 +496,35 @@ TEST_F(AppLayoutTest, AListTitleLongerThanTwoLinesIsStillReported)
             "Layout.preferredWidth: 150; title: \"%1\" } } }")
             .arg(title));
 
-    EXPECT_TRUE(report.contains(QStringLiteral("does not fit"))) << report.toStdString();
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
     EXPECT_EQ(textLines(title), 2);
+}
+
+TEST_F(AppLayoutTest, AWrappingTextCutAtItsLineLimitIsNotReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Text { width: 100; wrapMode: Text.Wrap; maximumLineCount: 2; elide: "
+        "Text.ElideRight; text: \"a rather long line that needs many lines to be shown\" } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AWrappingTextLimitedToOneLineIsStillReported)
+{
+    const QString report = show(
+        QStringLiteral("Item { Text { width: 60; wrapMode: Text.Wrap; maximumLineCount: 1; elide: "
+                       "Text.ElideRight; text: \"a rather long line\" } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("does not fit"))) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AWordWiderThanAWrappingTextIsStillReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Text { width: 60; wrapMode: Text.WordWrap; maximumLineCount: 2; text: "
+        "\"Supercalifragilisticexpialidocious\" } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("does not fit"))) << report.toStdString();
 }
 
 TEST_F(AppLayoutTest, AListSubtitleWrapsToTwoLinesLikeTheTitle)

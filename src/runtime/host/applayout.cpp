@@ -17,6 +17,8 @@ const int kMaxLines = 8;
 const int kLabelLength = 24;
 const qreal kSlack = 1.0;
 const qreal kTolerance = 3.0;
+const int kNoWrap = 0;
+const int kMinWrappedLines = 2;
 const int kHorizontalFlick = 1;
 const int kVerticalFlick = 2;
 
@@ -342,12 +344,19 @@ void checkSize(QQuickItem* item, Walk& walk)
         add(walk, QStringLiteral("%1 has no width, so it is invisible").arg(label(item)));
 }
 
+bool cutByItsLineLimit(const QQuickItem* item)
+{
+    const int limit = item->property("maximumLineCount").toInt();
+    return item->property("wrapMode").toInt() != kNoWrap && limit >= kMinWrappedLines
+        && item->property("lineCount").toInt() >= limit;
+}
+
 void checkText(QQuickItem* item, Walk& walk)
 {
     if (isEmptyText(item) || item->width() < kSlack || item->height() < kSlack)
         return;
-    if (!item->property("truncated").toBool()
-        && item->property("contentWidth").toReal() <= item->width() + kSlack)
+    const bool tooWide = item->property("contentWidth").toReal() > item->width() + kSlack;
+    if (!tooWide && (!item->property("truncated").toBool() || cutByItsLineLimit(item)))
         return;
 
     QString line = QStringLiteral("%1: the text \"%2\" does not fit")
