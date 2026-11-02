@@ -1,11 +1,14 @@
 #include "runtime/chat/systemprompt.h"
 
 #include <QFile>
+#include <QRegularExpression>
 
 #include "runtime/host/appscreenshot.h"
 
 namespace
 {
+const QString kSummaryPrefix = QStringLiteral("Summary of your earlier work on this app:\n");
+
 QString resourceText(const QString& path)
 {
     QFile file(path);
@@ -25,3 +28,16 @@ QString SystemPrompt::text()
 }
 
 QString SystemPrompt::mainText() { return resourceText(QStringLiteral(":/qanvas/chatprompt.txt")); }
+
+QString SystemPrompt::compactionRequest()
+{
+    return resourceText(QStringLiteral(":/qanvas/compactprompt.txt"));
+}
+
+QString SystemPrompt::compactedContext(const QString& reply)
+{
+    static const QRegularExpression appLine(QStringLiteral("^App:"),
+                                            QRegularExpression::MultilineOption);
+    const QString summary = reply.trimmed();
+    return appLine.match(summary).hasMatch() ? kSummaryPrefix + summary : QString();
+}
