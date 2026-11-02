@@ -842,7 +842,7 @@ TEST_F(AppToolsTest, TheScreenshotToolIsOfferedWithTheFlagAndOnlyReads)
 
     ASSERT_TRUE(client.lastTools.contains(QStringLiteral("screenshot")));
     EXPECT_EQ(client.lastTools.value(QStringLiteral("screenshot")).effect, ToolEffect::Reads);
-    EXPECT_EQ(client.lastTools.size(), 15);
+    EXPECT_EQ(client.lastTools.size(), 16);
 }
 
 TEST_F(AppToolsTest, AScreenshotOfAnAppThatIsNotOnScreenSaysSoAndFailsTheStep)
@@ -850,6 +850,7 @@ TEST_F(AppToolsTest, AScreenshotOfAnAppThatIsNotOnScreenSaysSoAndFailsTheStep)
     qputenv("QANVAS_DEV_SCREENSHOT", "1");
     ::Agent flagged { QStringLiteral("test-model"), QStringLiteral("system") };
     AppTools flaggedTools(flagged, *registry, notesPath());
+    flaggedTools.setEngine(&engine);
     client.script
         = { ScriptedClient::toolCall(QStringLiteral("create_app"),
                                      createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
