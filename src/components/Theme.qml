@@ -261,6 +261,8 @@ DefaultTheme {
         readonly property int titleFontSize: theme.fontSize.medium
         readonly property color titleColor: theme.colors.textPrimary
         readonly property int titleLines: 2
+        readonly property int removeInset: theme.spacing.xSmall
+        readonly property color removeColor: theme.colors.textMuted
         readonly property int emptyFontSize: theme.fontSize.normal
         readonly property color emptyColor: theme.colors.textMuted
     }
