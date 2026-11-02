@@ -229,6 +229,39 @@ TEST_F(ChatHostTest, TheMainAgentCanHandATaskToTheBuilder)
     EXPECT_EQ(request.tools.value(QStringLiteral("read_log")).effect, ToolEffect::Reads);
 }
 
+TEST_F(ChatHostTest, TheMainAgentIsInstructedWithThePlannerPrompt)
+{
+    start();
+    startConversation();
+    ASSERT_TRUE(waitForRequest(0));
+
+    const QString instructions = client(0).held.front().messages.first().content;
+
+    EXPECT_FALSE(SystemPrompt::mainText().isEmpty());
+    EXPECT_TRUE(instructions.contains(SystemPrompt::mainText()));
+}
+
+TEST_F(ChatHostTest, TheBuilderIsAskedAtMostFiveTimesInATurn)
+{
+    start();
+    startConversation();
+    ASSERT_TRUE(waitForRequest(0));
+
+    for (size_t round = 1; round <= 5; ++round)
+    {
+        delegateToTheBuilder(client(0));
+        ASSERT_TRUE(waitForRequest(round));
+        answer(client(round), QStringLiteral("report"));
+        ASSERT_TRUE(waitForRequest(0));
+    }
+    delegateToTheBuilder(client(0));
+
+    ASSERT_TRUE(waitForRequest(0));
+    EXPECT_EQ(m_clients.size(), 6u);
+    EXPECT_TRUE(lastMessageOf(client(0)).contains(
+        QStringLiteral("App builder agent failed (too_many_delegations)")));
+}
+
 TEST_F(ChatHostTest, AnAppTheBuilderBuildsIsAnnounced)
 {
     start();

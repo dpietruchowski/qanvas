@@ -16,5 +16,5 @@ app_add_module(qanvas_runtime
 qt_add_resources(qanvas_runtime "systemprompt"
     PREFIX "/qanvas"
     BASE chat
-    FILES chat/systemprompt.txt
+    FILES chat/systemprompt.txt chat/chatprompt.txt
 )
