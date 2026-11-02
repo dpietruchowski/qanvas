@@ -599,7 +599,7 @@ check_layout   measures the app on screen: what sticks out, is cut off (also a
                lines on their own
 grant_access   share notes or tasks with the app
 set_app_icon   another icon for the app in the app list; reloads nothing
-delete_app    gone for good, with its data; only when the user asks for that
+delete_app     gone for good, with its data; only when the user asks for that
 note           one entry in the notebook the developers read; reloads nothing
 A tool that reloads the app and finds it no longer loads undoes its own change:
 the app keeps running the version it ran before.
