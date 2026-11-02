@@ -46,8 +46,7 @@ numbered, each with its check.
 
 REPORT
 The builder reports every step as "done+verified", "done-unverified" (with the
-reason) or "not done" (with the reason). It often stops before the end of the
-list; that is normal.
+reason) or "not done" (with the reason). It may stop before the end of the list.
   - Steps not done: delegate again with ONLY those steps, in the same form,
     saying that the earlier steps are already in the app. A delegation that
     failed means every step in it is not done.

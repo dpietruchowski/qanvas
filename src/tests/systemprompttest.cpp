@@ -418,8 +418,7 @@ TEST(SystemPromptTest, StepsNotDoneAreDelegatedAgainWithOnlyThoseSteps)
     const QString report = mainStage(QStringLiteral("REPORT"));
 
     ASSERT_FALSE(report.isEmpty());
-    EXPECT_TRUE(report.contains(QStringLiteral("It often stops before the end of the list; that "
-                                               "is normal")));
+    EXPECT_TRUE(report.contains(QStringLiteral("It may stop before the end of the list.")));
     EXPECT_TRUE(report.contains(QStringLiteral("delegate again with ONLY those steps")));
     EXPECT_TRUE(report.contains(QStringLiteral("earlier steps are already in the app")));
     EXPECT_TRUE(report.contains(QStringLiteral("A delegation that failed means every step in it "
