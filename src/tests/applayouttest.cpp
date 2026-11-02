@@ -265,6 +265,76 @@ TEST_F(AppLayoutTest, ComponentsWhoseTextFitsAreNotReported)
     EXPECT_TRUE(report.isEmpty()) << report.toStdString();
 }
 
+TEST_F(AppLayoutTest, AWordBrokenInTwoByANarrowTextIsReported)
+{
+    const QString report = show(
+        QStringLiteral("Item { Text { width: 30; wrapMode: Text.Wrap; text: \"listopad\" } }"));
+
+    EXPECT_GE(textLines(QStringLiteral("listopad")), 2);
+    EXPECT_TRUE(
+        report.contains(QStringLiteral("Text \"listopad\" (Main.qml): the word \"listopad\" "
+                                       "is broken across lines: it needs ")))
+        << report.toStdString();
+    EXPECT_FALSE(report.contains(QStringLiteral("does not fit"))) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, TheSameWordInAWideEnoughTextIsNotReported)
+{
+    const QString report = show(
+        QStringLiteral("Item { Text { width: 120; wrapMode: Text.Wrap; text: \"listopad\" } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AWordBrokenInsideAComponentIsReportedUnderTheOwner)
+{
+    const QString report = show(QStringLiteral(
+        "import Qanvas.Components\n"
+        "Item { QanvasColumn { anchors.fill: parent; QanvasListItem { Layout.fillWidth: false; "
+        "Layout.preferredWidth: 40; title: \"listopad\" } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("QanvasListItem \"listopad\" (Main.qml): the word "
+                                               "\"listopad\" is broken across lines")))
+        << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, TextThatWrapsBetweenWordsIsNotReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Text { width: 80; wrapMode: Text.Wrap; text: \"Zakupy na cały tydzień\" } "
+        "Text { y: 100; width: 80; wrapMode: Text.WrapAnywhere; text: \"ok\" } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AnUnwrappedTextWiderThanItsBoxIsNotReportedAsABrokenWord)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Text { width: 30; height: 20; wrapMode: Text.NoWrap; text: \"listopad\" } }"));
+
+    EXPECT_FALSE(report.contains(QStringLiteral("broken across lines"))) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, TheLongestWordIsNamedWhenSeveralAreBroken)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Text { width: 30; wrapMode: Text.Wrap; text: \"listopad grudzień\" } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("the word \"grudzień\" is broken across lines")))
+        << report.toStdString();
+    EXPECT_EQ(report.count(QStringLiteral("\n- ")), 1) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, TheSameBrokenWordInEveryDelegateIsOneLineWithACount)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Column { Repeater { model: 5; Text { width: 30; wrapMode: Text.Wrap; "
+        "text: \"listopad\" } } } }"));
+
+    EXPECT_EQ(report.count(QStringLiteral("is broken across lines")), 1) << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("(5 times)"))) << report.toStdString();
+}
+
 TEST_F(AppLayoutTest, SiblingsStackedAtOnePositionAreReported)
 {
     const QString report = show(QStringLiteral("Item { Repeater { model: 3; Row { Text { text: "
