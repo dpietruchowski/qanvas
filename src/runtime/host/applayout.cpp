@@ -4,11 +4,15 @@
 #include "runtime/host/apploader.h"
 
 #include <QFileInfo>
+#include <QFont>
+#include <QFontMetricsF>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QSet>
 #include <QStringList>
+#include <QTextBoundaryFinder>
+#include <QTextDocumentFragment>
 #include <QUrl>
 
 namespace
@@ -351,13 +355,74 @@ bool cutByItsLineLimit(const QQuickItem* item)
         && item->property("lineCount").toInt() >= limit;
 }
 
+QString shownText(const QQuickItem* item)
+{
+    const QString text = item->property("text").toString();
+    const int format = item->property("textFormat").toInt();
+    if (format != Qt::PlainText && Qt::mightBeRichText(text))
+        return QTextDocumentFragment::fromHtml(text).toPlainText();
+    return text;
+}
+
+struct BrokenWord
+{
+    QString word;
+    qreal needs = 0;
+    qreal has = 0;
+};
+
+BrokenWord brokenWord(const QQuickItem* item)
+{
+    BrokenWord found;
+    if (item->property("wrapMode").toInt() == kNoWrap
+        || item->property("lineCount").toInt() < kMinWrappedLines)
+        return found;
+
+    found.has = item->width() - item->property("leftPadding").toReal()
+        - item->property("rightPadding").toReal();
+    const QFontMetricsF metrics(item->property("font").value<QFont>());
+    const QString text = shownText(item);
+    QTextBoundaryFinder finder(QTextBoundaryFinder::Line, text);
+    int start = 0;
+    for (int end = finder.toNextBoundary(); end > 0; end = finder.toNextBoundary())
+    {
+        const QString word = text.mid(start, end - start).trimmed();
+        start = end;
+        const qreal needs = metrics.horizontalAdvance(word);
+        if (needs > found.has + kSlack && needs > found.needs)
+        {
+            found.word = word;
+            found.needs = needs;
+        }
+    }
+    return found;
+}
+
+void checkBrokenWord(QQuickItem* item, Walk& walk)
+{
+    const BrokenWord broken = brokenWord(item);
+    if (broken.word.isEmpty())
+        return;
+
+    add(walk,
+        QStringLiteral("%1: the word \"%2\" is broken across lines: it needs %3px of width but "
+                       "the text has %4px (give it more width, or shorten the word)")
+            .arg(describe(item, walk))
+            .arg(shorten(broken.word))
+            .arg(qRound(broken.needs))
+            .arg(qRound(broken.has)));
+}
+
 void checkText(QQuickItem* item, Walk& walk)
 {
     if (isEmptyText(item) || item->width() < kSlack || item->height() < kSlack)
         return;
     const bool tooWide = item->property("contentWidth").toReal() > item->width() + kSlack;
     if (!tooWide && (!item->property("truncated").toBool() || cutByItsLineLimit(item)))
+    {
+        checkBrokenWord(item, walk);
         return;
+    }
 
     QString line = QStringLiteral("%1: the text \"%2\" does not fit")
                        .arg(describe(item, walk))
