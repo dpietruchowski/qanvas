@@ -7,44 +7,47 @@ ThemedCard {
     id: root
 
     property string title: ""
-    property string subtitle: ""
+    property string icon: ""
 
     signal removeClicked()
 
     objectName: "appCard"
     clickable: true
-    margins: Theme.appList.cardPadding
-    implicitHeight: Math.max(row.implicitHeight + root.margins * 2, Theme.appList.cardMinHeight)
+    margins: Theme.appList.tilePadding
 
-    RowLayout {
-        id: row
-
-        spacing: Theme.appList.actionSpacing
-
+    Item {
         ColumnLayout {
-            Layout.fillWidth: true
-            spacing: Theme.appList.lineSpacing
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            spacing: Theme.appList.tileSpacing
 
-            Text {
-                Layout.fillWidth: true
-                text: root.title
-                elide: Text.ElideRight
-                color: Theme.appList.titleColor
-                font.pixelSize: Theme.appList.titleFontSize
+            ThemedIcon {
+                objectName: "appIcon"
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Theme.appList.iconSize
+                Layout.preferredHeight: Theme.appList.iconSize
+                svgSource: Theme.iconSource(root.icon)
+                color: Theme.appList.iconColor
             }
 
             Text {
+                objectName: "appTitle"
                 Layout.fillWidth: true
-                text: root.subtitle
+                text: root.title
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                maximumLineCount: Theme.appList.titleLines
                 elide: Text.ElideRight
-                color: Theme.appList.subtitleColor
-                font.pixelSize: Theme.appList.subtitleFontSize
+                color: Theme.appList.titleColor
+                font.pixelSize: Theme.appList.titleFontSize
             }
         }
 
         ThemedButton {
             objectName: "appRemoveButton"
-            Layout.alignment: Qt.AlignVCenter
+            anchors.top: parent.top
+            anchors.right: parent.right
             iconSource: Theme.icons.remove
             buttonSize: Theme.button.icon
             buttonStyle: Theme.button.ghost

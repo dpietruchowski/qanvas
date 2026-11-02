@@ -63,6 +63,7 @@ private:
     void addCheckLayoutTool();
     void addScreenshotTool();
     void addGrantAccessTool();
+    void addSetAppIconTool();
     void addNoteTool();
     void addFileTool(const char* docstring, const Activity& activity, bool reloads,
                      const FileOperation& operation);
@@ -77,6 +78,7 @@ private:
     void endActivity(int index, bool ok);
     void noteOutcome(const QString& key, const QString& answer);
     QString appList() const;
+    Result<QString> iconNamed(const QVariantMap& arguments) const;
     QString unknownApp(const QString& id) const;
 
     ::Agent& m_agent;

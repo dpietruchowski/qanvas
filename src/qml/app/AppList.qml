@@ -2,7 +2,7 @@ import QtQuick
 
 import Themed.Components
 
-ListView {
+ThemedGridView {
     id: root
 
     property var apps: []
@@ -12,17 +12,25 @@ ListView {
 
     objectName: "appList"
     model: root.apps
-    spacing: Theme.appList.spacing
-    clip: true
+    columns: Math.max(1, Math.floor(root.width / Theme.appList.tileMinWidth))
+    cellHeight: Theme.appList.tileHeight
 
-    delegate: AppCard {
+    delegate: Item {
+        id: cell
+
         required property var modelData
 
-        width: root.width
-        title: modelData.title
-        subtitle: modelData.id
+        width: root.cellWidth
+        height: root.cellHeight
 
-        onClicked: root.appActivated(modelData.id)
-        onRemoveClicked: root.appRemoveRequested(modelData.id, modelData.title)
+        AppCard {
+            anchors.fill: parent
+            anchors.margins: Theme.appList.tileGap / 2
+            title: cell.modelData.title
+            icon: cell.modelData.icon
+
+            onClicked: root.appActivated(cell.modelData.id)
+            onRemoveClicked: root.appRemoveRequested(cell.modelData.id, cell.modelData.title)
+        }
     }
 }

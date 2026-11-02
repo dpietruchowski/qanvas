@@ -28,6 +28,7 @@
 #include "runtime/host/appcontext.h"
 #include "runtime/host/apploader.h"
 #include "scriptedclient.h"
+#include "themedtypes.h"
 
 namespace
 {
@@ -37,7 +38,24 @@ QVariantMap createApp(const QString& id, const QString& title)
 {
     return QVariantMap { { QStringLiteral("id"), id },
                          { QStringLiteral("title"), title },
+                         { QStringLiteral("icon"), QStringLiteral("note") },
                          { QStringLiteral("qml"), kMainQml } };
+}
+
+QString iconOf(const AppRegistry& registry, const QString& id)
+{
+    const QVariantList apps = registry.apps();
+    for (const QVariant& app : apps)
+    {
+        if (app.toMap().value(QStringLiteral("id")).toString() == id)
+            return app.toMap().value(QStringLiteral("icon")).toString();
+    }
+    return QString();
+}
+
+QVariantMap iconArguments(const QString& app, const QString& icon)
+{
+    return QVariantMap { { QStringLiteral("app"), app }, { QStringLiteral("icon"), icon } };
 }
 
 QVariantMap appWhoseChildReads(const QString& childBody)
@@ -83,6 +101,7 @@ protected:
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         qunsetenv("QANVAS_DEV_SCREENSHOT");
         registry = std::make_unique<AppRegistry>(nullptr);
+        prepareThemedEngine(engine);
         engine.setOutputWarningsToStandardError(false);
         tools = std::make_unique<AppTools>(agent, *registry, notesPath());
         tools->setEngine(&engine);
@@ -170,6 +189,124 @@ TEST_F(AppToolsTest, CreateAppWritesTheDataComponentBesideTheEntryFile)
               arguments.value(QStringLiteral("data")).toString());
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("\"value\":\"ok\"")));
     EXPECT_FALSE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, CreateAppRegistersTheAppWithTheIconItWasGiven)
+{
+    QVariantMap arguments = createApp(QStringLiteral("budget"), QStringLiteral("Budżet"));
+    arguments[QStringLiteral("icon")] = QStringLiteral("wallet");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_EQ(iconOf(*registry, QStringLiteral("budget")), QStringLiteral("wallet"));
+}
+
+TEST_F(AppToolsTest, CreateAppStoresTheIconAnAliasStandsFor)
+{
+    QVariantMap arguments = createApp(QStringLiteral("trash"), QStringLiteral("Kosz"));
+    arguments[QStringLiteral("icon")] = QStringLiteral("trash");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_EQ(iconOf(*registry, QStringLiteral("trash")), QStringLiteral("remove"));
+}
+
+TEST_F(AppToolsTest, CreateAppRejectsAnUnknownIconAndCreatesNothing)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("icon")] = QStringLiteral("rocket");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No icon \\\"rocket\\\"")));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("choose one of")));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("wallet")));
+    EXPECT_TRUE(registry->apps().isEmpty());
+    EXPECT_FALSE(App(QStringLiteral("notes")).exists());
+    EXPECT_TRUE(shown.isEmpty());
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, CreateAppRejectsAMissingIcon)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments.remove(QStringLiteral("icon"));
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No icon")));
+    EXPECT_TRUE(registry->apps().isEmpty());
+    EXPECT_FALSE(App(QStringLiteral("notes")).exists());
+}
+
+TEST_F(AppToolsTest, CreateAppReplacingAnAppTakesTheNewIcon)
+{
+    QVariantMap again = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    again[QStringLiteral("icon")] = QStringLiteral("book");
+
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(QStringLiteral("create_app"), again),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    ASSERT_EQ(registry->apps().size(), 1);
+    EXPECT_EQ(iconOf(*registry, QStringLiteral("notes")), QStringLiteral("book"));
+}
+
+TEST_F(AppToolsTest, SetAppIconChangesTheIconAndLeavesTheFilesAlone)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(QStringLiteral("set_app_icon"),
+                                   iconArguments(QStringLiteral("notes"), QStringLiteral("book"))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_EQ(iconOf(*registry, QStringLiteral("notes")), QStringLiteral("book"));
+    EXPECT_EQ(readAll(App(QStringLiteral("notes")).entryPath()), kMainQml);
+    EXPECT_EQ(shown, QStringList { QStringLiteral("notes") });
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("has the icon book now")));
+    EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
+    EXPECT_EQ(activity(1).value(QStringLiteral("detail")).toString(), QStringLiteral("notes"));
+}
+
+TEST_F(AppToolsTest, SetAppIconStoresTheIconAnAliasStandsFor)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(QStringLiteral("set_app_icon"),
+                                   iconArguments(QStringLiteral("notes"), QStringLiteral("trash"))),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_EQ(iconOf(*registry, QStringLiteral("notes")), QStringLiteral("remove"));
+}
+
+TEST_F(AppToolsTest, SetAppIconRejectsAnUnknownIconAndKeepsTheOldOne)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::toolCall(
+              QStringLiteral("set_app_icon"),
+              iconArguments(QStringLiteral("notes"), QStringLiteral("rocket"))),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    EXPECT_EQ(iconOf(*registry, QStringLiteral("notes")), QStringLiteral("note"));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No icon \\\"rocket\\\"")));
+    EXPECT_TRUE(activity(1).value(QStringLiteral("failed")).toBool());
+}
+
+TEST_F(AppToolsTest, SetAppIconRefusesAnAppThatIsNotThere)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("set_app_icon"),
+                                   iconArguments(QStringLiteral("notes"), QStringLiteral("book"))),
+          ScriptedClient::reply(QStringLiteral("sorry")) });
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No app")));
+    EXPECT_TRUE(registry->apps().isEmpty());
+    EXPECT_TRUE(activity(0).value(QStringLiteral("failed")).toBool());
 }
 
 TEST_F(AppToolsTest, CreateAppLogsOneBuiltStepNamedAfterTheTitle)
@@ -621,6 +758,7 @@ TEST_F(AppToolsTest, DescribeAppListsFunctionsAndTables)
               QStringLiteral("create_app"),
               QVariantMap { { QStringLiteral("id"), QStringLiteral("notes") },
                             { QStringLiteral("title"), QStringLiteral("Notatki") },
+                            { QStringLiteral("icon"), QStringLiteral("note") },
                             { QStringLiteral("qml"),
                               QStringLiteral("import QtQuick\nItem {\n    function greet(name) { "
                                              "return name }\n}\n") } }),
@@ -678,8 +816,8 @@ TEST_F(AppToolsTest, GivesTheAgentEveryToolWithItsEffect)
 
     const QStringList reads { "list_apps",    "list_files", "read_file",    "search_files",
                               "describe_app", "read_log",   "check_layout", "note" };
-    const QStringList writes { "create_app",  "write_file", "edit_file",
-                               "delete_file", "delete_app", "grant_access" };
+    const QStringList writes { "create_app", "write_file",   "edit_file",   "delete_file",
+                               "delete_app", "grant_access", "set_app_icon" };
     EXPECT_EQ(client.lastTools.size(), reads.size() + writes.size());
     for (const QString& name : reads)
     {
@@ -751,7 +889,7 @@ TEST_F(AppToolsTest, TheScreenshotToolIsOfferedWithTheFlagAndOnlyReads)
 
     ASSERT_TRUE(client.lastTools.contains(QStringLiteral("screenshot")));
     EXPECT_EQ(client.lastTools.value(QStringLiteral("screenshot")).effect, ToolEffect::Reads);
-    EXPECT_EQ(client.lastTools.size(), 15);
+    EXPECT_EQ(client.lastTools.size(), 16);
 }
 
 TEST_F(AppToolsTest, AScreenshotOfAnAppThatIsNotOnScreenSaysSoAndFailsTheStep)
@@ -759,6 +897,7 @@ TEST_F(AppToolsTest, AScreenshotOfAnAppThatIsNotOnScreenSaysSoAndFailsTheStep)
     qputenv("QANVAS_DEV_SCREENSHOT", "1");
     ::Agent flagged { QStringLiteral("test-model"), QStringLiteral("system") };
     AppTools flaggedTools(flagged, *registry, notesPath());
+    flaggedTools.setEngine(&engine);
     client.script
         = { ScriptedClient::toolCall(QStringLiteral("create_app"),
                                      createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),

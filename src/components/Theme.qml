@@ -251,15 +251,16 @@ DefaultTheme {
     }
 
     property QtObject appList: QtObject {
-        readonly property int spacing: theme.spacing.medium
-        readonly property int cardPadding: theme.padding.medium
-        readonly property int cardMinHeight: theme.scaled(56)
+        readonly property int tileMinWidth: theme.scaled(160)
+        readonly property int tileHeight: theme.scaled(148)
+        readonly property int tileGap: theme.spacing.medium
+        readonly property int tilePadding: theme.padding.medium
+        readonly property int tileSpacing: theme.spacing.medium
+        readonly property int iconSize: theme.scaled(48)
+        readonly property color iconColor: theme.colors.primary
         readonly property int titleFontSize: theme.fontSize.medium
         readonly property color titleColor: theme.colors.textPrimary
-        readonly property int subtitleFontSize: theme.fontSize.small
-        readonly property color subtitleColor: theme.colors.textMuted
-        readonly property int lineSpacing: theme.spacing.xSmall
-        readonly property int actionSpacing: theme.spacing.medium
+        readonly property int titleLines: 2
         readonly property int emptyFontSize: theme.fontSize.normal
         readonly property color emptyColor: theme.colors.textMuted
     }
@@ -355,11 +356,16 @@ DefaultTheme {
         "work": "briefcase", "graduation": "school"
     })
 
+    function resolveIcon(name) {
+        const resolved = theme.iconAliases[name] || name
+        return theme.iconNames.indexOf(resolved) === -1 ? "" : resolved
+    }
+
     function iconSource(name) {
         if (!name)
             return ""
-        const resolved = theme.iconAliases[name] || name
-        if (theme.iconNames.indexOf(resolved) === -1)
+        const resolved = resolveIcon(name)
+        if (!resolved)
             throw new Error("unknown icon \"" + name + "\": iconName is one of "
                             + theme.iconNames.join(" "))
         return "qrc:/Themed/Icons/" + resolved + ".svg"
