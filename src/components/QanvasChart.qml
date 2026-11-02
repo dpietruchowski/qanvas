@@ -13,4 +13,8 @@ ThemedBarChart {
     colorFormat: function (item) {
         return Theme.progressColor(String(root.formatted(root.typeFormat, root.typeRole, item)))
     }
+
+    seriesColorFormat: function (entry) {
+        return Theme.progressColor(String(entry.type || ""))
+    }
 }

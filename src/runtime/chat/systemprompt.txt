@@ -506,14 +506,22 @@ QanvasStat{label value type:primary|success|danger}  a tile: big value, small
     label; put them in a QanvasGrid or a QanvasRow
 QanvasBadge{text type:primary|success|warning|danger}  a small pill label
     (no type: the neutral grey one)
-QanvasChart{model textRole valueRole typeRole textFormat valueFormat typeFormat}
+QanvasChart{model textRole valueRole typeRole series textFormat valueFormat typeFormat}
     horizontal bars, one row per item, every bar as long as its value is to the
     largest one; typeRole is a colour word per bar, valueFormat the text at the
     end of it: spending per category is model: (App.revision,
     db.totalsByCategory()), textRole: "category", valueRole: "sum", typeRole:
     "color", valueFormat: function(item) { return item.sum.toFixed(2) + " zł" };
     it does not shrink: a row is about 50 px, so in a column it gets
-    Layout.preferredHeight: rows * 50 under a QanvasScroll root, never fillHeight
+    Layout.preferredHeight: rows * 50 under a QanvasScroll root, never fillHeight.
+    Two or more values per row (intake against output per day) use series
+    instead of valueRole and typeRole: series: [{role: "inMl", name: "IN", type:
+    "success"}, {role: "outMl", name: "OUT", type: "warning"}] draws one bar per
+    series in each row, coloured by its type word, with a legend of the names
+    above; every bar is as long as its value is to the largest of all series,
+    and valueFormat: function(item, role) gets the role of the bar it prints.
+    A row of two series is about 85 px, so it gets Layout.preferredHeight:
+    rows * 85 + 20, the 20 being the legend
 QanvasTabs{options value onSelected(value)}  one row of choices, one active;
     options is a list of strings, value and onSelected(value) carry the text of
     the chosen option, never its index: the second of ["Plany", "Historia"]
@@ -549,6 +557,11 @@ QanvasDatePicker{value placeholder onPicked(value)}  a field that opens a month
     calendar; value is an ISO string "2026-11-15" and "" for no date, which
     shows placeholder. Store that string as it is: dates in the database are
     "yyyy-MM-dd" text, so they sort and compare as text
+QanvasTimePicker{value placeholder onPicked(value)}  a field that opens the
+    hours and the minutes in steps of five; value is a "HH:MM" string "14:30"
+    and "" for no time, which shows placeholder. A moment entered after the
+    fact is a QanvasDatePicker and a QanvasTimePicker side by side in a
+    QanvasRow, stored as two text columns, "yyyy-MM-dd" and "HH:mm"
 QanvasList{model textRole subtitleRole iconRole badgeRole typeRole removable
     emptyText emptyIcon textFormat subtitleFormat badgeFormat typeFormat
     functions taking the row, for a line the model has no column for:
