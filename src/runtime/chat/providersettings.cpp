@@ -1,5 +1,6 @@
 #include "runtime/chat/providersettings.h"
 
+#include "agent/anthropicclient.h"
 #include "chat/ui/chat.h"
 #include "runtime/chat/builderagent.h"
 
@@ -57,14 +58,12 @@ QString providerUrl(const QString& provider)
 {
     if (provider == QLatin1String(kOpenAiProvider))
         return QStringLiteral("https://api.openai.com/v1/chat/completions");
-    if (isClaude(provider))
-        return QStringLiteral("https://api.anthropic.com/v1/chat/completions");
     return QStringLiteral("https://openrouter.ai/api/v1/chat/completions");
 }
 
 bool providerNestsReasoning(const QString& provider)
 {
-    return provider != QLatin1String(kOpenAiProvider) && !isClaude(provider);
+    return provider != QLatin1String(kOpenAiProvider);
 }
 
 QString environmentVariableName(const QString& provider)
@@ -192,6 +191,9 @@ std::unique_ptr<Client> ProviderSettings::createClient() const
     const QString key = effectiveApiKey();
     if (key.isEmpty())
         return nullptr;
+
+    if (isClaude(m_provider))
+        return std::make_unique<AnthropicClient>(key);
 
     auto client = std::make_unique<Client>(providerUrl(m_provider), key);
     client->setReasoningNested(providerNestsReasoning(m_provider));
