@@ -2,7 +2,6 @@
 
 #include <QMetaObject>
 #include <QQuickItem>
-#include <QQuickWindow>
 
 #include "runtime/host/apploader.h"
 
@@ -32,8 +31,6 @@ AppScreen::AppScreen(const QString& appId, const QString& screen)
     m_root = root;
     m_previous = root->property(kProperty);
     m_changed = root->setProperty(kProperty, screen);
-    if (QQuickWindow* window = loader->window())
-        window->grabWindow();
 }
 
 AppScreen::~AppScreen()
