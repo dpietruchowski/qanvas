@@ -1,3 +1,6 @@
+#include <QDate>
+#include <QLocale>
+
 #include "qmlharness.h"
 
 class QmlComponentTest : public QmlHarness
@@ -171,6 +174,85 @@ TEST_F(QmlComponentTest, AChartOfZeroesDrawsEmptyBarsAndAnEmptyChartNoRows)
     QQuickItem* empty = show(QStringLiteral("QanvasChart { valueRole: \"sum\"; model: [] }"));
     ASSERT_NE(empty, nullptr);
     EXPECT_EQ(empty->property("count").toInt(), 0);
+}
+
+TEST_F(QmlComponentTest, ADatePickerShowsItsIsoValueOrThePlaceholder)
+{
+    QQuickItem* picker = show(QStringLiteral(
+        "QanvasDatePicker { value: \"2026-11-02\"; placeholder: \"Due\"; "
+        "property string shown: contentItem.children[0].text }"));
+    ASSERT_NE(picker, nullptr);
+    EXPECT_EQ(picker->property("shown").toString(), QStringLiteral("2026-11-02"));
+
+    for (const char* value : { "", "2026-02-30", "02/11/2026", "tomorrow" })
+    {
+        picker->setProperty("value", QString::fromLatin1(value));
+        EXPECT_EQ(picker->property("shown").toString(), QStringLiteral("Due")) << value;
+    }
+}
+
+TEST_F(QmlComponentTest, ADatePickerOpensOnTheMonthOfItsValue)
+{
+    QQuickItem* picker = show(QStringLiteral("QanvasDatePicker { value: \"2026-12-15\" }"));
+    ASSERT_NE(picker, nullptr);
+
+    EXPECT_EQ(picker->property("viewYear").toInt(), 2026);
+    EXPECT_EQ(picker->property("viewMonth").toInt(), 11);
+}
+
+TEST_F(QmlComponentTest, ADatePickerListsSixWholeWeeksStartingOnTheFirstDayOfTheLocale)
+{
+    QQuickItem* picker = show(QStringLiteral("QanvasDatePicker { value: \"2026-11-02\" }"));
+    ASSERT_NE(picker, nullptr);
+
+    const QVariantList days = picker->property("days").toList();
+    ASSERT_EQ(days.size(), 42);
+    QDate previous;
+    int inMonth = 0;
+    for (const QVariant& entry : days)
+    {
+        const QVariantMap day = entry.toMap();
+        const QDate date = QDate::fromString(day.value(QStringLiteral("iso")).toString(), Qt::ISODate);
+        ASSERT_TRUE(date.isValid());
+        EXPECT_EQ(day.value(QStringLiteral("day")).toInt(), date.day());
+        EXPECT_EQ(day.value(QStringLiteral("inMonth")).toBool(), date.month() == 11 && date.year() == 2026);
+        if (previous.isValid())
+            EXPECT_EQ(previous.daysTo(date), 1);
+        previous = date;
+        inMonth += day.value(QStringLiteral("inMonth")).toBool() ? 1 : 0;
+    }
+    EXPECT_EQ(inMonth, 30);
+    const QDate first = QDate::fromString(days.first().toMap().value(QStringLiteral("iso")).toString(), Qt::ISODate);
+    EXPECT_EQ(first.dayOfWeek(), static_cast<int>(QLocale().firstDayOfWeek()));
+    EXPECT_LE(first, QDate(2026, 11, 1));
+    EXPECT_LT(first.daysTo(QDate(2026, 11, 1)), 7);
+}
+
+TEST_F(QmlComponentTest, ADatePickerStepsMonthsAcrossTheEndOfAYear)
+{
+    QQuickItem* picker = show(QStringLiteral("QanvasDatePicker { value: \"2026-12-15\" }"));
+    ASSERT_NE(picker, nullptr);
+
+    QMetaObject::invokeMethod(picker, "step", Q_ARG(QVariant, 1));
+    EXPECT_EQ(picker->property("viewYear").toInt(), 2027);
+    EXPECT_EQ(picker->property("viewMonth").toInt(), 0);
+
+    QMetaObject::invokeMethod(picker, "step", Q_ARG(QVariant, -2));
+    EXPECT_EQ(picker->property("viewYear").toInt(), 2026);
+    EXPECT_EQ(picker->property("viewMonth").toInt(), 10);
+}
+
+TEST_F(QmlComponentTest, PickingADayStoresItAsAnIsoStringAndEmitsPicked)
+{
+    QQuickItem* picker = show(QStringLiteral(
+        "QanvasDatePicker { property string last: \"\"; onPicked: function (value) { last = value } }"));
+    ASSERT_NE(picker, nullptr);
+
+    QMetaObject::invokeMethod(picker, "pick", Q_ARG(QVariant, QStringLiteral("2026-11-15")));
+
+    EXPECT_EQ(picker->property("value").toString(), QStringLiteral("2026-11-15"));
+    EXPECT_EQ(picker->property("last").toString(), QStringLiteral("2026-11-15"));
+    EXPECT_TRUE(picker->property("hasValue").toBool());
 }
 
 TEST_F(QmlComponentTest, ACardInAGridIsTallEnoughForItsContentAndItsMargins)

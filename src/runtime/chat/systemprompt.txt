@@ -458,6 +458,10 @@ QanvasCheckBox{text checked}  QanvasSwitch{text checked}
 QanvasSlider{value from to}  QanvasSelect{options value placeholder onSelected(value)}
     shows the option equal to value; an empty or unknown value shows placeholder
     and no option, so a form starts on value: "" with placeholder: "Kategoria"
+QanvasDatePicker{value placeholder onPicked(value)}  a field that opens a month
+    calendar; value is an ISO string "2026-11-15" and "" for no date, which
+    shows placeholder. Store that string as it is: dates in the database are
+    "yyyy-MM-dd" text, so they sort and compare as text
 QanvasList{model textRole subtitleRole iconRole badgeRole typeRole removable
     emptyText emptyIcon textFormat subtitleFormat badgeFormat typeFormat
     functions taking the row, for a line the model has no column for:

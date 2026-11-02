@@ -72,7 +72,7 @@ TEST(SystemPromptTest, NamesEveryComponent)
     const QString prompt = SystemPrompt::text();
     for (const char* component :
          { "QanvasCountdown", "QanvasStopwatch", "QanvasStat", "QanvasBadge", "QanvasTabs",
-           "QanvasProgress", "QanvasStepper", "QanvasPanel", "emptyText", "QanvasChart" })
+           "QanvasProgress", "QanvasStepper", "QanvasPanel", "emptyText", "QanvasChart", "QanvasDatePicker" })
         EXPECT_TRUE(prompt.contains(QLatin1String(component))) << component;
 }
 
@@ -109,6 +109,14 @@ TEST(SystemPromptTest, TheSelectShowsItsPlaceholderForAnEmptyValue)
     const QString prompt = SystemPrompt::text();
     EXPECT_TRUE(prompt.contains(QStringLiteral("QanvasSelect{options value placeholder onSelected(value)}")));
     EXPECT_TRUE(prompt.contains(QStringLiteral("an empty or unknown value shows placeholder")));
+}
+
+TEST(SystemPromptTest, TheDatePickerValueIsAnIsoString)
+{
+    const QString prompt = SystemPrompt::text();
+    EXPECT_TRUE(prompt.contains(QStringLiteral("QanvasDatePicker{value placeholder onPicked(value)}")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral("value is an ISO string \"2026-11-15\"")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral("\"\" for no date, which\n    shows placeholder")));
 }
 
 TEST(SystemPromptTest, TheStepperSaysNumbersCarryNoThousandsSeparator)
