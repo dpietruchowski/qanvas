@@ -26,6 +26,7 @@ struct Walk
     QString dir;
     QStringList lines;
     int hidden = 0;
+    QList<int> repeats;
 };
 
 struct Clip
@@ -128,8 +129,14 @@ QString describe(QQuickItem* item, const Walk& walk)
 
 void add(Walk& walk, const QString& line)
 {
-    if (walk.lines.size() < kMaxLines)
+    const int same = walk.lines.indexOf(line);
+    if (same >= 0)
+        ++walk.repeats[same];
+    else if (walk.lines.size() < kMaxLines)
+    {
         walk.lines.append(line);
+        walk.repeats.append(1);
+    }
     else
         ++walk.hidden;
 }
@@ -263,7 +270,7 @@ void checkLayout(QQuickItem* item, Walk& walk, Branch& branch)
     if (item->width() < kSlack || item->height() < kSlack)
         return;
 
-    if (!branch.heightDone && !branch.inScroll && tooShort(item) && !aChildLayoutIs(item, tooShort))
+    if (!branch.heightDone && tooShort(item) && !aChildLayoutIs(item, tooShort))
     {
         branch.heightDone = true;
         add(walk,
@@ -513,10 +520,14 @@ QString AppLayout::report(QQuickItem* root, const QString& appDir)
     if (!root)
         return QString();
 
-    Walk walk { root, appDir, QStringList(), 0 };
+    Walk walk { root, appDir, QStringList(), 0, QList<int>() };
     walkItem(root, walk, Branch());
     if (walk.lines.isEmpty())
         return QString();
+
+    for (int i = 0; i < walk.lines.size(); ++i)
+        if (walk.repeats[i] > 1)
+            walk.lines[i] += QStringLiteral(" (%1 times)").arg(walk.repeats[i]);
 
     QString text = QStringLiteral("Layout problems on a %1x%2 screen:\n- %3")
                        .arg(qRound(root->width()))

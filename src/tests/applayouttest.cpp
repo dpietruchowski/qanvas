@@ -215,6 +215,27 @@ TEST_F(AppLayoutTest, AnElidedTextTheAppWroteItselfIsReported)
         << report.toStdString();
 }
 
+TEST_F(AppLayoutTest, TheSameProblemRepeatedInEveryDelegateIsOneLineWithACount)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Column { Repeater { model: 12; Text { width: 60; text: \"a rather long line\"; "
+        "elide: Text.ElideRight } } } }"));
+
+    EXPECT_EQ(report.count(QStringLiteral("does not fit")), 1) << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("(12 times)"))) << report.toStdString();
+    EXPECT_FALSE(report.contains(QStringLiteral("- and "))) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, DifferentProblemsAreNotMergedIntoOneLine)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Column { Repeater { model: 3; Text { width: 60; text: \"a rather long line \" + "
+        "index; elide: Text.ElideRight } } } }"));
+
+    EXPECT_EQ(report.count(QStringLiteral("does not fit")), 3) << report.toStdString();
+    EXPECT_FALSE(report.contains(QStringLiteral("times"))) << report.toStdString();
+}
+
 TEST_F(AppLayoutTest, ComponentsWhoseTextFitsAreNotReported)
 {
     const QString report = show(QStringLiteral(
@@ -344,6 +365,28 @@ TEST_F(AppLayoutTest, ContentPastTheSideOfAVerticalScrollIsCutOff)
 
     EXPECT_TRUE(report.contains(QStringLiteral("on the right by 10px"))) << report.toStdString();
     EXPECT_FALSE(report.contains(QStringLiteral("at the bottom"))) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AContainerShorterThanItsChildrenInsideAScrollIsReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Flickable { anchors.fill: parent; contentHeight: 400; ColumnLayout { width: "
+        "parent.width; height: 80; Repeater { model: 3; Rectangle { Layout.preferredHeight: 50; "
+        "Layout.fillWidth: true; color: \"red\" } } } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("ColumnLayout (Main.qml) needs 160px of height but "
+                                               "has 80px")))
+        << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AColumnTallerThanTheScrollButSizedToItsChildrenIsNotReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Flickable { anchors.fill: parent; contentHeight: column.implicitHeight; "
+        "ColumnLayout { id: column; width: parent.width; Repeater { model: 8; Rectangle { "
+        "Layout.preferredHeight: 50; Layout.fillWidth: true; color: \"red\" } } } } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
 }
 
 TEST_F(AppLayoutTest, ALongColumnInAScrollIsNotReported)
