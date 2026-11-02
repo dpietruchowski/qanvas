@@ -6,20 +6,27 @@
 
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQuickView>
 #include <QRegularExpression>
 #include <QStringList>
 #include <QTemporaryDir>
+#include <QTest>
 #include <QUrl>
 #include <QVariantMap>
+#include <QtQml>
 
 #include "agent/agent.h"
 #include "runtime/app/app.h"
 #include "runtime/app/appregistry.h"
 #include "runtime/chat/apptools.h"
 #include "runtime/host/appcontext.h"
+#include "runtime/host/apploader.h"
 #include "scriptedclient.h"
 #include "themedtypes.h"
 
@@ -824,6 +831,46 @@ TEST_F(AppToolsTest, GivesTheAgentEveryToolWithItsEffect)
     }
 }
 
+TEST_F(AppToolsTest, CheckLayoutTakesTheScreenToMeasure)
+{
+    run({ ScriptedClient::reply(QStringLiteral("hi")) });
+
+    ASSERT_TRUE(client.lastTools.contains(QStringLiteral("check_layout")));
+    const QJsonObject parameters = client.lastTools.value(QStringLiteral("check_layout"))
+                                       .json.value(QStringLiteral("function"))
+                                       .toObject()
+                                       .value(QStringLiteral("parameters"))
+                                       .toObject();
+    EXPECT_TRUE(parameters.value(QStringLiteral("properties"))
+                    .toObject()
+                    .contains(QStringLiteral("screen")))
+        << qPrintable(QString::fromUtf8(QJsonDocument(parameters).toJson()));
+    EXPECT_TRUE(parameters.value(QStringLiteral("required"))
+                    .toArray()
+                    .contains(QJsonValue(QStringLiteral("screen"))));
+}
+
+TEST_F(AppToolsTest, TheScreenshotToolTakesTheScreenToPhotograph)
+{
+    qputenv("QANVAS_DEV_SCREENSHOT", "1");
+    ::Agent flagged { QStringLiteral("test-model"), QStringLiteral("system") };
+    AppTools flaggedTools(flagged, *registry, notesPath());
+    client.script = { ScriptedClient::reply(QStringLiteral("hi")) };
+
+    ASSERT_FALSE(requestAndWait(flagged, client, QStringLiteral("go")).isEmpty());
+
+    ASSERT_TRUE(client.lastTools.contains(QStringLiteral("screenshot")));
+    const QJsonObject parameters = client.lastTools.value(QStringLiteral("screenshot"))
+                                       .json.value(QStringLiteral("function"))
+                                       .toObject()
+                                       .value(QStringLiteral("parameters"))
+                                       .toObject();
+    EXPECT_TRUE(parameters.value(QStringLiteral("properties"))
+                    .toObject()
+                    .contains(QStringLiteral("screen")))
+        << qPrintable(QString::fromUtf8(QJsonDocument(parameters).toJson()));
+}
+
 TEST_F(AppToolsTest, TheScreenshotToolIsNotOfferedWithoutTheFlag)
 {
     run({ ScriptedClient::reply(QStringLiteral("hi")) });
@@ -992,4 +1039,94 @@ TEST_F(AppToolsTest, ANoteThatCannotBeSavedSaysWhy)
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("Could not save the note")))
         << qPrintable(client.lastToolResult());
     EXPECT_TRUE(activity(1).value(QStringLiteral("failed")).toBool());
+}
+
+class AppToolsOnScreenTest : public AppToolsTest
+{
+protected:
+    static void SetUpTestSuite() { qmlRegisterType<AppLoader>("ToolsHost", 1, 0, "AppLoader"); }
+
+    void SetUp() override
+    {
+        AppToolsTest::SetUp();
+        QObject::connect(tools.get(), &AppTools::appShown,
+                         [](const QString& id)
+                         {
+                             if (AppLoader* loader = AppLoader::running(id))
+                                 loader->reload();
+                         });
+    }
+
+    void putOnScreen(const QString& id)
+    {
+        const QString path = root.filePath(QStringLiteral("Host.qml"));
+        QFile file(path);
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write(QStringLiteral("import QtQuick\nimport ToolsHost\nItem {\n"
+                                  "    width: 300; height: 400\n"
+                                  "    AppLoader { anchors.fill: parent; appId: \"%1\" }\n}\n")
+                       .arg(id)
+                       .toUtf8());
+        file.close();
+
+        view.resize(300, 400);
+        view.setSource(QUrl::fromLocalFile(path));
+        ASSERT_EQ(view.status(), QQuickView::Ready);
+        view.show();
+        ASSERT_TRUE(QTest::qWaitForWindowExposed(&view));
+        QTest::qWait(50);
+    }
+
+    QString writeMain(const QString& body)
+    {
+        QVariantMap write = fileArguments(QStringLiteral("notes"), QStringLiteral("Main.qml"));
+        write[QStringLiteral("content")] = QStringLiteral("import QtQuick\n%1\n").arg(body);
+        client.calls = 0;
+        run({ ScriptedClient::toolCall(QStringLiteral("write_file"), write),
+              ScriptedClient::reply(QStringLiteral("done")) });
+        return client.lastToolResult();
+    }
+
+    QQuickView view;
+};
+
+TEST_F(AppToolsOnScreenTest, AReloadThatLoadsCleanAndFitsSaysSo)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::reply(QStringLiteral("built")) });
+    putOnScreen(QStringLiteral("notes"));
+
+    const QString result
+        = writeMain(QStringLiteral("Item { Rectangle { width: 100; height: 50 } }"));
+
+    EXPECT_TRUE(result.contains(QStringLiteral("Loaded without errors, and the layout of the "
+                                               "open screen fits")))
+        << qPrintable(result);
+}
+
+TEST_F(AppToolsOnScreenTest, AReloadThatSticksOutOfTheScreenListsTheProblemInstead)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::reply(QStringLiteral("built")) });
+    putOnScreen(QStringLiteral("notes"));
+
+    const QString result
+        = writeMain(QStringLiteral("Item { Rectangle { x: 250; width: 200; height: 50 } }"));
+
+    EXPECT_TRUE(result.contains(QStringLiteral("the layout has problems"))) << qPrintable(result);
+    EXPECT_FALSE(result.contains(QStringLiteral("Loaded without errors"))) << qPrintable(result);
+}
+
+TEST_F(AppToolsOnScreenTest, AReloadOfAnAppThatIsNotOnScreenSaysNothingOfTheLayout)
+{
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                   createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+          ScriptedClient::reply(QStringLiteral("built")) });
+
+    const QString result
+        = writeMain(QStringLiteral("Item { Rectangle { width: 100; height: 50 } }"));
+
+    EXPECT_FALSE(result.contains(QStringLiteral("layout"))) << qPrintable(result);
 }

@@ -70,7 +70,11 @@ TEST(SystemPromptTest, TeachesScreenshotsAndEveryNoteTagWithTheFlagAfterTheNorma
 
     EXPECT_TRUE(flagged.startsWith(plain));
     const QString addOn = flagged.mid(plain.size());
-    EXPECT_TRUE(addOn.contains(QStringLiteral("screenshot(app)")));
+    EXPECT_TRUE(
+        addOn.contains(QStringLiteral("call screenshot once for each screen the task touched")));
+    EXPECT_TRUE(addOn.contains(QStringLiteral("Never one after each step or edit")));
+    EXPECT_TRUE(addOn.contains(QStringLiteral("still shows the tab bar as it is on the open one")));
+    EXPECT_TRUE(addOn.contains(QStringLiteral("screen=\"<name>\"")));
     for (const char* tag : { "[layout-fail]", "[retry]", "[missing]", "[prompt]", "[clean]" })
         EXPECT_TRUE(addOn.contains(QLatin1String(tag))) << tag;
 }
@@ -315,12 +319,12 @@ TEST(SystemPromptTest, TheCheckLayoutToolListsEveryKindOfLayoutProblem)
     const QString prompt = SystemPrompt::text();
     const qsizetype line = prompt.indexOf(QStringLiteral("check_layout   measures the app"));
     ASSERT_GE(line, 0);
-    const QString entry = prompt.mid(line, 420).simplified();
+    const QString entry = prompt.mid(line, 700).simplified();
     EXPECT_TRUE(entry.contains(QStringLiteral("what sticks out")));
     EXPECT_TRUE(entry.contains(QStringLiteral("is cut off (also a text that does not fit)")));
     EXPECT_TRUE(entry.contains(QStringLiteral("is drawn over another element")));
     EXPECT_TRUE(entry.contains(QStringLiteral("has no size")));
-    EXPECT_TRUE(entry.contains(QStringLiteral("the reload tools include the same lines")));
+    EXPECT_TRUE(entry.contains(QStringLiteral("The reload tools include the same lines")));
 }
 
 TEST(SystemPromptTest, TheCheckLayoutEntryTellsThatOnlyTheFilesOnViewAreMeasured)
@@ -328,9 +332,116 @@ TEST(SystemPromptTest, TheCheckLayoutEntryTellsThatOnlyTheFilesOnViewAreMeasured
     const QString prompt = SystemPrompt::text();
     const qsizetype line = prompt.indexOf(QStringLiteral("check_layout   measures the app"));
     ASSERT_GE(line, 0);
-    const QString entry = prompt.mid(line, 420).simplified();
+    const QString entry = prompt.mid(line, 700).simplified();
     EXPECT_TRUE(entry.contains(QStringLiteral("\"Measured with <files> on screen\"")));
-    EXPECT_TRUE(entry.contains(QStringLiteral("a tab or screen that is not open is not measured")));
+    EXPECT_TRUE(entry.contains(QStringLiteral("only those files are on view")));
+}
+
+TEST(SystemPromptTest, TheCheckLayoutEntryTeachesTheScreenArgument)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype line = prompt.indexOf(QStringLiteral("check_layout   measures the app"));
+    ASSERT_GE(line, 0);
+    const QString entry = prompt.mid(line, 700).simplified();
+    EXPECT_TRUE(entry.contains(QStringLiteral("screen=\"Historia\" measures that screen")));
+    EXPECT_TRUE(entry.contains(QStringLiteral("puts the open one back")));
+}
+
+TEST(SystemPromptTest, BuildingByScreenMeasuresEveryScreenByName)
+{
+    const QString build
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## STATE: BUILD BY SCREEN"));
+
+    ASSERT_FALSE(build.isEmpty());
+    EXPECT_TRUE(build.contains(QStringLiteral("check_layout once per screen that is not open")));
+    EXPECT_TRUE(build.contains(QStringLiteral("Never change Main.qml's first screen")));
+}
+
+TEST(SystemPromptTest, TheCheckLayoutEntryTellsWhatTheReloadAnswerSaysWhenAllIsWell)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype line = prompt.indexOf(QStringLiteral("check_layout   measures the app"));
+    ASSERT_GE(line, 0);
+    const QString entry = prompt.mid(line, 900).simplified();
+    EXPECT_TRUE(entry.contains(
+        QStringLiteral("end with \"Loaded without errors, and the layout of the open screen "
+                       "fits\"")));
+}
+
+TEST(SystemPromptTest, TheStepsStateStartsAMultiScreenAppAsScreenFiles)
+{
+    const QString steps
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## STATE: STEPS")).simplified();
+
+    EXPECT_TRUE(
+        steps.contains(QStringLiteral("every screen is its own file from the first one on")));
+    EXPECT_TRUE(steps.contains(QStringLiteral("the answer of the step's last edit is the check")));
+}
+
+TEST(SystemPromptTest, TheStepsStateReadsTheLogOnceAfterTheLastStepNotAfterEachOne)
+{
+    const QString steps
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## STATE: STEPS")).simplified();
+
+    EXPECT_TRUE(steps.contains(QStringLiteral("there is no read_log and no check_layout to call")));
+    EXPECT_TRUE(steps.contains(QStringLiteral("After the last step you worked on: read_log once")));
+}
+
+TEST(SystemPromptTest, TheScreensRuleSaysDataInstancesShareOnlyTheDatabase)
+{
+    const QString screens
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## SCREENS")).simplified();
+
+    EXPECT_TRUE(screens.contains(QStringLiteral("each Data { id: db } is a separate instance")));
+    EXPECT_TRUE(screens.contains(QStringLiteral("a property of Main.qml")));
+}
+
+TEST(SystemPromptTest, TheLayoutRulesLimitStatTilesAndScrollTheTallScreens)
+{
+    const QString layout
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## LAYOUT")).simplified();
+
+    EXPECT_TRUE(layout.contains(QStringLiteral("two per row at most")));
+    EXPECT_TRUE(layout.contains(QStringLiteral("QanvasGrid { columns: 3 } of QanvasButton")));
+    EXPECT_TRUE(layout.contains(QStringLiteral("has a QanvasScroll as its root")));
+    EXPECT_TRUE(layout.contains(QStringLiteral("QanvasGrid { columns: 2 } of buttons")));
+}
+
+TEST(SystemPromptTest, TheModifyStateEditsTheFileThatDeclaresASignalBeforeTheOneThatUsesIt)
+{
+    const QString modify
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## STATE: MODIFY")).simplified();
+
+    EXPECT_TRUE(modify.contains(QStringLiteral("The file that declares a signal or a property goes "
+                                               "first, the file that uses it after")));
+}
+
+TEST(SystemPromptTest, TabsOnAScreenTheyDoNotReachLightNoOption)
+{
+    const QString screens
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## SCREENS")).simplified();
+
+    EXPECT_TRUE(screens.contains(QStringLiteral("the tabs stay and none of them is lit")));
+    EXPECT_TRUE(screens.contains(QStringLiteral("Four tabs hold about 28 characters of labels")));
+}
+
+TEST(SystemPromptTest, TheStepsStateAddsTheTabThatReachesAScreenWithTheScreen)
+{
+    const QString steps
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## STATE: STEPS")).simplified();
+
+    EXPECT_TRUE(steps.contains(QStringLiteral("Main.qml starts with the screen of step 1")));
+    EXPECT_TRUE(steps.contains(QStringLiteral("the step that adds a screen also adds the tab")));
+    EXPECT_FALSE(steps.contains(QStringLiteral("Main.qml shows step 1 only")));
+}
+
+TEST(SystemPromptTest, TheChartEntryTellsItDoesNotShrink)
+{
+    const QString components
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## COMPONENTS")).simplified();
+
+    EXPECT_TRUE(components.contains(QStringLiteral("it does not shrink: a row is about 50 px")));
+    EXPECT_TRUE(components.contains(QStringLiteral("Layout.preferredHeight: rows * 50")));
 }
 
 TEST(SystemPromptTest, TheTimeRuleNamesTheSubSecondStopwatch)
@@ -372,7 +483,7 @@ TEST(SystemPromptTest, TheStepsStateBuildsOneStepAtATimeAndChecksEachOne)
     ASSERT_FALSE(steps.isEmpty());
     EXPECT_TRUE(steps.contains(QStringLiteral("do not redo it, merge steps or add one")));
     EXPECT_TRUE(steps.contains(QStringLiteral("One step at a time, in order")));
-    EXPECT_TRUE(steps.contains(QStringLiteral("read_log and check_layout")));
+    EXPECT_TRUE(steps.contains(QStringLiteral("Loaded without errors")));
     EXPECT_TRUE(steps.contains(QStringLiteral("the check of the step")));
     EXPECT_TRUE(steps.endsWith(QStringLiteral("-> NOTE")));
 }
@@ -383,7 +494,7 @@ TEST(SystemPromptTest, TheStepsStateDecidesTheTablesOfEveryStepBeforeTheFirst)
 
     EXPECT_TRUE(steps.contains(QStringLiteral("list_apps first")));
     EXPECT_TRUE(steps.contains(QStringLiteral("tables of ALL the steps at once")));
-    EXPECT_TRUE(steps.contains(QStringLiteral("shows step 1 only")));
+    EXPECT_TRUE(steps.contains(QStringLiteral("Main.qml starts with the screen of step 1")));
     EXPECT_TRUE(steps.contains(QStringLiteral("app exists INSPECT first, once")));
 }
 
@@ -437,6 +548,8 @@ TEST(SystemPromptTest, ThirdExampleBuildsTwoStepsOneAfterTheOtherAndReportsBoth)
               example.indexOf(QStringLiteral("Step 2:")));
     EXPECT_TRUE(example.contains(QStringLiteral("step 1 is done-unverified")));
     EXPECT_TRUE(example.contains(QStringLiteral("step 2 is done+verified")));
+    EXPECT_FALSE(example.contains(QStringLiteral("check_layout ->")));
+    EXPECT_EQ(example.count(QStringLiteral("read_log ->")), 1);
     EXPECT_TRUE(example.contains(QStringLiteral("DONE: \"1 done-unverified: not tapped")));
     EXPECT_TRUE(example.contains(QStringLiteral("2 done+verified")));
 }
