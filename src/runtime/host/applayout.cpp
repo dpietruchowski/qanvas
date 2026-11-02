@@ -27,6 +27,7 @@ struct Walk
     QStringList lines;
     int hidden = 0;
     QList<int> repeats;
+    QSet<QString> files;
 };
 
 struct Clip
@@ -356,7 +357,10 @@ void checkText(QQuickItem* item, Walk& walk)
         line += QStringLiteral(": it needs %1px of width but has %2px")
                     .arg(qRound(item->implicitWidth()))
                     .arg(qRound(item->width()));
-    add(walk, line + QStringLiteral(" (give it more width, or shorten the text)"));
+    add(walk,
+        line
+            + QStringLiteral(" (give it more width, shorten the text, or for text from the "
+                             "user's data let it wrap)"));
 }
 
 bool checkClip(QQuickItem* item, Walk& walk, const Branch& branch)
@@ -485,6 +489,9 @@ void walkItem(QQuickItem* item, Walk& walk, Branch branch)
 
     item->ensurePolished();
 
+    if (ownedBy(item, walk.dir))
+        walk.files.insert(fileOf(item));
+
     if (isLayout(item))
         checkLayout(item, walk, branch);
 
@@ -515,33 +522,44 @@ void walkItem(QQuickItem* item, Walk& walk, Branch branch)
 }
 }
 
-QString AppLayout::report(QQuickItem* root, const QString& appDir)
+QString AppLayout::Report::text() const
+{
+    return QStringLiteral("Measured with %1 on screen\n%2")
+        .arg(files, fits() ? QStringLiteral("The layout fits the screen") : problems);
+}
+
+AppLayout::Report AppLayout::measure(QQuickItem* root, const QString& appDir)
 {
     if (!root)
-        return QString();
+        return Report();
 
-    Walk walk { root, appDir, QStringList(), 0, QList<int>() };
+    Walk walk { root, appDir, QStringList(), 0, QList<int>(), QSet<QString>() };
     walkItem(root, walk, Branch());
+
+    QStringList files = walk.files.values();
+    files.sort();
+    Report report;
+    report.files = files.join(QStringLiteral(", "));
     if (walk.lines.isEmpty())
-        return QString();
+        return report;
 
     for (int i = 0; i < walk.lines.size(); ++i)
         if (walk.repeats[i] > 1)
             walk.lines[i] += QStringLiteral(" (%1 times)").arg(walk.repeats[i]);
 
-    QString text = QStringLiteral("Layout problems on a %1x%2 screen:\n- %3")
-                       .arg(qRound(root->width()))
-                       .arg(qRound(root->height()))
-                       .arg(walk.lines.join(QStringLiteral("\n- ")));
+    report.problems = QStringLiteral("Layout problems on a %1x%2 screen:\n- %3")
+                          .arg(qRound(root->width()))
+                          .arg(qRound(root->height()))
+                          .arg(walk.lines.join(QStringLiteral("\n- ")));
     if (walk.hidden > 0)
-        text += QStringLiteral("\n- and %1 more").arg(walk.hidden);
-    return text;
+        report.problems += QStringLiteral("\n- and %1 more").arg(walk.hidden);
+    return report;
 }
 
-QString AppLayout::reportFor(const QString& appId)
+AppLayout::Report AppLayout::measureApp(const QString& appId)
 {
     AppLoader* loader = AppLoader::running(appId);
     if (!loader || !loader->item())
-        return QString();
-    return report(loader->item(), App(appId).dir());
+        return Report();
+    return measure(loader->item(), App(appId).dir());
 }

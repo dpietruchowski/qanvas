@@ -200,12 +200,22 @@ TEST(SystemPromptTest, TheCheckLayoutToolListsEveryKindOfLayoutProblem)
     const QString prompt = SystemPrompt::text();
     const qsizetype line = prompt.indexOf(QStringLiteral("check_layout   measures the app"));
     ASSERT_GE(line, 0);
-    const QString entry = prompt.mid(line, 260).simplified();
+    const QString entry = prompt.mid(line, 420).simplified();
     EXPECT_TRUE(entry.contains(QStringLiteral("what sticks out")));
     EXPECT_TRUE(entry.contains(QStringLiteral("is cut off (also a text that does not fit)")));
     EXPECT_TRUE(entry.contains(QStringLiteral("is drawn over another element")));
     EXPECT_TRUE(entry.contains(QStringLiteral("has no size")));
     EXPECT_TRUE(entry.contains(QStringLiteral("the reload tools include the same lines")));
+}
+
+TEST(SystemPromptTest, TheCheckLayoutEntryTellsThatOnlyTheFilesOnViewAreMeasured)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype line = prompt.indexOf(QStringLiteral("check_layout   measures the app"));
+    ASSERT_GE(line, 0);
+    const QString entry = prompt.mid(line, 420).simplified();
+    EXPECT_TRUE(entry.contains(QStringLiteral("\"Measured with <files> on screen\"")));
+    EXPECT_TRUE(entry.contains(QStringLiteral("a tab or screen that is not open is not measured")));
 }
 
 TEST(SystemPromptTest, TheTimeRuleNamesTheSubSecondStopwatch)

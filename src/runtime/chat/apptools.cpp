@@ -122,7 +122,8 @@ const char* kCheckLayoutDocstring
       "does not fit, is drawn over another element, or has no size; use it after the user says "
       "something is off screen, not centred, overlapping or missing\n"
       "@param app (string) app id\n"
-      "@return the screen size with one line per layout problem, or that the layout fits";
+      "@return the files measured, then the screen size with one line per layout problem, or "
+      "that the layout fits";
 
 const char* kGrantAccessDocstring
     = "@brief grant_access\n"
@@ -257,11 +258,10 @@ Result<QString> appendNote(const QString& path, const QString& appId, const QStr
 
 QString withLayout(const QString& result, const QString& appId)
 {
-    const QString layout = AppLayout::reportFor(appId);
-    if (layout.isEmpty())
+    const AppLayout::Report layout = AppLayout::measureApp(appId);
+    if (layout.fits())
         return result;
-    return QStringLiteral("Saved and loaded, but there are %1")
-        .arg(layout.at(0).toLower() + layout.mid(1));
+    return QStringLiteral("Saved and loaded, but the layout has problems.\n%1").arg(layout.text());
 }
 }
 
@@ -401,11 +401,8 @@ void AppTools::addCheckLayoutTool()
                 return;
             }
 
-            const QString layout = AppLayout::reportFor(app.id());
-            finish(index,
-                   Result<QString>::success(
-                       layout.isEmpty() ? QStringLiteral("The layout fits the screen") : layout),
-                   done, note);
+            finish(index, Result<QString>::success(AppLayout::measureApp(app.id()).text()), done,
+                   note);
         },
         ToolEffect::Reads);
 }

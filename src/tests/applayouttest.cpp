@@ -20,13 +20,17 @@ class AppLayoutTest : public ::testing::Test
 protected:
     static void SetUpTestSuite() { registerThemedTypes(); }
 
-    QString show(const QString& body)
+    void write(const QString& name, const QString& body)
     {
-        const QString path = dir.path() + QStringLiteral("/Main.qml");
-        QFile file(path);
+        QFile file(dir.path() + QLatin1Char('/') + name);
         EXPECT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
         file.write(QByteArray(kImports) + body.toUtf8());
-        file.close();
+    }
+
+    QString show(const QString& body)
+    {
+        write(QStringLiteral("Main.qml"), body);
+        const QString path = dir.path() + QStringLiteral("/Main.qml");
 
         view.engine()->addImportPath(QStringLiteral(QML_IMPORT_ROOT));
         view.setResizeMode(QQuickView::SizeRootObjectToView);
@@ -36,9 +40,28 @@ protected:
         view.show();
         QTest::qWaitForWindowExposed(&view);
         QTest::qWait(50);
-        return AppLayout::report(view.rootObject(), dir.path());
+        measured = AppLayout::measure(view.rootObject(), dir.path());
+        return measured.problems;
     }
 
+    static QQuickItem* findText(QQuickItem* item, const QString& text)
+    {
+        if (item->inherits("QQuickText") && item->property("text").toString() == text)
+            return item;
+        const QList<QQuickItem*> children = item->childItems();
+        for (QQuickItem* child : children)
+            if (QQuickItem* found = findText(child, text))
+                return found;
+        return nullptr;
+    }
+
+    int textLines(const QString& text)
+    {
+        QQuickItem* item = findText(view.rootObject(), text);
+        return item ? item->property("lineCount").toInt() : -1;
+    }
+
+    AppLayout::Report measured;
     QTemporaryDir dir;
     QQuickView view;
 };
@@ -392,4 +415,102 @@ TEST_F(AppLayoutTest, ALongColumnInAScrollIsNotReported)
         "title: \"Wiersz \" + index } } } }"));
 
     EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, TheReportNamesTheFilesOfTheAppThatAreOnScreen)
+{
+    write(QStringLiteral("Card.qml"), QStringLiteral("Item { Text { text: \"card\" } }"));
+    show(QStringLiteral("Item { Column { Card {} Card {} } }"));
+
+    EXPECT_EQ(measured.files, QStringLiteral("Card.qml, Main.qml")) << measured.files.toStdString();
+}
+
+TEST_F(AppLayoutTest, AFileWhoseItemsAreHiddenIsNotNamed)
+{
+    write(QStringLiteral("Card.qml"), QStringLiteral("Item { Text { text: \"card\" } }"));
+    show(QStringLiteral("Item { Card { visible: false } Text { text: \"hi\" } }"));
+
+    EXPECT_EQ(measured.files, QStringLiteral("Main.qml")) << measured.files.toStdString();
+}
+
+TEST_F(AppLayoutTest, ComponentsOfTheLibraryAreNotNamedAsFiles)
+{
+    show(QStringLiteral("import Qanvas.Components\n"
+                        "Item { QanvasColumn { QanvasText { text: \"hi\" } } }"));
+
+    EXPECT_EQ(measured.files, QStringLiteral("Main.qml")) << measured.files.toStdString();
+}
+
+TEST_F(AppLayoutTest, TheAnswerForAFittingLayoutNamesTheFilesToo)
+{
+    show(QStringLiteral("Item { Text { text: \"hi\" } }"));
+
+    EXPECT_TRUE(measured.fits());
+    EXPECT_EQ(measured.text(),
+              QStringLiteral("Measured with Main.qml on screen\nThe layout fits the screen"))
+        << measured.text().toStdString();
+}
+
+TEST_F(AppLayoutTest, TheAnswerForProblemsStartsWithTheFiles)
+{
+    show(QStringLiteral("Item { ColumnLayout { anchors.fill: parent; Repeater { model: 5; "
+                        "Rectangle { Layout.preferredHeight: 100; Layout.fillWidth: true } } } }"));
+
+    EXPECT_FALSE(measured.fits());
+    EXPECT_TRUE(measured.text().startsWith(QStringLiteral(
+        "Measured with Main.qml on screen\nLayout problems on a 200x300 screen:\n- ")))
+        << measured.text().toStdString();
+}
+
+TEST_F(AppLayoutTest, TheHintForATextThatDoesNotFitOffersToLetItWrap)
+{
+    const QString report = show(QStringLiteral(
+        "Item { Text { width: 60; text: \"a rather long line\"; elide: Text.ElideRight } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("(give it more width, shorten the text, or for "
+                                               "text from the user's data let it wrap)")))
+        << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AListTitleLongerThanOneLineWrapsInsteadOfBeingCutOff)
+{
+    const QString title = QStringLiteral("Kup mleko i chleb w sklepie");
+    const QString report = show(
+        QStringLiteral(
+            "import Qanvas.Components\n"
+            "Item { QanvasColumn { anchors.fill: parent; QanvasListItem { Layout.fillWidth: false; "
+            "Layout.preferredWidth: 150; title: \"%1\" } } }")
+            .arg(title));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+    EXPECT_EQ(textLines(title), 2);
+}
+
+TEST_F(AppLayoutTest, AListTitleLongerThanTwoLinesIsStillReported)
+{
+    const QString title = QStringLiteral(
+        "Kup mleko i chleb w sklepie osiedlowym oraz jeszcze bułki i masło na kanapki");
+    const QString report = show(
+        QStringLiteral(
+            "import Qanvas.Components\n"
+            "Item { QanvasColumn { anchors.fill: parent; QanvasListItem { Layout.fillWidth: false; "
+            "Layout.preferredWidth: 150; title: \"%1\" } } }")
+            .arg(title));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("does not fit"))) << report.toStdString();
+    EXPECT_EQ(textLines(title), 2);
+}
+
+TEST_F(AppLayoutTest, AListSubtitleWrapsToTwoLinesLikeTheTitle)
+{
+    const QString subtitle = QStringLiteral("Kup mleko i chleb w sklepie");
+    const QString report = show(
+        QStringLiteral(
+            "import Qanvas.Components\n"
+            "Item { QanvasColumn { anchors.fill: parent; QanvasListItem { Layout.fillWidth: false; "
+            "Layout.preferredWidth: 150; title: \"Zakupy\"; subtitle: \"%1\" } } }")
+            .arg(subtitle));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+    EXPECT_EQ(textLines(subtitle), 2);
 }
