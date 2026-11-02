@@ -15,6 +15,7 @@
 #include "runtime/chat/builderagent.h"
 #include "runtime/chat/systemprompt.h"
 #include "scriptedclient.h"
+#include "themedtypes.h"
 
 namespace
 {
@@ -24,6 +25,7 @@ QVariantMap createApp()
 {
     return QVariantMap { { QStringLiteral("id"), QStringLiteral("notes") },
                          { QStringLiteral("title"), QStringLiteral("Notes") },
+                         { QStringLiteral("icon"), QStringLiteral("note") },
                          { QStringLiteral("qml"), kMainQml } };
 }
 
@@ -42,6 +44,7 @@ protected:
     {
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         registry = std::make_unique<AppRegistry>(nullptr);
+        prepareThemedEngine(engine);
         engine.setOutputWarningsToStandardError(false);
         builder = std::make_unique<BuilderAgent>(*registry, engine, QStringLiteral("test-model"),
                                                  notesPath());

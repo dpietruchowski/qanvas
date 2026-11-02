@@ -19,6 +19,7 @@
 #include "runtime/app/appregistry.h"
 #include "runtime/chat/chathost.h"
 #include "runtime/chat/systemprompt.h"
+#include "themedtypes.h"
 
 using namespace chat_test;
 
@@ -32,6 +33,7 @@ QVariantMap createApp(const QString& id)
 {
     return QVariantMap { { QStringLiteral("id"), id },
                          { QStringLiteral("title"), id },
+                         { QStringLiteral("icon"), QStringLiteral("note") },
                          { QStringLiteral("qml"), kMainQml } };
 }
 
@@ -55,6 +57,7 @@ protected:
     {
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
         registry = std::make_unique<AppRegistry>(nullptr);
+        prepareThemedEngine(engine);
         engine.setOutputWarningsToStandardError(false);
     }
 
@@ -106,7 +109,7 @@ protected:
 
     void createFinishedApp(const QString& id)
     {
-        registry->record(id, id);
+        registry->record(id, id, QStringLiteral("note"));
         QDir().mkpath(App(id).dir());
         QFile entry(App(id).entryPath());
         ASSERT_TRUE(entry.open(QIODevice::WriteOnly));

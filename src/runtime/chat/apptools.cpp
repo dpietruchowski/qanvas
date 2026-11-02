@@ -4,6 +4,7 @@
 #include "runtime/app/app.h"
 #include "runtime/app/appcompiler.h"
 #include "runtime/app/appfiles.h"
+#include "runtime/app/appicons.h"
 #include "runtime/app/appregistry.h"
 #include "runtime/app/appschema.h"
 #include "runtime/app/appwarnings.h"
@@ -31,6 +32,7 @@ const char* kCreateAppDocstring
       "app of the same id\n"
       "@param id (string) lowercase slug naming the app, 1-32 characters of a-z, 0-9 and -\n"
       "@param title (string) short human name for the app list\n"
+      "@param icon (string) the app's icon in the app list, one of the iconName names\n"
       "@param qml (string) the complete Main.qml source\n"
       "@param data (string) the complete Data.qml source, or an empty string when the app keeps "
       "no data\n"
@@ -139,6 +141,13 @@ const char* kGrantAccessDocstring
       "user asked for an app that works on that data\n"
       "@param app (string) app id\n"
       "@param store (string) the store to share: notes or tasks\n"
+      "@return confirmation, or the reason it was refused";
+
+const char* kSetAppIconDocstring
+    = "@brief set_app_icon\n"
+      "@details Changes the icon an app has in the app list, without touching its files\n"
+      "@param app (string) app id\n"
+      "@param icon (string) the new icon, one of the iconName names\n"
       "@return confirmation, or the reason it was refused";
 
 const char* kNoteDocstring
@@ -346,6 +355,7 @@ void AppTools::registerTools()
     if (AppScreenshot::enabled())
         addScreenshotTool();
     addGrantAccessTool();
+    addSetAppIconTool();
     addNoteTool();
 }
 
@@ -523,6 +533,47 @@ void AppTools::addGrantAccessTool()
         ToolEffect::Writes);
 }
 
+void AppTools::addSetAppIconTool()
+{
+    m_agent.addTool(
+        QString::fromLatin1(kSetAppIconDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "choosing icon for", "chose icon for",
+                                      "could not choose icon for", "app" };
+            const int index = beginActivity(activity, arguments);
+            QString note;
+            const App app = appFor(arguments, &note);
+            if (const std::optional<QString> refused = refusal(app))
+            {
+                finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
+
+            const Result<QString> icon = iconNamed(arguments);
+            if (icon.isFailure())
+            {
+                finish(index, icon, done);
+                return;
+            }
+
+            if (!m_registry.setIcon(app.id(), icon.value()))
+            {
+                finish(index,
+                       Result<QString>::failure(
+                           QStringLiteral("Could not change the icon of \"%1\"").arg(app.id())),
+                       done);
+                return;
+            }
+
+            finish(index,
+                   Result<QString>::success(
+                       QStringLiteral("\"%1\" has the icon %2 now").arg(app.id(), icon.value())),
+                   done, note);
+        },
+        ToolEffect::Writes);
+}
+
 void AppTools::addDeleteAppTool()
 {
     m_agent.addTool(
@@ -570,6 +621,13 @@ void AppTools::addCreateAppTool()
                 return;
             }
 
+            const Result<QString> icon = iconNamed(arguments);
+            if (icon.isFailure())
+            {
+                finish(index, icon, done);
+                return;
+            }
+
             AppFiles files(app.dir());
             const AppSources previous = files.snapshot();
             const QString priorError = currentError(app);
@@ -591,7 +649,7 @@ void AppTools::addCreateAppTool()
                 return;
             }
 
-            m_registry.record(id, argument(arguments, "title"));
+            m_registry.record(id, argument(arguments, "title"), icon.value());
             show(app, QStringLiteral("ok"), index, done, previous, priorError);
         },
         ToolEffect::Writes);
@@ -857,6 +915,17 @@ QString AppTools::appList() const
     if (lines.isEmpty())
         return QStringLiteral("There are no apps yet");
     return lines.join(QLatin1Char('\n'));
+}
+
+Result<QString> AppTools::iconNamed(const QVariantMap& arguments) const
+{
+    const AppIcons icons(m_engine);
+    const QString name = argument(arguments, "icon");
+    const QString resolved = icons.resolve(name);
+    if (resolved.isEmpty())
+        return Result<QString>::failure(QStringLiteral("No icon \"%1\": choose one of %2")
+                                            .arg(name, icons.names().join(QLatin1Char(' '))));
+    return Result<QString>::success(resolved);
 }
 
 QString AppTools::unknownApp(const QString& id) const

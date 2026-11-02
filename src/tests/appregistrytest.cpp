@@ -6,7 +6,27 @@
 #include <QTemporaryDir>
 #include <QVariantMap>
 
+#include <QSqlQuery>
+
 #include "runtime/app/appregistry.h"
+#include "runtime/storage/systemdatabase.h"
+
+namespace
+{
+const QString kIcon = QStringLiteral("cart");
+const QString kOtherIcon = QStringLiteral("book");
+
+QString iconOf(const AppRegistry& registry, const QString& id)
+{
+    const QVariantList apps = registry.apps();
+    for (const QVariant& app : apps)
+    {
+        if (app.toMap().value(QStringLiteral("id")).toString() == id)
+            return app.toMap().value(QStringLiteral("icon")).toString();
+    }
+    return QString();
+}
+}
 
 class AppRegistryTest : public ::testing::Test
 {
@@ -30,7 +50,7 @@ TEST_F(AppRegistryTest, RecordsAnAppAndListsIt)
     int changes = 0;
     QObject::connect(&registry, &AppRegistry::appsChanged, [&changes] { ++changes; });
 
-    EXPECT_TRUE(registry.record(QStringLiteral("notes"), QStringLiteral("Notatki")));
+    EXPECT_TRUE(registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon));
 
     ASSERT_EQ(registry.apps().size(), 1);
     const QVariantMap app = registry.apps().first().toMap();
@@ -40,12 +60,96 @@ TEST_F(AppRegistryTest, RecordsAnAppAndListsIt)
     EXPECT_EQ(changes, 1);
 }
 
+TEST_F(AppRegistryTest, KeepsTheIconItWasRecordedWith)
+{
+    AppRegistry registry(nullptr);
+
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
+    registry.record(QStringLiteral("timer"), QStringLiteral("Minutnik"), kOtherIcon);
+
+    EXPECT_EQ(iconOf(registry, QStringLiteral("notes")), kIcon);
+    EXPECT_EQ(iconOf(registry, QStringLiteral("timer")), kOtherIcon);
+}
+
+TEST_F(AppRegistryTest, RecordingTheSameIdAgainReplacesTheIcon)
+{
+    AppRegistry registry(nullptr);
+
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kOtherIcon);
+
+    EXPECT_EQ(iconOf(registry, QStringLiteral("notes")), kOtherIcon);
+}
+
+TEST_F(AppRegistryTest, SetIconChangesOnlyThatAppAndAnnouncesIt)
+{
+    AppRegistry registry(nullptr);
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
+    registry.record(QStringLiteral("timer"), QStringLiteral("Minutnik"), kIcon);
+    int changes = 0;
+    QObject::connect(&registry, &AppRegistry::appsChanged, [&changes] { ++changes; });
+
+    EXPECT_TRUE(registry.setIcon(QStringLiteral("timer"), kOtherIcon));
+
+    EXPECT_EQ(iconOf(registry, QStringLiteral("timer")), kOtherIcon);
+    EXPECT_EQ(iconOf(registry, QStringLiteral("notes")), kIcon);
+    EXPECT_EQ(registry.apps().first().toMap().value(QStringLiteral("id")).toString(),
+              QStringLiteral("timer"));
+    EXPECT_EQ(changes, 1);
+}
+
+TEST_F(AppRegistryTest, SetIconRefusesAnAppThatIsNotRecordedOrNotASlug)
+{
+    AppRegistry registry(nullptr);
+    int changes = 0;
+    QObject::connect(&registry, &AppRegistry::appsChanged, [&changes] { ++changes; });
+
+    EXPECT_FALSE(registry.setIcon(QStringLiteral("notes"), kIcon));
+    EXPECT_FALSE(registry.setIcon(QStringLiteral("../notes"), kIcon));
+
+    EXPECT_TRUE(registry.apps().isEmpty());
+    EXPECT_EQ(changes, 0);
+}
+
+TEST_F(AppRegistryTest, AnAppRecordedBeforeIconsExistedGetsTheDefaultIcon)
+{
+    {
+        SystemDatabase legacy(QStringLiteral("legacy"));
+        ASSERT_TRUE(legacy.isOpen());
+        QSqlQuery q(legacy.database());
+        ASSERT_TRUE(q.exec(QStringLiteral("CREATE TABLE apps (id TEXT PRIMARY KEY, title TEXT NOT "
+                                          "NULL, created_at TEXT NOT NULL, updated_at TEXT NOT "
+                                          "NULL)")));
+        ASSERT_TRUE(q.exec(QStringLiteral("INSERT INTO apps VALUES ('notes', 'Notatki', "
+                                          "'2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z')")));
+    }
+
+    AppRegistry registry(nullptr);
+
+    ASSERT_EQ(registry.apps().size(), 1);
+    EXPECT_EQ(iconOf(registry, QStringLiteral("notes")), AppRegistry::defaultIcon());
+    EXPECT_TRUE(registry.setIcon(QStringLiteral("notes"), kIcon));
+    EXPECT_EQ(iconOf(registry, QStringLiteral("notes")), kIcon);
+}
+
+TEST_F(AppRegistryTest, ReopeningARegistryThatHasTheIconColumnKeepsTheIcons)
+{
+    {
+        AppRegistry registry(nullptr);
+        registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
+    }
+
+    AppRegistry reopened(nullptr);
+
+    EXPECT_EQ(iconOf(reopened, QStringLiteral("notes")), kIcon);
+}
+
 TEST_F(AppRegistryTest, RecordingTheSameIdKeepsOneRowAndUpdatesTheTitle)
 {
     AppRegistry registry(nullptr);
 
-    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"));
-    registry.record(QStringLiteral("notes"), QStringLiteral("Notatnik"));
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatnik"), kIcon);
 
     ASSERT_EQ(registry.apps().size(), 1);
     EXPECT_EQ(registry.apps().first().toMap().value(QStringLiteral("title")).toString(),
@@ -56,9 +160,9 @@ TEST_F(AppRegistryTest, ListsTheMostRecentlyUpdatedFirst)
 {
     AppRegistry registry(nullptr);
 
-    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"));
-    registry.record(QStringLiteral("timer"), QStringLiteral("Minutnik"));
-    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
+    registry.record(QStringLiteral("timer"), QStringLiteral("Minutnik"), kIcon);
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
 
     const QVariantList apps = registry.apps();
     ASSERT_EQ(apps.size(), 2);
@@ -69,7 +173,7 @@ TEST_F(AppRegistryTest, FallsBackToTheIdWhenTheTitleIsBlank)
 {
     AppRegistry registry(nullptr);
 
-    registry.record(QStringLiteral("notes"), QStringLiteral("  "));
+    registry.record(QStringLiteral("notes"), QStringLiteral("  "), kIcon);
 
     EXPECT_EQ(registry.apps().first().toMap().value(QStringLiteral("title")).toString(),
               QStringLiteral("notes"));
@@ -79,15 +183,15 @@ TEST_F(AppRegistryTest, RejectsAnIdThatIsNotASlug)
 {
     AppRegistry registry(nullptr);
 
-    EXPECT_FALSE(registry.record(QStringLiteral("../escape"), QStringLiteral("Escape")));
+    EXPECT_FALSE(registry.record(QStringLiteral("../escape"), QStringLiteral("Escape"), kIcon));
     EXPECT_TRUE(registry.apps().isEmpty());
 }
 
 TEST_F(AppRegistryTest, RemoveDeletesTheDirectoryAndTheRow)
 {
     AppRegistry registry(nullptr);
-    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"));
-    registry.record(QStringLiteral("timer"), QStringLiteral("Minutnik"));
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
+    registry.record(QStringLiteral("timer"), QStringLiteral("Minutnik"), kIcon);
     const QString dir = root.path() + QStringLiteral("/notes");
     ASSERT_TRUE(QDir().mkpath(dir));
     QFile file(dir + QStringLiteral("/app.db"));
@@ -108,7 +212,7 @@ TEST_F(AppRegistryTest, RemoveDeletesTheDirectoryAndTheRow)
 TEST_F(AppRegistryTest, RemoveAnnouncesTheAppWhileItsFilesAreStillThere)
 {
     AppRegistry registry(nullptr);
-    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
     const QString dir = root.path() + QStringLiteral("/notes");
     ASSERT_TRUE(QDir().mkpath(dir));
     QStringList announced;
@@ -152,7 +256,7 @@ TEST_F(AppRegistryTest, GrantRejectsNamesThatAreNotSlugs)
 TEST_F(AppRegistryTest, RemoveDropsTheCapabilities)
 {
     AppRegistry registry(nullptr);
-    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
     registry.grant(QStringLiteral("notes"), QStringLiteral("notes"));
 
     registry.remove(QStringLiteral("notes"));
@@ -174,7 +278,7 @@ TEST_F(AppRegistryTest, SurvivesAcrossInstances)
 {
     {
         AppRegistry registry(nullptr);
-        registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"));
+        registry.record(QStringLiteral("notes"), QStringLiteral("Notatki"), kIcon);
     }
 
     AppRegistry reopened(nullptr);

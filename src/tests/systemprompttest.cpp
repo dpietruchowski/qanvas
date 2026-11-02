@@ -90,11 +90,57 @@ TEST(SystemPromptTest, TheMainPromptIsTheSameWithTheFlag)
 TEST(SystemPromptTest, NamesEveryTool)
 {
     const QString prompt = SystemPrompt::text();
-    for (const char* tool : { "create_app", "write_file", "edit_file", "delete_file", "delete_app",
-                              "list_apps", "list_files", "read_file", "search_files",
-                              "describe_app", "read_log", "check_layout", "grant_access" })
+    for (const char* tool :
+         { "create_app", "write_file", "edit_file", "delete_file", "delete_app", "list_apps",
+           "list_files", "read_file", "search_files", "describe_app", "read_log", "check_layout",
+           "grant_access", "set_app_icon" })
         EXPECT_TRUE(prompt.contains(QLatin1String(tool))) << tool;
     EXPECT_TRUE(prompt.contains(QStringLiteral("\nnote   "))) << "note";
+}
+
+TEST(SystemPromptTest, TheDesignStatePicksTheIconNextToTheIdAndTheTitle)
+{
+    const QString prompt = SystemPrompt::text();
+    const QString design = sectionOf(prompt, QStringLiteral("## STATE: DESIGN"));
+    ASSERT_FALSE(design.isEmpty());
+    EXPECT_TRUE(design.contains(QStringLiteral("icon the iconName")));
+    EXPECT_LT(design.indexOf(QStringLiteral("title two or three words")),
+              design.indexOf(QStringLiteral("icon the iconName")));
+    EXPECT_LT(design.indexOf(QStringLiteral("icon the iconName")),
+              design.indexOf(QStringLiteral("tables one per kind")));
+}
+
+TEST(SystemPromptTest, TheStepsStateGivesANewAppItsIconToo)
+{
+    const QString steps = sectionOf(SystemPrompt::text(), QStringLiteral("## STATE: STEPS"));
+    EXPECT_TRUE(steps.contains(QStringLiteral("the id, the title and the icon")));
+}
+
+TEST(SystemPromptTest, ANewIconForAnAppRoutesToSetAppIconAndIsListedAmongTheTools)
+{
+    const QString prompt = SystemPrompt::text();
+    EXPECT_TRUE(sectionOf(prompt, QStringLiteral("## STATE: ROUTE"))
+                    .contains(QStringLiteral("\"another icon for the app X\" -> set_app_icon")));
+    EXPECT_TRUE(sectionOf(prompt, QStringLiteral("## TOOLS"))
+                    .contains(QStringLiteral("set_app_icon another icon for the app in the app "
+                                             "list; reloads nothing")));
+}
+
+TEST(SystemPromptTest, EveryIconAnExampleCreatesAnAppWithIsOneOfTheIconNames)
+{
+    const QString prompt = SystemPrompt::text();
+    const qsizetype listStart = prompt.indexOf(QStringLiteral("iconName picks from:"));
+    const qsizetype listEnd = prompt.indexOf(QStringLiteral("any other name raises an error"));
+    ASSERT_GE(listStart, 0);
+    ASSERT_GT(listEnd, listStart);
+    const QStringList names
+        = prompt.mid(listStart + 20, listEnd - listStart - 20).simplified().split(QLatin1Char(' '));
+
+    const QSet<QString> used = matches(
+        prompt, QStringLiteral("create_app +id=\"[^\"]+\" +title=\"[^\"]+\" +icon=\"([^\"]+)\""));
+    EXPECT_FALSE(used.isEmpty());
+    for (const QString& icon : used)
+        EXPECT_TRUE(names.contains(icon)) << qPrintable(icon);
 }
 
 TEST(SystemPromptTest, EveryPathThatChangesAnAppEndsInTheNoteBeforeDone)

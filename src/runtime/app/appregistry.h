@@ -22,8 +22,11 @@ public:
     static AppRegistry& instance();
     static AppRegistry* create(QQmlEngine* engine, QJSEngine* scriptEngine);
 
+    static QString defaultIcon();
+
     QVariantList apps() const;
-    bool record(const QString& id, const QString& title);
+    bool record(const QString& id, const QString& title, const QString& icon);
+    bool setIcon(const QString& id, const QString& icon);
     Q_INVOKABLE bool remove(const QString& id);
 
     QStringList capabilities(const QString& id) const;

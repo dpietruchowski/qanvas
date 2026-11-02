@@ -7,11 +7,17 @@
 #include <QDir>
 #include <QJSEngine>
 #include <QSqlQuery>
+#include <QSqlRecord>
 #include <QVariantMap>
 
 namespace
 {
 QString now() { return QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs); }
+
+QString iconColumn()
+{
+    return QStringLiteral("icon TEXT NOT NULL DEFAULT '%1'").arg(AppRegistry::defaultIcon());
+}
 }
 
 AppRegistry::AppRegistry(QObject* parent)
@@ -34,6 +40,8 @@ AppRegistry* AppRegistry::create(QQmlEngine*, QJSEngine*)
     return registry;
 }
 
+QString AppRegistry::defaultIcon() { return QStringLiteral("star"); }
+
 bool AppRegistry::open()
 {
     if (!m_database.isOpen())
@@ -43,8 +51,14 @@ bool AppRegistry::open()
     if (!q.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS apps ("
                                "id TEXT PRIMARY KEY, "
                                "title TEXT NOT NULL, "
+                               "%1, "
                                "created_at TEXT NOT NULL, "
-                               "updated_at TEXT NOT NULL)")))
+                               "updated_at TEXT NOT NULL)")
+                    .arg(iconColumn())))
+        return false;
+
+    if (!m_database.database().record(QStringLiteral("apps")).contains(QStringLiteral("icon"))
+        && !q.exec(QStringLiteral("ALTER TABLE apps ADD COLUMN %1").arg(iconColumn())))
         return false;
 
     return q.exec(QStringLiteral("CREATE TABLE IF NOT EXISTS app_permissions ("
@@ -61,7 +75,7 @@ QVariantList AppRegistry::apps() const
         return apps;
 
     QSqlQuery q(m_database.database());
-    if (!q.exec(QStringLiteral("SELECT id, title, updated_at FROM apps "
+    if (!q.exec(QStringLiteral("SELECT id, title, icon, updated_at FROM apps "
                                "ORDER BY updated_at DESC, id ASC")))
         return apps;
 
@@ -69,30 +83,53 @@ QVariantList AppRegistry::apps() const
     {
         apps.append(QVariantMap { { QStringLiteral("id"), q.value(0) },
                                   { QStringLiteral("title"), q.value(1) },
-                                  { QStringLiteral("updatedAt"), q.value(2) } });
+                                  { QStringLiteral("icon"), q.value(2) },
+                                  { QStringLiteral("updatedAt"), q.value(3) } });
     }
 
     return apps;
 }
 
-bool AppRegistry::record(const QString& id, const QString& title)
+bool AppRegistry::record(const QString& id, const QString& title, const QString& icon)
 {
     if (!m_open || !App::isValidId(id))
         return false;
 
     QSqlQuery q(m_database.database());
-    if (!q.prepare(QStringLiteral("INSERT INTO apps (id, title, created_at, updated_at) "
-                                  "VALUES (:id, :title, :now, :now) "
+    if (!q.prepare(QStringLiteral("INSERT INTO apps (id, title, icon, created_at, updated_at) "
+                                  "VALUES (:id, :title, :icon, :now, :now) "
                                   "ON CONFLICT(id) DO UPDATE SET title = excluded.title, "
-                                  "updated_at = excluded.updated_at")))
+                                  "icon = excluded.icon, updated_at = excluded.updated_at")))
         return false;
 
     const QString name = title.trimmed();
     q.bindValue(QStringLiteral(":id"), id);
     q.bindValue(QStringLiteral(":title"), name.isEmpty() ? id : name);
+    q.bindValue(QStringLiteral(":icon"), icon);
     q.bindValue(QStringLiteral(":now"), now());
 
     if (!q.exec())
+        return false;
+
+    emit appsChanged();
+    return true;
+}
+
+bool AppRegistry::setIcon(const QString& id, const QString& icon)
+{
+    if (!m_open || !App::isValidId(id))
+        return false;
+
+    QSqlQuery q(m_database.database());
+    if (!q.prepare(
+            QStringLiteral("UPDATE apps SET icon = :icon, updated_at = :now WHERE id = :id")))
+        return false;
+
+    q.bindValue(QStringLiteral(":id"), id);
+    q.bindValue(QStringLiteral(":icon"), icon);
+    q.bindValue(QStringLiteral(":now"), now());
+
+    if (!q.exec() || q.numRowsAffected() == 0)
         return false;
 
     emit appsChanged();
