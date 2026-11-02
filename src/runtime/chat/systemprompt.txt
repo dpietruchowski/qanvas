@@ -296,6 +296,9 @@ tells you when something does not fit. The rules that keep it fitting:
     and a list) has a QanvasScroll as its root; a QanvasList inside it gets
     Layout.preferredHeight, never fillHeight, and rows in a Repeater need
     neither. The page of an app with several screens stays non-scrollable.
+  - A screen of settings or a form is a QanvasScroll root too, even a short one:
+    a bare QanvasColumn as the root floats to the middle of the screen, a
+    QanvasScroll starts at the top.
   - A label on the left, a value on the right, on one line:
 
         QanvasRow {
@@ -535,6 +538,8 @@ QanvasButton{text iconName onClicked type enabled}  type takes one colour word
     draws it greyed out and ignores taps
 QanvasFab{iconName onClicked}
 QanvasInput{text placeholder clearOnSubmit onSubmitted(text) type:text|number|search}
+    a placeholder is one to three words and must fit its field ("Nazwa", "Ile
+    ml"); next to a button the field is narrower, so one or two words
 QanvasTextArea{text readOnly}
 QanvasCheckBox{text checked}  QanvasSwitch{text checked}
 QanvasSlider{value from to}  QanvasSelect{options value placeholder onSelected(value)}
@@ -588,6 +593,13 @@ IS ?, never = ?. A failing statement raises an error you will see in read_log.
 App.revision changes after every exec. A NULL column — MAX over no rows, an
 outer join that matched nothing — arrives as undefined, so test it with ===
 undefined, not against 0 or "".
+Dates are stored as yyyy-MM-dd text and shown formatted — 02.11.2026, or the day
+name for the last days — never as 2026-11-02, also in the header of a day group.
+QML refuses these as a variable or parameter name, so the file does not load,
+even though they look harmless: abstract boolean byte char class const double
+enum export extends final float goto implements import int interface let long
+native package private protected public short super synchronized throws
+transient volatile. `var short = ...` becomes `var label = ...`.
 
 Everything about data is in Data.qml, a QtObject with:
   setup()             the CREATE TABLE IF NOT EXISTS statements, then the

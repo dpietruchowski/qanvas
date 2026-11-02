@@ -1,8 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <QQmlComponent>
+#include <QQmlEngine>
 #include <QRegularExpression>
 #include <QSet>
 #include <QStringList>
+#include <QUrl>
 
 #include "runtime/chat/systemprompt.h"
 
@@ -442,6 +445,66 @@ TEST(SystemPromptTest, TheChartEntryTellsItDoesNotShrink)
 
     EXPECT_TRUE(components.contains(QStringLiteral("it does not shrink: a row is about 50 px")));
     EXPECT_TRUE(components.contains(QStringLiteral("Layout.preferredHeight: rows * 50")));
+}
+
+TEST(SystemPromptTest, ThePlaceholderRuleKeepsThemToAFewWordsThatFitTheField)
+{
+    const QString components
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## COMPONENTS")).simplified();
+
+    EXPECT_TRUE(components.contains(
+        QStringLiteral("a placeholder is one to three words and must fit its field")));
+    EXPECT_TRUE(components.contains(
+        QStringLiteral("next to a button the field is narrower, so one or two words")));
+}
+
+TEST(SystemPromptTest, EveryWordTheDataRulesCallReservedReallyBreaksTheFile)
+{
+    const QString data = sectionOf(SystemPrompt::text(), QStringLiteral("## DATA")).simplified();
+    const QString lead = QStringLiteral("even though they look harmless: ");
+    const int start = data.indexOf(lead);
+    ASSERT_GE(start, 0);
+    const int from = start + lead.size();
+    const int end = data.indexOf(QStringLiteral(". `var short"), from);
+    ASSERT_GT(end, from);
+
+    const QStringList words = data.mid(from, end - from).split(QLatin1Char(' '));
+    EXPECT_GE(words.size(), 30);
+    EXPECT_TRUE(words.contains(QStringLiteral("short")));
+    EXPECT_TRUE(words.contains(QStringLiteral("long")));
+    EXPECT_TRUE(words.contains(QStringLiteral("int")));
+
+    QQmlEngine engine;
+    for (const QString& word : words)
+    {
+        QQmlComponent component(&engine);
+        component.setData(QStringLiteral("import QtQml\nQtObject { function f() { var %1 = 1; "
+                                         "return %1 } }")
+                              .arg(word)
+                              .toUtf8(),
+                          QUrl());
+        EXPECT_TRUE(component.isError()) << qPrintable(word);
+    }
+}
+
+TEST(SystemPromptTest, TheDataRulesShowDatesFormattedNotAsTheStoredText)
+{
+    const QString data = sectionOf(SystemPrompt::text(), QStringLiteral("## DATA")).simplified();
+
+    EXPECT_TRUE(data.contains(QStringLiteral("shown formatted")));
+    EXPECT_TRUE(data.contains(QStringLiteral("never as 2026-11-02, also in the header of a day "
+                                             "group")));
+}
+
+TEST(SystemPromptTest, AShortSettingsOrFormScreenStillStartsAtTheTopOfTheScreen)
+{
+    const QString layout
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## LAYOUT")).simplified();
+
+    EXPECT_TRUE(layout.contains(QStringLiteral("A screen of settings or a form is a QanvasScroll "
+                                               "root too, even a short one")));
+    EXPECT_TRUE(layout.contains(QStringLiteral("a bare QanvasColumn as the root floats to the "
+                                               "middle of the screen")));
 }
 
 TEST(SystemPromptTest, TheTimeRuleNamesTheSubSecondStopwatch)

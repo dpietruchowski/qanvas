@@ -119,6 +119,104 @@ TEST_F(AppLayoutTest, ARowThatDoesNotFitIsReportedOnce)
     EXPECT_EQ(report.count(QStringLiteral("\n- ")), 1) << report.toStdString();
 }
 
+TEST_F(AppLayoutTest, TheWidestChildIsTheOneThatCannotShrinkNotTheFirstThatFills)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; Rectangle { Layout.fillWidth: true; "
+        "Layout.preferredHeight: 20 } RowLayout { Layout.fillWidth: true; Rectangle { "
+        "Layout.preferredWidth: 150; Layout.preferredHeight: 20 } Rectangle { "
+        "Layout.preferredWidth: 150; Layout.preferredHeight: 20 } } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("needs 305px of width but has 200px")))
+        << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("the widest is RowLayout (Main.qml) at 305px")))
+        << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AChildThatDoesNotFillAndIsTooWideIsNamedAsTheWidest)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; Rectangle { Layout.fillWidth: true; "
+        "Layout.preferredHeight: 20 } Text { text: \"a rather long line of text that will not "
+        "fit\" } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("the widest is Text \"a rather long line of t")))
+        << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AFillingChildWithAMinimumWidthIsNamedAsTheWidest)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; Text { Layout.fillWidth: true; text: "
+        "\"first\" } Rectangle { Layout.fillWidth: true; Layout.minimumWidth: 300; "
+        "Layout.preferredHeight: 20 } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("needs 300px of width but has 200px")))
+        << report.toStdString();
+    EXPECT_TRUE(report.contains(QStringLiteral("the widest is Rectangle (Main.qml) at 300px")))
+        << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, TwoSteppersInARowUnderTabsNameTheRowNotTheTabs)
+{
+    const QString report = show(QStringLiteral(
+        "import Qanvas.Components\n"
+        "Item { QanvasColumn { anchors.fill: parent; QanvasTabs { options: [\"Główny\", "
+        "\"Historia\"]; value: \"Główny\" } QanvasRow { Layout.fillWidth: true; QanvasStepper { "
+        "value: 1; from: 0; to: 23 } QanvasStepper { value: 2; from: 0; to: 59 } } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("the widest is QanvasRow (Main.qml)")))
+        << report.toStdString();
+    EXPECT_FALSE(report.contains(QStringLiteral("the widest is QanvasTabs")))
+        << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AListThatShowsLessThanTwoRowsOfItsContentIsReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; ListView { Layout.fillWidth: true; "
+        "Layout.preferredHeight: 60; model: 10; delegate: Rectangle { width: ListView.view.width; "
+        "height: 50 } } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("ListView (Main.qml) is only 60px high for 10 rows "
+                                               "of about 50px, so it shows less than two of "
+                                               "them")))
+        << report.toStdString();
+    EXPECT_EQ(report.count(QStringLiteral("\n- ")), 1) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AListThatShowsSeveralRowsAndScrollsIsNotReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; ListView { Layout.fillWidth: true; "
+        "Layout.fillHeight: true; model: 30; delegate: Rectangle { width: ListView.view.width; "
+        "height: 50 } } } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AListWhoseRowsAllFitIsNotReported)
+{
+    const QString report = show(QStringLiteral(
+        "Item { ColumnLayout { anchors.fill: parent; ListView { Layout.fillWidth: true; "
+        "Layout.preferredHeight: 60; model: 1; delegate: Rectangle { width: ListView.view.width; "
+        "height: 50 } } } }"));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, ASquashedListOfAComponentIsReportedUnderTheOwner)
+{
+    const QString report = show(QStringLiteral(
+        "import Qanvas.Components\n"
+        "Item { QanvasColumn { anchors.fill: parent; QanvasList { Layout.preferredHeight: 50; "
+        "model: [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\"] } } }"));
+
+    EXPECT_TRUE(report.contains(QStringLiteral("QanvasList (Main.qml) is only 50px high for 6 "
+                                               "rows")))
+        << report.toStdString();
+}
+
 TEST_F(AppLayoutTest, AWrappedTextIsNotTooWide)
 {
     const QString report = show(QStringLiteral(
