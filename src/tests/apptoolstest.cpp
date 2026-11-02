@@ -74,6 +74,7 @@ protected:
     void SetUp() override
     {
         qputenv("QANVAS_APPS_ROOT", root.path().toLocal8Bit());
+        qunsetenv("QANVAS_DEV_SCREENSHOT");
         registry = std::make_unique<AppRegistry>(nullptr);
         engine.setOutputWarningsToStandardError(false);
         tools = std::make_unique<AppTools>(agent, *registry, notesPath());
@@ -86,7 +87,11 @@ protected:
                          });
     }
 
-    void TearDown() override { qunsetenv("QANVAS_APPS_ROOT"); }
+    void TearDown() override
+    {
+        qunsetenv("QANVAS_APPS_ROOT");
+        qunsetenv("QANVAS_DEV_SCREENSHOT");
+    }
 
     void load(const QString& id)
     {
@@ -679,6 +684,48 @@ TEST_F(AppToolsTest, GivesTheAgentEveryToolWithItsEffect)
         ASSERT_TRUE(client.lastTools.contains(name)) << qPrintable(name);
         EXPECT_EQ(client.lastTools.value(name).effect, ToolEffect::Writes) << qPrintable(name);
     }
+}
+
+TEST_F(AppToolsTest, TheScreenshotToolIsNotOfferedWithoutTheFlag)
+{
+    run({ ScriptedClient::reply(QStringLiteral("hi")) });
+
+    EXPECT_FALSE(client.lastTools.contains(QStringLiteral("screenshot")));
+}
+
+TEST_F(AppToolsTest, TheScreenshotToolIsOfferedWithTheFlagAndOnlyReads)
+{
+    qputenv("QANVAS_DEV_SCREENSHOT", "1");
+    ::Agent flagged { QStringLiteral("test-model"), QStringLiteral("system") };
+    AppTools flaggedTools(flagged, *registry, notesPath());
+    client.script = { ScriptedClient::reply(QStringLiteral("hi")) };
+
+    ASSERT_FALSE(requestAndWait(flagged, client, QStringLiteral("go")).isEmpty());
+
+    ASSERT_TRUE(client.lastTools.contains(QStringLiteral("screenshot")));
+    EXPECT_EQ(client.lastTools.value(QStringLiteral("screenshot")).effect, ToolEffect::Reads);
+    EXPECT_EQ(client.lastTools.size(), 15);
+}
+
+TEST_F(AppToolsTest, AScreenshotOfAnAppThatIsNotOnScreenSaysSoAndFailsTheStep)
+{
+    qputenv("QANVAS_DEV_SCREENSHOT", "1");
+    ::Agent flagged { QStringLiteral("test-model"), QStringLiteral("system") };
+    AppTools flaggedTools(flagged, *registry, notesPath());
+    client.script
+        = { ScriptedClient::toolCall(QStringLiteral("create_app"),
+                                     createApp(QStringLiteral("notes"), QStringLiteral("Notatki"))),
+            ScriptedClient::toolCall(
+                QStringLiteral("screenshot"),
+                QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+            ScriptedClient::reply(QStringLiteral("done")) };
+
+    ASSERT_FALSE(requestAndWait(flagged, client, QStringLiteral("go")).isEmpty());
+
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("not on screen")))
+        << qPrintable(client.lastToolResult());
+    ASSERT_EQ(flaggedTools.activities().size(), 2);
+    EXPECT_TRUE(flaggedTools.activities().at(1).toMap().value(QStringLiteral("failed")).toBool());
 }
 
 TEST_F(AppToolsTest, ClearActivitiesForgetsTheTurnState)
