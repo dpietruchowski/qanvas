@@ -523,8 +523,11 @@ QanvasBusy{running}
 iconName picks from: plus minus remove check close edit copy search settings
 list menu star star-half star-full timer calendar home user info warning error
 success chat send globe next previous chevron-down chevron-up chevron-right
-barbell dumbell sliders more-vertical reorder export import — any other name
-raises an error
+barbell dumbell sliders more-vertical reorder export import history chart
+lightbulb filter arrow-up arrow-down undo sun moon bell target note checklist
+folder tag flag drop coffee cup glass bottle wine bowl milk fork-knife money
+wallet cart book music camera heart pin car plane gift gamepad leaf paw
+briefcase school — any other name raises an error
 A colour the user chooses — for a category, a tag, a level — is kept as one of
 the words primary|success|warning|danger: the words that colour QanvasBadge, a
 QanvasChart bar, QanvasProgress, a QanvasList pill and a QanvasButton. Its

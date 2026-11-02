@@ -1,7 +1,26 @@
 #include <QDate>
+#include <QFile>
 #include <QLocale>
+#include <QSet>
+#include <QUrl>
 
 #include "qmlharness.h"
+#include "runtime/chat/systemprompt.h"
+
+namespace
+{
+QStringList iconNamesInThePrompt()
+{
+    const QString prompt = SystemPrompt::text();
+    const QString marker = QStringLiteral("iconName picks from:");
+    const qsizetype start = prompt.indexOf(marker);
+    if (start < 0)
+        return {};
+    const qsizetype from = start + marker.size();
+    const qsizetype end = prompt.indexOf(QChar(0x2014), from);
+    return prompt.mid(from, end - from).simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+}
+}
 
 class QmlComponentTest : public QmlHarness
 {
@@ -349,4 +368,55 @@ TEST_F(QmlComponentTest, ACardInAGridIsTallEnoughForItsContentAndItsMargins)
     ASSERT_NE(card, nullptr);
     EXPECT_GE(card->height(),
               grid->property("content").toDouble() + 2 * grid->property("margins").toDouble());
+}
+
+TEST_F(QmlComponentTest, ThePromptListsExactlyTheIconNamesOfTheTheme)
+{
+    QQuickItem* item
+        = show(QStringLiteral("Item { property list<string> names: Theme.iconNames }"));
+    ASSERT_NE(item, nullptr);
+
+    const QStringList names = item->property("names").toStringList();
+
+    EXPECT_FALSE(names.isEmpty());
+    EXPECT_EQ(iconNamesInThePrompt(), names);
+    EXPECT_EQ(QSet<QString>(names.begin(), names.end()).size(), names.size());
+}
+
+TEST_F(QmlComponentTest, EveryIconNameAndAliasResolvesToAnIconFile)
+{
+    QQuickItem* item = show(
+        QStringLiteral("Item { property list<string> names: Theme.iconNames; "
+                       "property list<string> aliases: Object.keys(Theme.iconAliases); "
+                       "property list<string> nameSources: names.map(name => source(name)); "
+                       "property list<string> aliasSources: aliases.map(name => source(name)); "
+                       "function source(name) { try { return Theme.iconSource(name) } "
+                       "catch (e) { return \"\" } } }"));
+    ASSERT_NE(item, nullptr);
+
+    const auto expectFiles = [item](const char* keys, const char* sources)
+    {
+        const QStringList wanted = item->property(keys).toStringList();
+        const QStringList found = item->property(sources).toStringList();
+        ASSERT_FALSE(wanted.isEmpty());
+        ASSERT_EQ(wanted.size(), found.size());
+        for (qsizetype index = 0; index < wanted.size(); ++index)
+            EXPECT_TRUE(QFile::exists(QLatin1Char(':') + QUrl(found.at(index)).path()))
+                << wanted.at(index).toStdString() << " -> " << found.at(index).toStdString();
+    };
+
+    expectFiles("names", "nameSources");
+    expectFiles("aliases", "aliasSources");
+}
+
+TEST_F(QmlComponentTest, NoIconAliasShadowsAnIconName)
+{
+    QQuickItem* item = show(QStringLiteral("Item { property list<string> names: Theme.iconNames; "
+                                           "property list<string> aliases: "
+                                           "Object.keys(Theme.iconAliases) }"));
+    ASSERT_NE(item, nullptr);
+
+    const QStringList names = item->property("names").toStringList();
+    for (const QString& alias : item->property("aliases").toStringList())
+        EXPECT_FALSE(names.contains(alias)) << alias.toStdString();
 }

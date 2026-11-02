@@ -327,20 +327,32 @@ DefaultTheme {
         "list", "menu", "star", "star-half", "star-full", "timer", "calendar", "home", "user",
         "info", "warning", "error", "success", "chat", "send", "globe", "next", "previous",
         "chevron-down", "chevron-up", "chevron-right", "barbell", "dumbell", "sliders",
-        "more-vertical", "reorder", "export", "import"
+        "more-vertical", "reorder", "export", "import", "history", "chart", "lightbulb",
+        "filter", "arrow-up", "arrow-down", "undo", "sun", "moon", "bell", "target", "note",
+        "checklist", "folder", "tag", "flag", "drop", "coffee", "cup", "glass", "bottle",
+        "wine", "bowl", "milk", "fork-knife", "money", "wallet", "cart", "book", "music",
+        "camera", "heart", "pin", "car", "plane", "gift", "gamepad", "leaf", "paw",
+        "briefcase", "school"
     ]
 
     readonly property var iconAliases: ({
         "add": "plus", "delete": "remove", "trash": "remove", "ok": "check", "done": "check",
         "cancel": "close", "x": "close", "back": "previous", "forward": "next",
-        "clock": "timer", "history": "timer", "stopwatch": "timer", "gear": "settings",
-        "cog": "settings", "help": "info", "dumbbell": "dumbell", "gym": "barbell",
-        "workout": "dumbell", "stats": "sliders", "chart": "sliders", "filter": "sliders",
-        "more": "more-vertical", "drag": "reorder", "share": "export", "download": "import",
-        "date": "calendar", "person": "user", "profile": "user", "message": "chat",
-        "book": "list", "notes": "list", "heart": "star-full", "favorite": "star-full",
-        "bookmark": "star", "lightbulb": "info", "question": "info", "alert": "warning",
-        "play": "next", "trophy": "success", "quiz": "check", "cards": "copy"
+        "clock": "timer", "stopwatch": "timer", "gear": "settings", "cog": "settings",
+        "help": "info", "dumbbell": "dumbell", "gym": "barbell", "workout": "dumbell",
+        "stats": "chart", "more": "more-vertical", "drag": "reorder", "share": "export",
+        "download": "import", "date": "calendar", "person": "user", "profile": "user",
+        "message": "chat", "notes": "note", "favorite": "star-full", "bookmark": "star",
+        "question": "info", "alert": "warning", "play": "next", "trophy": "success",
+        "quiz": "check", "cards": "copy", "pencil": "edit", "bulb": "lightbulb",
+        "idea": "lightbulb", "up": "arrow-up", "down": "arrow-down", "day": "sun",
+        "night": "moon", "reminder": "bell", "notification": "bell", "goal": "target",
+        "todo": "checklist", "tasks": "checklist", "water": "drop", "tea": "cup",
+        "drink": "glass", "food": "fork-knife", "meal": "fork-knife",
+        "restaurant": "fork-knife", "cash": "money", "coin": "money", "shopping": "cart",
+        "study": "book", "photo": "camera", "health": "heart", "location": "pin",
+        "map": "pin", "game": "gamepad", "puzzle": "gamepad", "plant": "leaf", "pet": "paw",
+        "work": "briefcase", "graduation": "school"
     })
 
     function iconSource(name) {
