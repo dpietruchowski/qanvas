@@ -21,8 +21,8 @@ protected:
 
 TEST_F(QmlComponentTest, AStepperShowsAnIntegerWithoutGrouping)
 {
-    QQuickItem* item = show(QStringLiteral(
-        "QanvasStepper { from: 1900; to: 2100; value: 2026; property string shown: contentItem.text }"));
+    QQuickItem* item = show(QStringLiteral("QanvasStepper { from: 1900; to: 2100; value: 2026; "
+                                           "property string shown: contentItem.text }"));
     ASSERT_NE(item, nullptr);
 
     EXPECT_EQ(item->property("shown").toString(), QStringLiteral("2026"));
@@ -30,9 +30,10 @@ TEST_F(QmlComponentTest, AStepperShowsAnIntegerWithoutGrouping)
 
 TEST_F(QmlComponentTest, ASelectWithAnEmptyValueShowsItsPlaceholderAndNoOption)
 {
-    QQuickItem* item = show(QStringLiteral("QanvasSelect { options: [\"Food\", \"Rent\"]; value: \"\"; "
-                                           "placeholder: \"Category\"; "
-                                           "property string shown: contentItem.text }"));
+    QQuickItem* item
+        = show(QStringLiteral("QanvasSelect { options: [\"Food\", \"Rent\"]; value: \"\"; "
+                              "placeholder: \"Category\"; "
+                              "property string shown: contentItem.text }"));
     ASSERT_NE(item, nullptr);
 
     EXPECT_EQ(item->property("shown").toString(), QStringLiteral("Category"));
@@ -42,9 +43,10 @@ TEST_F(QmlComponentTest, ASelectWithAnEmptyValueShowsItsPlaceholderAndNoOption)
 
 TEST_F(QmlComponentTest, ASelectWithAnUnknownValueShowsItsPlaceholder)
 {
-    QQuickItem* item = show(QStringLiteral("QanvasSelect { options: [\"Food\", \"Rent\"]; value: \"Gone\"; "
-                                           "placeholder: \"Category\"; "
-                                           "property string shown: contentItem.text }"));
+    QQuickItem* item
+        = show(QStringLiteral("QanvasSelect { options: [\"Food\", \"Rent\"]; value: \"Gone\"; "
+                              "placeholder: \"Category\"; "
+                              "property string shown: contentItem.text }"));
     ASSERT_NE(item, nullptr);
 
     EXPECT_EQ(item->property("shown").toString(), QStringLiteral("Category"));
@@ -53,9 +55,10 @@ TEST_F(QmlComponentTest, ASelectWithAnUnknownValueShowsItsPlaceholder)
 
 TEST_F(QmlComponentTest, ASelectShowsTheOptionEqualToItsValue)
 {
-    QQuickItem* item = show(QStringLiteral("QanvasSelect { options: [\"Food\", \"Rent\"]; value: \"Rent\"; "
-                                           "placeholder: \"Category\"; "
-                                           "property string shown: contentItem.text }"));
+    QQuickItem* item
+        = show(QStringLiteral("QanvasSelect { options: [\"Food\", \"Rent\"]; value: \"Rent\"; "
+                              "placeholder: \"Category\"; "
+                              "property string shown: contentItem.text }"));
     ASSERT_NE(item, nullptr);
 
     EXPECT_EQ(item->property("shown").toString(), QStringLiteral("Rent"));
@@ -82,11 +85,11 @@ TEST_F(QmlComponentTest, ASelectFollowsAnExternalChangeOfItsValue)
 
 TEST_F(QmlComponentTest, AButtonOfTypeWarningTakesTheWarningStyle)
 {
-    QQuickItem* item = show(QStringLiteral(
-        "QanvasButton { text: \"Wait\"; type: \"warning small\"; "
-        "property color shown: buttonStyle.background; "
-        "property color wanted: Theme.button.warning.background; "
-        "property color primary: Theme.button.primary.background }"));
+    QQuickItem* item
+        = show(QStringLiteral("QanvasButton { text: \"Wait\"; type: \"warning small\"; "
+                              "property color shown: buttonStyle.background; "
+                              "property color wanted: Theme.button.warning.background; "
+                              "property color primary: Theme.button.primary.background }"));
     ASSERT_NE(item, nullptr);
 
     EXPECT_EQ(item->property("shown").value<QColor>(), item->property("wanted").value<QColor>());
@@ -95,11 +98,11 @@ TEST_F(QmlComponentTest, AButtonOfTypeWarningTakesTheWarningStyle)
 
 TEST_F(QmlComponentTest, ABadgeWithoutATypeIsTheNeutralOne)
 {
-    QQuickItem* item = show(QStringLiteral(
-        "QanvasBadge { text: \"Misc\"; type: \"\"; "
-        "property color shown: Theme.badgeStyle(type).background; "
-        "property color neutral: Theme.badge.neutral.background; "
-        "property color primary: Theme.badge.primary.background }"));
+    QQuickItem* item
+        = show(QStringLiteral("QanvasBadge { text: \"Misc\"; type: \"\"; "
+                              "property color shown: Theme.badgeStyle(type).background; "
+                              "property color neutral: Theme.badge.neutral.background; "
+                              "property color primary: Theme.badge.primary.background }"));
     ASSERT_NE(item, nullptr);
 
     EXPECT_EQ(item->property("shown").value<QColor>(), item->property("neutral").value<QColor>());
@@ -156,16 +159,20 @@ TEST_F(QmlComponentTest, AChartColoursABarByTheTypeWordOfItsItem)
     ASSERT_NE(rent, nullptr);
     ASSERT_NE(salary, nullptr);
     ASSERT_NE(misc, nullptr);
-    EXPECT_EQ(rent->property("barColor").value<QColor>(), chart->property("danger").value<QColor>());
-    EXPECT_EQ(salary->property("barColor").value<QColor>(), chart->property("success").value<QColor>());
+    EXPECT_EQ(rent->property("barColor").value<QColor>(),
+              chart->property("danger").value<QColor>());
+    EXPECT_EQ(salary->property("barColor").value<QColor>(),
+              chart->property("success").value<QColor>());
     EXPECT_EQ(misc->property("barColor").value<QColor>(), chart->property("plain").value<QColor>());
-    EXPECT_NE(rent->property("barColor").value<QColor>(), misc->property("barColor").value<QColor>());
+    EXPECT_NE(rent->property("barColor").value<QColor>(),
+              misc->property("barColor").value<QColor>());
 }
 
 TEST_F(QmlComponentTest, AChartOfZeroesDrawsEmptyBarsAndAnEmptyChartNoRows)
 {
-    QQuickItem* zeroes = show(QStringLiteral("QanvasChart { objectName: \"chart\"; textRole: \"name\"; "
-                                             "valueRole: \"sum\"; model: [{name: \"Food\", sum: 0}] }"));
+    QQuickItem* zeroes
+        = show(QStringLiteral("QanvasChart { objectName: \"chart\"; textRole: \"name\"; "
+                              "valueRole: \"sum\"; model: [{name: \"Food\", sum: 0}] }"));
     ASSERT_NE(zeroes, nullptr);
     QQuickItem* food = row(zeroes, QStringLiteral("chart_row0"));
     ASSERT_NE(food, nullptr);
@@ -178,9 +185,9 @@ TEST_F(QmlComponentTest, AChartOfZeroesDrawsEmptyBarsAndAnEmptyChartNoRows)
 
 TEST_F(QmlComponentTest, ADatePickerShowsItsIsoValueOrThePlaceholder)
 {
-    QQuickItem* picker = show(QStringLiteral(
-        "QanvasDatePicker { value: \"2026-11-02\"; placeholder: \"Due\"; "
-        "property string shown: contentItem.children[0].text }"));
+    QQuickItem* picker
+        = show(QStringLiteral("QanvasDatePicker { value: \"2026-11-02\"; placeholder: \"Due\"; "
+                              "property string shown: contentItem.children[0].text }"));
     ASSERT_NE(picker, nullptr);
     EXPECT_EQ(picker->property("shown").toString(), QStringLiteral("2026-11-02"));
 
@@ -212,17 +219,20 @@ TEST_F(QmlComponentTest, ADatePickerListsSixWholeWeeksStartingOnTheFirstDayOfThe
     for (const QVariant& entry : days)
     {
         const QVariantMap day = entry.toMap();
-        const QDate date = QDate::fromString(day.value(QStringLiteral("iso")).toString(), Qt::ISODate);
+        const QDate date
+            = QDate::fromString(day.value(QStringLiteral("iso")).toString(), Qt::ISODate);
         ASSERT_TRUE(date.isValid());
         EXPECT_EQ(day.value(QStringLiteral("day")).toInt(), date.day());
-        EXPECT_EQ(day.value(QStringLiteral("inMonth")).toBool(), date.month() == 11 && date.year() == 2026);
+        EXPECT_EQ(day.value(QStringLiteral("inMonth")).toBool(),
+                  date.month() == 11 && date.year() == 2026);
         if (previous.isValid())
             EXPECT_EQ(previous.daysTo(date), 1);
         previous = date;
         inMonth += day.value(QStringLiteral("inMonth")).toBool() ? 1 : 0;
     }
     EXPECT_EQ(inMonth, 30);
-    const QDate first = QDate::fromString(days.first().toMap().value(QStringLiteral("iso")).toString(), Qt::ISODate);
+    const QDate first = QDate::fromString(
+        days.first().toMap().value(QStringLiteral("iso")).toString(), Qt::ISODate);
     EXPECT_EQ(first.dayOfWeek(), static_cast<int>(QLocale().firstDayOfWeek()));
     EXPECT_LE(first, QDate(2026, 11, 1));
     EXPECT_LT(first.daysTo(QDate(2026, 11, 1)), 7);
@@ -244,8 +254,8 @@ TEST_F(QmlComponentTest, ADatePickerStepsMonthsAcrossTheEndOfAYear)
 
 TEST_F(QmlComponentTest, PickingADayStoresItAsAnIsoStringAndEmitsPicked)
 {
-    QQuickItem* picker = show(QStringLiteral(
-        "QanvasDatePicker { property string last: \"\"; onPicked: function (value) { last = value } }"));
+    QQuickItem* picker = show(QStringLiteral("QanvasDatePicker { property string last: \"\"; "
+                                             "onPicked: function (value) { last = value } }"));
     ASSERT_NE(picker, nullptr);
 
     QMetaObject::invokeMethod(picker, "pick", Q_ARG(QVariant, QStringLiteral("2026-11-15")));
@@ -257,11 +267,12 @@ TEST_F(QmlComponentTest, PickingADayStoresItAsAnIsoStringAndEmitsPicked)
 
 TEST_F(QmlComponentTest, ALongTextWrapsWithinTheWidthOfItsColumn)
 {
-    QQuickItem* column = show(QStringLiteral(
-        "ColumnLayout { width: 300; "
-        "QanvasText { objectName: \"short\"; text: \"Short\" } "
-        "QanvasText { objectName: \"long\"; text: \"No limit was exceeded this month, so nothing is "
-        "marked red and nothing needs your attention right now\" } }"));
+    QQuickItem* column
+        = show(QStringLiteral("ColumnLayout { width: 300; "
+                              "QanvasText { objectName: \"short\"; text: \"Short\" } "
+                              "QanvasText { objectName: \"long\"; text: \"No limit was exceeded "
+                              "this month, so nothing is "
+                              "marked red and nothing needs your attention right now\" } }"));
     ASSERT_NE(column, nullptr);
 
     QQuickItem* shortText = row(column, QStringLiteral("short"));
@@ -300,8 +311,8 @@ TEST_F(QmlComponentTest, TheDatePickerOpensBelowItsFieldAndAboveItWhenThereIsNoR
         "QanvasDatePicker { objectName: \"low\"; y: 740; value: \"2026-11-15\" } }"));
     ASSERT_NE(host, nullptr);
 
-    for (const auto& [name, below] : { std::pair{ QStringLiteral("high"), true },
-                                       std::pair{ QStringLiteral("low"), false } })
+    for (const auto& [name, below] :
+         { std::pair { QStringLiteral("high"), true }, std::pair { QStringLiteral("low"), false } })
     {
         QQuickItem* picker = row(host, name);
         ASSERT_NE(picker, nullptr) << name.toStdString();
@@ -326,7 +337,8 @@ TEST_F(QmlComponentTest, TheDatePickerOpensBelowItsFieldAndAboveItWhenThereIsNoR
 TEST_F(QmlComponentTest, ACardInAGridIsTallEnoughForItsContentAndItsMargins)
 {
     QQuickItem* grid = show(QStringLiteral(
-        "QanvasGrid { id: grid; width: 380; property real content: Theme.card.sizeSmall - Theme.padding.medium; "
+        "QanvasGrid { id: grid; width: 380; property real content: Theme.card.sizeSmall - "
+        "Theme.padding.medium; "
         "property real margins: Theme.padding.medium; "
         "QanvasCard { objectName: \"card\"; Rectangle { Layout.fillWidth: true; "
         "Layout.preferredHeight: grid.content } } "
@@ -335,5 +347,6 @@ TEST_F(QmlComponentTest, ACardInAGridIsTallEnoughForItsContentAndItsMargins)
 
     QQuickItem* card = row(grid, QStringLiteral("card"));
     ASSERT_NE(card, nullptr);
-    EXPECT_GE(card->height(), grid->property("content").toDouble() + 2 * grid->property("margins").toDouble());
+    EXPECT_GE(card->height(),
+              grid->property("content").toDouble() + 2 * grid->property("margins").toDouble());
 }

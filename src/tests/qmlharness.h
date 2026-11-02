@@ -29,7 +29,7 @@ protected:
     {
         const QString source = QStringLiteral("import QtQuick\nimport QtQuick.Layouts\n"
                                               "import Qanvas.Components\n")
-                               + body;
+            + body;
         QQmlComponent component(&engine);
         component.setData(source.toUtf8(), QUrl());
         if (component.isError())

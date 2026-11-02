@@ -42,7 +42,8 @@ protected:
 
 TEST_F(AppContextTest, ANullInAPositionalListIsStoredAsSqlNull)
 {
-    const QJSValue result = js(QStringLiteral("App.exec('INSERT INTO t VALUES (?, ?)', [1, null])"));
+    const QJSValue result
+        = js(QStringLiteral("App.exec('INSERT INTO t VALUES (?, ?)', [1, null])"));
 
     EXPECT_FALSE(result.isError()) << result.toString().toStdString();
     EXPECT_EQ(nullCount(), 1);
@@ -78,7 +79,8 @@ TEST_F(AppContextTest, AnEmptyStringInANamedMapIsStoredAsAnEmptyString)
     const QVariantList rows = context->query(QStringLiteral("SELECT a, typeof(b) AS kind FROM t"));
     ASSERT_EQ(rows.size(), 1);
     EXPECT_EQ(rows.first().toMap().value(QStringLiteral("a")).toInt(), 1);
-    EXPECT_EQ(rows.first().toMap().value(QStringLiteral("kind")).toString(), QStringLiteral("text"));
+    EXPECT_EQ(rows.first().toMap().value(QStringLiteral("kind")).toString(),
+              QStringLiteral("text"));
     EXPECT_EQ(nullCount(), 0);
     EXPECT_EQ(emptyCount(), 1);
 }

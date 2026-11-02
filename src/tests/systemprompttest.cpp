@@ -70,9 +70,9 @@ TEST(SystemPromptTest, EveryExampleThatEndsInDoneWritesTheNoteFirst)
 TEST(SystemPromptTest, NamesEveryComponent)
 {
     const QString prompt = SystemPrompt::text();
-    for (const char* component :
-         { "QanvasCountdown", "QanvasStopwatch", "QanvasStat", "QanvasBadge", "QanvasTabs",
-           "QanvasProgress", "QanvasStepper", "QanvasPanel", "emptyText", "QanvasChart", "QanvasDatePicker" })
+    for (const char* component : { "QanvasCountdown", "QanvasStopwatch", "QanvasStat",
+                                   "QanvasBadge", "QanvasTabs", "QanvasProgress", "QanvasStepper",
+                                   "QanvasPanel", "emptyText", "QanvasChart", "QanvasDatePicker" })
         EXPECT_TRUE(prompt.contains(QLatin1String(component))) << component;
 }
 
@@ -91,8 +91,10 @@ TEST(SystemPromptTest, SaysWhereToLookBeforeBuildingASecondApp)
 TEST(SystemPromptTest, ACategoryColourIsKeptAsATypeWord)
 {
     const QString prompt = SystemPrompt::text();
-    EXPECT_TRUE(prompt.contains(QStringLiteral("is kept as one of\nthe words primary|success|warning|danger")));
-    EXPECT_TRUE(prompt.contains(QStringLiteral("QanvasSelect { options: [\"primary\", \"success\", \"warning\", \"danger\"] }")));
+    EXPECT_TRUE(prompt.contains(
+        QStringLiteral("is kept as one of\nthe words primary|success|warning|danger")));
+    EXPECT_TRUE(prompt.contains(QStringLiteral(
+        "QanvasSelect { options: [\"primary\", \"success\", \"warning\", \"danger\"] }")));
     EXPECT_TRUE(prompt.contains(QStringLiteral("(no type: the neutral grey one)")));
 }
 
@@ -107,14 +109,16 @@ TEST(SystemPromptTest, TheDataSectionSaysHowNullAndAnEmptyStringBind)
 TEST(SystemPromptTest, TheSelectShowsItsPlaceholderForAnEmptyValue)
 {
     const QString prompt = SystemPrompt::text();
-    EXPECT_TRUE(prompt.contains(QStringLiteral("QanvasSelect{options value placeholder onSelected(value)}")));
+    EXPECT_TRUE(prompt.contains(
+        QStringLiteral("QanvasSelect{options value placeholder onSelected(value)}")));
     EXPECT_TRUE(prompt.contains(QStringLiteral("an empty or unknown value shows placeholder")));
 }
 
 TEST(SystemPromptTest, TheDatePickerValueIsAnIsoString)
 {
     const QString prompt = SystemPrompt::text();
-    EXPECT_TRUE(prompt.contains(QStringLiteral("QanvasDatePicker{value placeholder onPicked(value)}")));
+    EXPECT_TRUE(
+        prompt.contains(QStringLiteral("QanvasDatePicker{value placeholder onPicked(value)}")));
     EXPECT_TRUE(prompt.contains(QStringLiteral("value is an ISO string \"2026-11-15\"")));
     EXPECT_TRUE(prompt.contains(QStringLiteral("\"\" for no date, which\n    shows placeholder")));
 }
@@ -148,12 +152,11 @@ TEST(SystemPromptTest, SaysWhereAToastGoes)
 TEST(SystemPromptTest, NamesEveryCataloguePropertyAndTypeWord)
 {
     const QString prompt = SystemPrompt::text();
-    for (const char* word :
-         { "QanvasButton{text iconName onClicked type enabled}", "enabled: false",
-           "(primary|secondary|danger|success|warning|ghost)", "badgeRole",
-           "typeRole", "badgeFormat", "typeFormat", "\"done\"",
-           "QanvasProgress{value from to type:success|warning|danger}", "type: \"centiseconds\"",
-           "centiseconds", "m:ss.cc" })
+    for (const char* word : { "QanvasButton{text iconName onClicked type enabled}",
+                              "enabled: false", "(primary|secondary|danger|success|warning|ghost)",
+                              "badgeRole", "typeRole", "badgeFormat", "typeFormat", "\"done\"",
+                              "QanvasProgress{value from to type:success|warning|danger}",
+                              "type: \"centiseconds\"", "centiseconds", "m:ss.cc" })
         EXPECT_TRUE(prompt.contains(QLatin1String(word))) << word;
 }
 

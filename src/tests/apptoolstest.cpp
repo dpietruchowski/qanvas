@@ -444,9 +444,9 @@ TEST_F(AppToolsTest, AWriteThatCallsAFunctionDataDoesNotDefineSaysSo)
 
 TEST_F(AppToolsTest, ABindingThatReadsDataBeforeSetupHasRunIsRedoneAfterItAndRaisesNothing)
 {
-    QVariantMap arguments = appWhoseChildReads(
-        QStringLiteral("property var rows: (App.revision, db.items())\n"
-                       "        property int count: rows.length"));
+    QVariantMap arguments
+        = appWhoseChildReads(QStringLiteral("property var rows: (App.revision, db.items())\n"
+                                            "        property int count: rows.length"));
 
     withDatabase = true;
     run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
@@ -664,8 +664,8 @@ TEST_F(AppToolsTest, GivesTheAgentEveryToolWithItsEffect)
 {
     run({ ScriptedClient::reply(QStringLiteral("hi")) });
 
-    const QStringList reads { "list_apps",    "list_files",   "read_file", "search_files",
-                              "describe_app", "read_log",     "check_layout", "note" };
+    const QStringList reads { "list_apps",    "list_files", "read_file",    "search_files",
+                              "describe_app", "read_log",   "check_layout", "note" };
     const QStringList writes { "create_app",  "write_file", "edit_file",
                                "delete_file", "delete_app", "grant_access" };
     EXPECT_EQ(client.lastTools.size(), reads.size() + writes.size());
