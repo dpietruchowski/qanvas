@@ -20,3 +20,16 @@ app_add_test(qanvas_tests
         Qt6::Sql
         Qt6::Test
 )
+
+target_compile_definitions(qanvas_tests PRIVATE QML_IMPORT_ROOT="${CMAKE_BINARY_DIR}")
+
+target_link_libraries(qanvas_tests
+    PRIVATE
+        app_qmlutils
+        -Wl,--no-as-needed
+        app_theme_qml
+        app_themed_qml
+        app_icons
+        qanvas_components_qml
+        -Wl,--as-needed
+)

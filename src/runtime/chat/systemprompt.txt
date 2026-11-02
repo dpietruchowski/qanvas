@@ -413,8 +413,9 @@ Anything you would write as a ternary inside a ternary is a function instead.
 ## COMPONENTS
 QanvasPage{title scrollable showBack onBack}  QanvasPanel{title open() close()}
 QanvasCard{clickable onClicked}  QanvasSection{title}
-QanvasColumn QanvasRow QanvasGrid{columns} QanvasFlow QanvasScroll QanvasSpacer
-QanvasSeparator
+QanvasColumn QanvasRow QanvasGrid{columns} QanvasFlow QanvasSpacer QanvasSeparator
+QanvasScroll  scrolls its children stacked as a column, each as wide as the
+    scroll when it has Layout.fillWidth: true; a Repeater straight inside works
 QanvasText{text type}  type takes one size word (display|title|subtitle|body|
     caption|muted) and optionally an alignment word (center|right), as in
     type: "display center"; display is for the one big number on a screen
@@ -474,7 +475,9 @@ QanvasGridView{model columns textRole onItemClicked(index,item)}
 QanvasEmpty{text iconName}
 QanvasDialog{title message acceptText rejectText showCancel type:danger|success
     open() onAccepted}
-QanvasToast{show(text)}  QanvasBusy{running}
+QanvasToast{show(text)}  one on the page itself, outside any column or row; it
+    appears over the page, so it needs no size
+QanvasBusy{running}
 iconName picks from: plus minus remove check close edit copy search settings
 list menu star star-half star-full timer calendar home user info warning error
 success chat send globe next previous chevron-down chevron-up chevron-right
