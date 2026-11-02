@@ -9,6 +9,7 @@
 #include "runtime/app/appwarnings.h"
 #include "runtime/host/applayout.h"
 #include "runtime/host/apploader.h"
+#include "runtime/host/appscreen.h"
 #include "runtime/host/appscreenshot.h"
 #include "runtime/host/notesbridge.h"
 #include "runtime/host/tasksbridge.h"
@@ -123,6 +124,8 @@ const char* kCheckLayoutDocstring
       "does not fit, is drawn over another element, or has no size; use it after the user says "
       "something is off screen, not centred, overlapping or missing\n"
       "@param app (string) app id\n"
+      "@param screen (string) the screen to measure, the name the app's screen property takes, "
+      "or an empty string for the screen that is open\n"
       "@return the files measured, then the screen size with one line per layout problem, or "
       "that the layout fits";
 
@@ -131,6 +134,8 @@ const char* kScreenshotDocstring
       "@details Takes a picture of the running app on screen, the way the user sees it; use it "
       "after you built or changed a screen, once the app has loaded\n"
       "@param app (string) app id\n"
+      "@param screen (string) the screen to photograph, the name the app's screen property takes, "
+      "or an empty string for the screen that is open\n"
       "@return the picture of the app, or why it could not be taken";
 
 const char* kGrantAccessDocstring
@@ -267,9 +272,13 @@ Result<QString> appendNote(const QString& path, const QString& appId, const QStr
 QString withLayout(const QString& result, const QString& appId)
 {
     const AppLayout::Report layout = AppLayout::measureApp(appId);
-    if (layout.fits())
+    if (!layout.fits())
+        return QStringLiteral("Saved and loaded, but the layout has problems.\n%1")
+            .arg(layout.text());
+    if (layout.files.isEmpty())
         return result;
-    return QStringLiteral("Saved and loaded, but the layout has problems.\n%1").arg(layout.text());
+    return QStringLiteral("%1\nLoaded without errors, and the layout of the open screen fits.")
+        .arg(result);
 }
 }
 
@@ -411,6 +420,13 @@ void AppTools::addCheckLayoutTool()
                 return;
             }
 
+            const AppScreen view(app.id(), argument(arguments, "screen"));
+            if (!view.error().isEmpty())
+            {
+                finish(index, Result<QString>::failure(view.error()), done, note);
+                return;
+            }
+
             finish(index, Result<QString>::success(AppLayout::measureApp(app.id()).text()), done,
                    note);
         },
@@ -431,6 +447,13 @@ void AppTools::addScreenshotTool()
             if (const std::optional<QString> refused = refusal(app))
             {
                 finish(index, Result<QString>::failure(*refused), done);
+                return;
+            }
+
+            const AppScreen view(app.id(), argument(arguments, "screen"));
+            if (!view.error().isEmpty())
+            {
+                finish(index, Result<QString>::failure(view.error()), done, note);
                 return;
             }
 

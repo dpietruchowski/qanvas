@@ -191,3 +191,24 @@ TEST_F(AppScreenshotCaptureTest, PhotographsOnlyTheAreaOfTheRunningApp)
     EXPECT_EQ(middle.red(), 0x20);
     EXPECT_TRUE(shot.value().text.contains(QStringLiteral("\"shot\"")));
 }
+
+TEST_F(AppScreenshotCaptureTest, WhatTheHostDrawsOverTheAppIsNotInThePicture)
+{
+    writeApp(QStringLiteral("covered"),
+             QStringLiteral("import QtQuick\nItem { Rectangle { anchors.fill: parent; color: "
+                            "\"#2040c0\" } }\n"));
+    show(QStringLiteral(
+        "import QtQuick\nimport ShotHost\nItem {\n    width: 300; height: 400\n"
+        "    AppLoader { x: 20; y: 30; width: 100; height: 150; appId: \"covered\" }\n"
+        "    Rectangle { x: 0; y: 0; width: 300; height: 100; color: \"#ff0000\"; z: 10 }\n}\n"));
+
+    const Result<ToolImage> shot = AppScreenshot::capture(QStringLiteral("covered"));
+
+    ASSERT_TRUE(shot.isSuccess()) << qPrintable(shot.error());
+    const QImage picture = decoded(shot.value());
+    ASSERT_FALSE(picture.isNull());
+    EXPECT_EQ(picture.size(), QSize(100, 150));
+    const QColor top = picture.pixelColor(50, 10);
+    EXPECT_EQ(top.blue(), 0xc0);
+    EXPECT_EQ(top.red(), 0x20);
+}
