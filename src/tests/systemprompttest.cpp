@@ -192,9 +192,10 @@ TEST(SystemPromptTest, EveryExampleThatEndsInDoneWritesTheNoteFirst)
 TEST(SystemPromptTest, NamesEveryComponent)
 {
     const QString prompt = SystemPrompt::text();
-    for (const char* component : { "QanvasCountdown", "QanvasStopwatch", "QanvasStat",
-                                   "QanvasBadge", "QanvasTabs", "QanvasProgress", "QanvasStepper",
-                                   "QanvasPanel", "emptyText", "QanvasChart", "QanvasDatePicker" })
+    for (const char* component :
+         { "QanvasCountdown", "QanvasStopwatch", "QanvasStat", "QanvasBadge", "QanvasTabs",
+           "QanvasProgress", "QanvasStepper", "QanvasPanel", "emptyText", "QanvasChart",
+           "QanvasDatePicker", "QanvasTimePicker" })
         EXPECT_TRUE(prompt.contains(QLatin1String(component))) << component;
 }
 
@@ -243,6 +244,39 @@ TEST(SystemPromptTest, TheDatePickerValueIsAnIsoString)
         prompt.contains(QStringLiteral("QanvasDatePicker{value placeholder onPicked(value)}")));
     EXPECT_TRUE(prompt.contains(QStringLiteral("value is an ISO string \"2026-11-15\"")));
     EXPECT_TRUE(prompt.contains(QStringLiteral("\"\" for no date, which\n    shows placeholder")));
+}
+
+TEST(SystemPromptTest, TheTimePickerValueIsAnHhMmStringNextToTheDatePicker)
+{
+    const QString components
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## COMPONENTS")).simplified();
+
+    EXPECT_TRUE(
+        components.contains(QStringLiteral("QanvasTimePicker{value placeholder onPicked(value)}")));
+    EXPECT_TRUE(components.contains(QStringLiteral("value is a \"HH:MM\" string \"14:30\"")));
+    EXPECT_TRUE(
+        components.contains(QStringLiteral("and \"\" for no time, which shows placeholder")));
+    EXPECT_TRUE(components.contains(
+        QStringLiteral("a QanvasDatePicker and a QanvasTimePicker side by side in a QanvasRow")));
+    EXPECT_TRUE(components.contains(QStringLiteral("\"yyyy-MM-dd\" and \"HH:mm\"")));
+}
+
+TEST(SystemPromptTest, TheChartTakesSeveralValuesPerRowThroughSeries)
+{
+    const QString components
+        = sectionOf(SystemPrompt::text(), QStringLiteral("## COMPONENTS")).simplified();
+
+    EXPECT_TRUE(components.contains(
+        QStringLiteral("QanvasChart{model textRole valueRole typeRole series")));
+    EXPECT_TRUE(components.contains(QStringLiteral(
+        "series: [{role: \"inMl\", name: \"IN\", type: \"success\"}, {role: \"outMl\", name: "
+        "\"OUT\", type: \"warning\"}]")));
+    EXPECT_TRUE(components.contains(QStringLiteral("with a legend of the names above")));
+    EXPECT_TRUE(components.contains(
+        QStringLiteral("valueFormat: function(item, role) gets the role of the bar it prints")));
+    EXPECT_TRUE(components.contains(
+        QStringLiteral("A row of two series is about 85 px, so it gets Layout.preferredHeight: "
+                       "rows * 85 + 20")));
 }
 
 TEST(SystemPromptTest, TheStepperSaysNumbersCarryNoThousandsSeparator)

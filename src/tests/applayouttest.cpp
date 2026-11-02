@@ -27,14 +27,14 @@ protected:
         file.write(QByteArray(kImports) + body.toUtf8());
     }
 
-    QString show(const QString& body)
+    QString show(const QString& body, const QSize& size = QSize(200, 300))
     {
         write(QStringLiteral("Main.qml"), body);
         const QString path = dir.path() + QStringLiteral("/Main.qml");
 
         view.engine()->addImportPath(QStringLiteral(QML_IMPORT_ROOT));
         view.setResizeMode(QQuickView::SizeRootObjectToView);
-        view.resize(200, 300);
+        view.resize(size);
         view.setSource(QUrl::fromLocalFile(path));
         EXPECT_EQ(view.status(), QQuickView::Ready);
         view.show();
@@ -169,6 +169,57 @@ TEST_F(AppLayoutTest, TwoSteppersInARowUnderTabsNameTheRowNotTheTabs)
         << report.toStdString();
     EXPECT_FALSE(report.contains(QStringLiteral("the widest is QanvasTabs")))
         << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, ADatePickerAndATimePickerSideBySideFitAPhone)
+{
+    const QString report = show(
+        QStringLiteral(
+            "import Qanvas.Components\n"
+            "Item { QanvasColumn { anchors.fill: parent; QanvasRow { Layout.fillWidth: true; "
+            "QanvasDatePicker { value: \"2026-11-02\" } QanvasTimePicker { value: \"14:30\" } } "
+            "QanvasRow { Layout.fillWidth: true; QanvasDatePicker { placeholder: \"Dzień\" } "
+            "QanvasTimePicker { placeholder: \"Godzina\" } } } }"),
+        QSize(360, 640));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AGroupedChartOfAWeekInAScrollFitsAPhone)
+{
+    const QString report
+        = show(QStringLiteral(
+                   "import Qanvas.Components\n"
+                   "QanvasScroll { QanvasChart { Layout.fillWidth: true; textRole: \"day\"; "
+                   "valueFormat: function (item, role) { return item[role] + \" ml\" } "
+                   "series: [{role: \"inMl\", name: \"IN\", type: \"success\"}, "
+                   "{role: \"outMl\", name: \"OUT\", type: \"warning\"}]; "
+                   "model: [{day: \"Pn\", inMl: 1500, outMl: 900}, {day: \"Wt\", inMl: 2100, "
+                   "outMl: 1100}, "
+                   "{day: \"Śr\", inMl: 1800, outMl: 800}, {day: \"Cz\", inMl: 2500, outMl: 1300}, "
+                   "{day: \"Pt\", inMl: 1200, outMl: 700}, {day: \"So\", inMl: 3000, outMl: 1500}, "
+                   "{day: \"Nd\", inMl: 900, outMl: 400}] } }"),
+               QSize(360, 640));
+
+    EXPECT_TRUE(report.isEmpty()) << report.toStdString();
+}
+
+TEST_F(AppLayoutTest, AGroupedChartTallerThanThePhoneOutsideAScrollIsReported)
+{
+    const QString report = show(
+        QStringLiteral(
+            "import Qanvas.Components\n"
+            "Item { QanvasColumn { anchors.fill: parent; QanvasChart { Layout.fillWidth: true; "
+            "textRole: \"day\"; series: [{role: \"inMl\", name: \"IN\", type: \"success\"}, "
+            "{role: \"outMl\", name: \"OUT\", type: \"warning\"}]; "
+            "model: [{day: \"1\", inMl: 5, outMl: 4}, {day: \"2\", inMl: 5, outMl: 4}, "
+            "{day: \"3\", inMl: 5, outMl: 4}, {day: \"4\", inMl: 5, outMl: 4}, "
+            "{day: \"5\", inMl: 5, outMl: 4}, {day: \"6\", inMl: 5, outMl: 4}, "
+            "{day: \"7\", inMl: 5, outMl: 4}, {day: \"8\", inMl: 5, outMl: 4}, "
+            "{day: \"9\", inMl: 5, outMl: 4}, {day: \"10\", inMl: 5, outMl: 4}] } } }"),
+        QSize(360, 640));
+
+    EXPECT_FALSE(report.isEmpty());
 }
 
 TEST_F(AppLayoutTest, AListThatShowsLessThanTwoRowsOfItsContentIsReported)
