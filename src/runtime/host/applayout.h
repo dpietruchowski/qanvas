@@ -7,6 +7,15 @@ class QQuickItem;
 class AppLayout
 {
 public:
-    static QString report(QQuickItem* root, const QString& appDir);
-    static QString reportFor(const QString& appId);
+    struct Report
+    {
+        QString files;
+        QString problems;
+
+        bool fits() const { return problems.isEmpty(); }
+        QString text() const;
+    };
+
+    static Report measure(QQuickItem* root, const QString& appDir);
+    static Report measureApp(const QString& appId);
 };
