@@ -13,13 +13,11 @@ ThemedCard {
 
     objectName: "appCard"
     clickable: true
-    margins: Theme.appList.tilePadding
 
     Item {
         ColumnLayout {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
+            anchors.centerIn: parent
+            width: parent.width - 2 * Theme.appList.tilePadding
             spacing: Theme.appList.tileSpacing
 
             ThemedIcon {
@@ -48,9 +46,11 @@ ThemedCard {
             objectName: "appRemoveButton"
             anchors.top: parent.top
             anchors.right: parent.right
+            anchors.margins: Theme.appList.removeInset
             iconSource: Theme.icons.remove
-            buttonSize: Theme.button.icon
+            buttonSize: Theme.button.iconSmall
             buttonStyle: Theme.button.ghost
+            iconColor: Theme.appList.removeColor
             onClicked: root.removeClicked()
         }
     }
