@@ -499,9 +499,10 @@ App.exec(sql, params) runs CREATE TABLE / ALTER TABLE / INSERT / UPDATE /
 DELETE; App.query(sql, params) returns a list of maps, one per row. params is a
 list for the ? placeholders: null and undefined are stored as NULL, "" stays an
 empty string (a NOT NULL column takes it), and NULL is matched with IS NULL or
-IS ?, never = ?. A failing statement raises an error you will see in read_log. App.revision changes after every exec. A NULL column — MAX over no
-rows, an outer join that matched nothing — arrives as undefined, so test it
-with === undefined, not against 0 or "".
+IS ?, never = ?. A failing statement raises an error you will see in read_log.
+App.revision changes after every exec. A NULL column — MAX over no rows, an
+outer join that matched nothing — arrives as undefined, so test it with ===
+undefined, not against 0 or "".
 
 Everything about data is in Data.qml, a QtObject with:
   setup()             the CREATE TABLE IF NOT EXISTS statements, then the
@@ -535,7 +536,7 @@ write_file     whole file, new or rewritten; reloads the app
 edit_file      one exact fragment; reloads the app
 delete_file    a component; Main.qml cannot be deleted
 list_apps      the apps that exist, one "id  title" line each
-read_file     one file; from/lines read a range, 0/0 reads all of it
+read_file      one file; from/lines read a range, 0/0 reads all of it
 search_files   literal text across the app's files, with line numbers
 describe_app   files with their functions, tables with their columns
 list_files     the file names alone
