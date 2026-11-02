@@ -17,8 +17,7 @@ class QmlHarness : public ::testing::Test
 protected:
     void SetUp() override
     {
-        registerThemedTypes();
-        engine.addImportPath(QStringLiteral(QANVAS_QML_IMPORTS));
+        prepareThemedEngine(engine);
         engine.setOutputWarningsToStandardError(false);
         window.resize(400, 800);
         window.show();

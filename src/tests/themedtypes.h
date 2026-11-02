@@ -16,3 +16,9 @@ inline void registerThemedTypes()
     }();
     Q_UNUSED(registered);
 }
+
+inline void prepareThemedEngine(QQmlEngine& engine)
+{
+    registerThemedTypes();
+    engine.addImportPath(QStringLiteral(QANVAS_QML_IMPORTS));
+}
