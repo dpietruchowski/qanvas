@@ -36,6 +36,13 @@ const char* kCreateAppDocstring
       "@return ok, or the reason the app was rejected, does not load, or raised errors while "
       "loading";
 
+const char* kListAppsDocstring
+    = "@brief list_apps\n"
+      "@details Lists the apps that exist, to find out whether one already does the job before "
+      "building another\n"
+      "@return one \"id  title\" line per app, most recently changed first, or that there are no "
+      "apps yet";
+
 const char* kListFilesDocstring = "@brief list_files\n"
                                   "@details Lists the source files of an app with their lengths\n"
                                   "@param app (string) app id\n"
@@ -289,6 +296,7 @@ void AppTools::clearActivities()
 void AppTools::registerTools()
 {
     addCreateAppTool();
+    addListAppsTool();
 
     addFileTool(kListFilesDocstring,
                 { "listing files in", "listed files in", "could not list files in", "app" }, false,
@@ -329,6 +337,20 @@ void AppTools::registerTools()
     addCheckLayoutTool();
     addGrantAccessTool();
     addNoteTool();
+}
+
+void AppTools::addListAppsTool()
+{
+    m_agent.addTool(
+        QString::fromLatin1(kListAppsDocstring),
+        [this](QVariantMap arguments, ToolDone done)
+        {
+            const Activity activity { "listing apps", "listed apps", "could not list apps",
+                                      "none" };
+            const int index = beginActivity(activity, arguments);
+            finish(index, Result<QString>::success(appList()), done);
+        },
+        ToolEffect::Reads);
 }
 
 void AppTools::addNoteTool()
@@ -780,6 +802,22 @@ void AppTools::endActivity(int index, bool ok)
     entry[QStringLiteral("failed")] = !ok;
     m_activities[index] = entry;
     emit activitiesChanged();
+}
+
+QString AppTools::appList() const
+{
+    QStringList lines;
+    const QVariantList apps = m_registry.apps();
+    for (const QVariant& app : apps)
+    {
+        const QVariantMap entry = app.toMap();
+        lines.append(QStringLiteral("%1  %2").arg(entry.value(QStringLiteral("id")).toString(),
+                                                  entry.value(QStringLiteral("title")).toString()));
+    }
+
+    if (lines.isEmpty())
+        return QStringLiteral("There are no apps yet");
+    return lines.join(QLatin1Char('\n'));
 }
 
 QString AppTools::unknownApp(const QString& id) const

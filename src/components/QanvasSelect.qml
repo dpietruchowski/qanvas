@@ -13,7 +13,7 @@ ThemedComboBox {
     signal selected(string value)
 
     model: root.options
-    currentIndex: Math.max(0, root.options.indexOf(root.value))
+    currentIndex: root.options.indexOf(root.value)
 
     onActivated: {
         root.value = root.currentText

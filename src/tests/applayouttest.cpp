@@ -8,8 +8,8 @@
 #include <QTest>
 #include <QUrl>
 
-#include "qmlutils/coloredsvgprovider.h"
 #include "runtime/host/applayout.h"
+#include "themedtypes.h"
 
 namespace
 {
@@ -18,12 +18,7 @@ const char* kImports = "import QtQuick\nimport QtQuick.Layouts\n";
 class AppLayoutTest : public ::testing::Test
 {
 protected:
-    static void SetUpTestSuite()
-    {
-        qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/Qanvas/Components/Theme.qml")),
-                                 "Themed.Components", 1, 0, "Theme");
-        qmlRegisterType<ColoredSvgProvider>("Themed.Components", 1, 0, "ColoredSvgProvider");
-    }
+    static void SetUpTestSuite() { registerThemedTypes(); }
 
     QString show(const QString& body)
     {
