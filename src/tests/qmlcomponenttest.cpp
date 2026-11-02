@@ -172,3 +172,18 @@ TEST_F(QmlComponentTest, AChartOfZeroesDrawsEmptyBarsAndAnEmptyChartNoRows)
     ASSERT_NE(empty, nullptr);
     EXPECT_EQ(empty->property("count").toInt(), 0);
 }
+
+TEST_F(QmlComponentTest, ACardInAGridIsTallEnoughForItsContentAndItsMargins)
+{
+    QQuickItem* grid = show(QStringLiteral(
+        "QanvasGrid { id: grid; width: 380; property real content: Theme.card.sizeSmall - Theme.padding.medium; "
+        "property real margins: Theme.padding.medium; "
+        "QanvasCard { objectName: \"card\"; Rectangle { Layout.fillWidth: true; "
+        "Layout.preferredHeight: grid.content } } "
+        "QanvasCard { Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 10 } } }"));
+    ASSERT_NE(grid, nullptr);
+
+    QQuickItem* card = row(grid, QStringLiteral("card"));
+    ASSERT_NE(card, nullptr);
+    EXPECT_GE(card->height(), grid->property("content").toDouble() + 2 * grid->property("margins").toDouble());
+}

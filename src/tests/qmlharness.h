@@ -10,16 +10,14 @@
 #include <QQuickWindow>
 #include <QTest>
 
-#include "qmlutils/coloredsvgprovider.h"
+#include "themedtypes.h"
 
 class QmlHarness : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        static const int registered
-            = qmlRegisterType<ColoredSvgProvider>("Themed.Components", 1, 0, "ColoredSvgProvider");
-        ASSERT_GE(registered, 0);
+        registerThemedTypes();
         engine.addImportPath(QStringLiteral(QANVAS_QML_IMPORTS));
         engine.setOutputWarningsToStandardError(false);
         window.resize(400, 800);
