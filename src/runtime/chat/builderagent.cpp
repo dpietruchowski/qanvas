@@ -5,7 +5,7 @@
 
 namespace
 {
-const int kMaxToolCalls = 40;
+const int kMaxDelegations = 5;
 }
 
 BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QString& model,
@@ -14,7 +14,7 @@ BuilderAgent::BuilderAgent(AppRegistry& registry, QQmlEngine& engine, const QStr
     , m_tools(m_agent, registry, notesPath)
     , m_config(config)
 {
-    m_agent.setMaxToolCalls(kMaxToolCalls);
+    m_agent.setMaxToolCalls(::Agent::kUnlimitedToolCalls);
     m_tools.setEngine(&engine);
 }
 
@@ -34,10 +34,13 @@ chat::AppAgent BuilderAgent::entry() const
         .description = QStringLiteral(
             "Creates, changes, repairs and deletes Qanvas apps: writes their QML, checks them on "
             "screen and fixes what fails. Every request about an app goes here. When an app is "
-            "open, name its id in the task."),
+            "open, name its id in the task. To build or change an app, give it the whole plan: "
+            "the goal, then the numbered steps, each with its check. It reports every step as "
+            "done+verified, done-unverified or not done."),
         .agent = m_agent,
         .followUp = [this] { return followUp(); },
         .config = m_config,
+        .maxDelegations = kMaxDelegations,
     };
 }
 

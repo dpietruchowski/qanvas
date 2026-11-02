@@ -116,10 +116,38 @@ TEST_F(BuilderAgentTest, TheDesktopConfigIsSonnetOnHighEffort)
     EXPECT_EQ(desktop.entry().config.reasoningEffort, QStringLiteral("high"));
 }
 
-TEST_F(BuilderAgentTest, MayCallFortyToolsInATurnWhereTheDefaultAllowsTwenty)
+TEST_F(BuilderAgentTest, HasNoToolCallLimitWhereTheDefaultAllowsTwenty)
 {
-    EXPECT_EQ(builder->entry().agent.maxToolCalls(), 40);
-    EXPECT_GT(builder->entry().agent.maxToolCalls(), ::Agent::kDefaultMaxToolCalls);
+    EXPECT_EQ(builder->entry().agent.maxToolCalls(), ::Agent::kUnlimitedToolCalls);
+    EXPECT_NE(builder->entry().agent.maxToolCalls(), ::Agent::kDefaultMaxToolCalls);
+}
+
+TEST_F(BuilderAgentTest, GoesPastFiftyToolRoundsInATurn)
+{
+    std::vector<Completion> script;
+    for (int round = 0; round < 50; ++round)
+        script.push_back(ScriptedClient::toolCall(QStringLiteral("list_apps"), {}));
+    script.push_back(ScriptedClient::reply(QStringLiteral("done")));
+
+    run(std::move(script));
+
+    EXPECT_EQ(client.calls, 51);
+}
+
+TEST_F(BuilderAgentTest, MayBeAskedFiveTimesInATurnWhereTheDefaultAllowsThree)
+{
+    EXPECT_EQ(builder->entry().maxDelegations, 5);
+    EXPECT_GT(builder->entry().maxDelegations, chat::AppAgent::kDefaultMaxDelegations);
+}
+
+TEST_F(BuilderAgentTest, TheDescriptionAsksForTheWholePlanAndNamesTheStatusWords)
+{
+    const QString description = builder->entry().description;
+
+    EXPECT_TRUE(description.contains(QStringLiteral("whole plan")));
+    EXPECT_TRUE(description.contains(QStringLiteral("numbered steps")));
+    for (const char* status : { "done+verified", "done-unverified", "not done" })
+        EXPECT_TRUE(description.contains(QLatin1String(status))) << status;
 }
 
 TEST_F(BuilderAgentTest, RunsOnTheSystemPromptWithTheAppTools)

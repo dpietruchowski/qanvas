@@ -3,6 +3,7 @@
 #include "qmlutils/qmlregistrator.h"
 #include "runtime/app/app.h"
 #include "runtime/app/appregistry.h"
+#include "runtime/chat/systemprompt.h"
 
 #include <QDebug>
 #include <QDir>
@@ -12,13 +13,6 @@
 namespace
 {
 const QString kAppName = QStringLiteral("Qanvas");
-const QString kAppPurpose = QStringLiteral(
-    "Qanvas is a runtime that runs small QML apps — timers, trackers, quizzes, lists, notes — "
-    "which are written on request and appear on the user's screen as soon as they are built. "
-    "Every request to create, change, repair, inspect or delete an app goes to the builder "
-    "agent, which has the tools; you cannot touch apps yourself. Write each task in the "
-    "language the user writes in. Answer questions about Qanvas and plain conversation "
-    "yourself, briefly.");
 const QString kChatDatabase = QStringLiteral("chat.db");
 const QString kBuilderNotes = QStringLiteral("builder-notes.md");
 const QString kClaudeDirectory = QStringLiteral("claude");
@@ -35,7 +29,7 @@ chat::ChatModule::Config moduleConfig(const ChatHost::Config& config, BackendWor
         .settingsGroup = kSettingsGroup,
         .worker = &worker,
         .appName = kAppName,
-        .appPurpose = kAppPurpose,
+        .appPurpose = SystemPrompt::mainText(),
     };
 }
 }
