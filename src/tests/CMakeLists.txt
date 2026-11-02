@@ -11,6 +11,7 @@ app_add_test(qanvas_tests
         app_themed_qml
         app_icons
         qanvas_components_qml
+        ${APP_QML_TARGET}
         -Wl,--as-needed
         Qt6::Core
         Qt6::Gui
@@ -31,5 +32,6 @@ target_link_libraries(qanvas_tests
         app_themed_qml
         app_icons
         qanvas_components_qml
+        ${APP_QML_TARGET}
         -Wl,--as-needed
 )

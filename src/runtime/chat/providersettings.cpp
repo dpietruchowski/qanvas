@@ -1,8 +1,10 @@
 #include "runtime/chat/providersettings.h"
 
 #include "chat/ui/chat.h"
+#include "runtime/chat/builderagent.h"
 
 #include <QCoreApplication>
+#include <QHash>
 #include <QSettings>
 #include <QVariantMap>
 #ifdef QANVAS_KEY_IMPORT
@@ -26,10 +28,19 @@ bool isClaude(const QString& provider) { return provider == QLatin1String(kClaud
 QString defaultModel(const QString& provider)
 {
     if (isClaude(provider))
-        return QStringLiteral("claude-sonnet-4-5");
+        return QStringLiteral("claude-sonnet-5-5");
     if (provider == QLatin1String(kOpenAiProvider))
         return QStringLiteral("gpt-5-mini");
     return QStringLiteral("openai/gpt-5-mini");
+}
+
+QString defaultAgentModel(const QString& provider, const QString& agentKey)
+{
+    static const QHash<QString, QHash<QString, QString>> defaults {
+        { QString::fromLatin1(kClaudeProvider),
+          { { BuilderAgent::key(), QStringLiteral("claude-haiku-5-5") } } },
+    };
+    return defaults.value(provider).value(agentKey);
 }
 
 QString providerKey(const QString& provider, const QString& key)
@@ -167,8 +178,11 @@ void ProviderSettings::applyToChat()
     for (const QVariant& agent : m_chat->agents())
     {
         const QString key = agent.toMap().value(QStringLiteral("key")).toString();
-        m_chat->setAgentModel(
-            key, settings.value(providerKey(m_provider, agentModelSetting(key))).toString());
+        m_chat->setAgentModel(key,
+                              settings
+                                  .value(providerKey(m_provider, agentModelSetting(key)),
+                                         defaultAgentModel(m_provider, key))
+                                  .toString());
     }
     m_applying = false;
 }

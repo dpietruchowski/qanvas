@@ -89,15 +89,26 @@ protected:
             chat::AppAgent { QStringLiteral("courses"), QStringLiteral("Courses"),
                              QStringLiteral("Handles courses."),
                              ::Agent(QStringLiteral("haiku"), QStringLiteral("prompt")) }));
+        ASSERT_TRUE(module->addAgent(chat::AppAgent {
+            QStringLiteral("builder"), QStringLiteral("Builder"), QStringLiteral("Builds apps."),
+            ::Agent(QStringLiteral("haiku"), QStringLiteral("prompt")) }));
         settings.bind(module->chat());
     }
 
     chat::Chat& chat() { return module->chat(); }
 
-    QString chosenAgentModel()
+    QString chosenModelOf(const QString& key)
     {
-        return chat().agents().first().toMap().value(QStringLiteral("chosen")).toString();
+        for (const QVariant& agent : chat().agents())
+        {
+            const QVariantMap entry = agent.toMap();
+            if (entry.value(QStringLiteral("key")).toString() == key)
+                return entry.value(QStringLiteral("chosen")).toString();
+        }
+        return QStringLiteral("<no such agent>");
     }
+
+    QString chosenAgentModel() { return chosenModelOf(QStringLiteral("courses")); }
 
     IsolatedSettings isolated;
     QTemporaryDir directory;
@@ -269,7 +280,7 @@ TEST_F(ProviderSettingsTest, SwitchingTheProviderSwitchesTheModel)
     bindToChat(*settings);
 
     settings->setProvider(QStringLiteral("Claude"));
-    EXPECT_EQ(chat().model(), QStringLiteral("claude-sonnet-4-5"));
+    EXPECT_EQ(chat().model(), QStringLiteral("claude-sonnet-5-5"));
 
     settings->setProvider(QStringLiteral("OpenRouter"));
     EXPECT_EQ(chat().model(), QStringLiteral("openai/gpt-5-mini"));
@@ -283,7 +294,7 @@ TEST_F(ProviderSettingsTest, TheModelAndEffortChosenForAProviderComeBackWithIt)
     chat().setReasoningEffort(QStringLiteral("High"));
 
     settings->setProvider(QStringLiteral("Claude"));
-    EXPECT_EQ(chat().model(), QStringLiteral("claude-sonnet-4-5"));
+    EXPECT_EQ(chat().model(), QStringLiteral("claude-sonnet-5-5"));
     EXPECT_EQ(chat().reasoningEffort(), QStringLiteral("Minimal"));
 
     settings->setProvider(QStringLiteral("OpenAI"));
@@ -370,4 +381,67 @@ TEST_F(ProviderSettingsTest, TheModelChosenForAnAgentSurvivesARestart)
     bindToChat(*settings);
 
     EXPECT_EQ(chosenAgentModel(), QStringLiteral("gpt-5"));
+}
+
+TEST_F(ProviderSettingsTest, ClaudeStartsTheBuilderOnHaikuAndTheOtherAgentsOnTheChatModel)
+{
+    const auto settings = make();
+    bindToChat(*settings);
+
+    settings->setProvider(QStringLiteral("Claude"));
+
+    EXPECT_EQ(chosenModelOf(QStringLiteral("builder")), QStringLiteral("claude-haiku-5-5"));
+    EXPECT_TRUE(chosenAgentModel().isEmpty());
+}
+
+TEST_F(ProviderSettingsTest, TheOtherProvidersLeaveTheBuilderWithoutAChosenModel)
+{
+    const auto settings = make();
+    bindToChat(*settings);
+
+    EXPECT_TRUE(chosenModelOf(QStringLiteral("builder")).isEmpty());
+    settings->setProvider(QStringLiteral("OpenRouter"));
+    EXPECT_TRUE(chosenModelOf(QStringLiteral("builder")).isEmpty());
+}
+
+TEST_F(ProviderSettingsTest, TheBuilderModelChosenOnClaudeWinsOverTheDefault)
+{
+    const auto settings = make();
+    bindToChat(*settings);
+    settings->setProvider(QStringLiteral("Claude"));
+    chat().setAgentModel(QStringLiteral("builder"), QStringLiteral("claude-sonnet-5-5"));
+
+    settings->setProvider(QStringLiteral("OpenAI"));
+    settings->setProvider(QStringLiteral("Claude"));
+
+    EXPECT_EQ(chosenModelOf(QStringLiteral("builder")), QStringLiteral("claude-sonnet-5-5"));
+}
+
+TEST_F(ProviderSettingsTest, ClearingTheBuilderModelOnClaudeIsRememberedOverTheDefault)
+{
+    const auto settings = make();
+    bindToChat(*settings);
+    settings->setProvider(QStringLiteral("Claude"));
+    chat().setAgentModel(QStringLiteral("builder"), QString());
+
+    settings->setProvider(QStringLiteral("OpenAI"));
+    settings->setProvider(QStringLiteral("Claude"));
+
+    EXPECT_TRUE(chosenModelOf(QStringLiteral("builder")).isEmpty());
+}
+
+TEST_F(ProviderSettingsTest, TheClaudeDefaultsSurviveARestart)
+{
+    {
+        const auto settings = make();
+        bindToChat(*settings);
+        settings->setProvider(QStringLiteral("Claude"));
+        module.reset();
+    }
+
+    const auto settings = make();
+    bindToChat(*settings);
+
+    EXPECT_EQ(chat().model(), QStringLiteral("claude-sonnet-5-5"));
+    EXPECT_EQ(chosenModelOf(QStringLiteral("builder")), QStringLiteral("claude-haiku-5-5"));
 }
