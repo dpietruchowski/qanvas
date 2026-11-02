@@ -1,6 +1,7 @@
 #include "runtime/chat/providersettings.h"
 
 #include "chat/ui/chat.h"
+#include "runtime/chat/builderagent.h"
 
 #include <QCoreApplication>
 #include <QHash>
@@ -37,7 +38,7 @@ QString defaultAgentModel(const QString& provider, const QString& agentKey)
 {
     static const QHash<QString, QHash<QString, QString>> defaults {
         { QString::fromLatin1(kClaudeProvider),
-          { { QStringLiteral("builder"), QStringLiteral("claude-haiku-5-5") } } },
+          { { BuilderAgent::key(), QStringLiteral("claude-haiku-5-5") } } },
     };
     return defaults.value(provider).value(agentKey);
 }
