@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFile>
 #include <QQmlComponent>
+#include <QQmlContext>
 #include <QQmlEngine>
 #include <QRegularExpression>
 #include <QStringList>
@@ -18,6 +19,7 @@
 #include "runtime/app/app.h"
 #include "runtime/app/appregistry.h"
 #include "runtime/chat/apptools.h"
+#include "runtime/host/appcontext.h"
 #include "scriptedclient.h"
 
 namespace
@@ -29,6 +31,22 @@ QVariantMap createApp(const QString& id, const QString& title)
     return QVariantMap { { QStringLiteral("id"), id },
                          { QStringLiteral("title"), title },
                          { QStringLiteral("qml"), kMainQml } };
+}
+
+QVariantMap appWhoseChildReads(const QString& childBody)
+{
+    QVariantMap arguments = createApp(QStringLiteral("notes"), QStringLiteral("Notatki"));
+    arguments[QStringLiteral("qml")]
+        = QStringLiteral("import QtQuick\nItem {\n    Data { id: db }\n    Item {\n        "
+                         "objectName: \"child\"\n        %1\n    }\n    Component.onCompleted: "
+                         "db.setup()\n}\n")
+              .arg(childBody);
+    arguments[QStringLiteral("data")] = QStringLiteral(
+        "import QtQuick\nQtObject {\n    function setup() {\n        App.exec(\"CREATE TABLE IF "
+        "NOT EXISTS items (id INTEGER PRIMARY KEY, name TEXT)\")\n        App.exec(\"INSERT INTO "
+        "items (name) VALUES ('First')\")\n    }\n    function items() {\n        return "
+        "App.query(\"SELECT id, name FROM items\")\n    }\n}\n");
+    return arguments;
 }
 
 QVariantMap fileArguments(const QString& app, const QString& path)
@@ -73,8 +91,16 @@ protected:
     void load(const QString& id)
     {
         running.reset();
+        context.reset();
+        appContext.reset();
+        if (withDatabase)
+        {
+            appContext = std::make_unique<AppContext>(id, App(id).dir(), &engine);
+            context = std::make_unique<QQmlContext>(engine.rootContext());
+            context->setContextProperty(QStringLiteral("App"), appContext.get());
+        }
         QQmlComponent component(&engine, QUrl::fromLocalFile(App(id).entryPath()));
-        running.reset(component.create());
+        running.reset(component.create(context.get()));
     }
 
     void run(std::vector<Completion> script)
@@ -94,10 +120,13 @@ protected:
     ::Agent agent { QStringLiteral("test-model"), QStringLiteral("system") };
     std::unique_ptr<AppRegistry> registry;
     std::unique_ptr<AppTools> tools;
+    std::unique_ptr<AppContext> appContext;
+    std::unique_ptr<QQmlContext> context;
     std::unique_ptr<QObject> running;
     ScriptedClient client;
     QStringList shown;
     QString response;
+    bool withDatabase = false;
 };
 
 TEST_F(AppToolsTest, CreateAppWritesTheEntryFileAndRegistersTheApp)
@@ -411,6 +440,44 @@ TEST_F(AppToolsTest, AWriteThatCallsAFunctionDataDoesNotDefineSaysSo)
     EXPECT_FALSE(activity(1).value(QStringLiteral("failed")).toBool());
     EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("Will throw when that screen")))
         << qPrintable(client.lastToolResult());
+}
+
+TEST_F(AppToolsTest, ABindingThatReadsDataBeforeSetupHasRunIsRedoneAfterItAndRaisesNothing)
+{
+    QVariantMap arguments = appWhoseChildReads(
+        QStringLiteral("property var rows: (App.revision, db.items())\n"
+                       "        property int count: rows.length"));
+
+    withDatabase = true;
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::toolCall(
+              QStringLiteral("read_log"),
+              QVariantMap { { QStringLiteral("app"), QStringLiteral("notes") } }),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_FALSE(activity(0).value(QStringLiteral("failed")).toBool());
+    EXPECT_FALSE(client.toolResults().at(0).contains(QStringLiteral("raised")))
+        << qPrintable(client.toolResults().at(0));
+    EXPECT_TRUE(client.lastToolResult().contains(QStringLiteral("No errors")))
+        << qPrintable(client.lastToolResult());
+    ASSERT_NE(running, nullptr);
+    EXPECT_EQ(running->findChild<QObject*>(QStringLiteral("child"))->property("count").toInt(), 1);
+}
+
+TEST_F(AppToolsTest, AScreenThatReadsDataInItsOwnOnCompletedFindsTheTablesSetupMade)
+{
+    QVariantMap arguments = appWhoseChildReads(
+        QStringLiteral("property int count: -1\n        Component.onCompleted: count = "
+                       "db.items().length"));
+
+    withDatabase = true;
+    run({ ScriptedClient::toolCall(QStringLiteral("create_app"), arguments),
+          ScriptedClient::reply(QStringLiteral("done")) });
+
+    EXPECT_FALSE(client.lastToolResult().contains(QStringLiteral("raised")))
+        << qPrintable(client.lastToolResult());
+    ASSERT_NE(running, nullptr);
+    EXPECT_EQ(running->findChild<QObject*>(QStringLiteral("child"))->property("count").toInt(), 1);
 }
 
 TEST_F(AppToolsTest, ReadLogNamesARejectedWriteThatWasNeverRedone)
