@@ -1,65 +1,62 @@
 # qanvas
 
-A Qt/QML runtime where an LLM writes small apps on demand — each sandboxed with its own SQLite database.
+A Qt/QML runtime where an LLM writes small apps on demand. You describe what you need ("something to track which plants I watered"), an agent writes a `.qml` app, and the runtime loads it immediately. No build step, no restart. Each app runs in its own sandbox with its own SQLite database.
 
-## Layout
+The idea isn't to help a developer write code faster. It's a system that grows its own small, personal tools, the kind that would never be worth building by hand.
 
-| Path | What it is |
-| --- | --- |
-| `app.env` | Every app parameter: name, targets, version, Android package, keystore, AppImage metadata. CMake reads it through `app_load_env()`, the scripts in `libs/scripts` source it |
-| `src/main.cpp` | Entry point: engine, `QmlRegistrator`, the `Theme` singleton, the runtime types, the automation server |
-| `src/runtime/` | The runtime library `qanvas_runtime`: apps on disk, `system.db` stores, host bridges, the builder agent and its tools, `ChatHost` over the libs chat |
-| `src/qml/` | The host shell, QML module `Qanvas` |
-| `src/components/` | `Theme` and the `Qanvas*` components agent-written apps are built from, QML module `Qanvas.Components` |
-| `src/tests/` | GoogleTest suite, built with `BUILD_TESTING` (on by default in Debug) |
-| `test/` | A hand-written test app and `prompt_example.py`, which runs the examples from the system prompt in the real runtime |
-| `android/` | Android package source dir: manifest, launcher icons, `strings.xml` |
-| `libs/` | Shared foundation, git submodule ([app-libs](https://github.com/dpietruchowski/app-libs)): C++ under `libs/cpp/`, QML under `libs/qml/`, CMake helpers, build scripts, UI automation tools, Claude skills |
-| `third_party/android_openssl/` | Prebuilt OpenSSL for Android, git submodule ([KDAB](https://github.com/KDAB/android_openssl)) — not wired up yet |
+Runs on desktop and Android. Work in progress.
 
-## Clone
+## How it works
+
+The agent only writes QML, nothing else: no C++, no shell, no file system access. Everything a generated app can reach goes through C++ bridges, and the bridges are the security boundary. The runtime assumes the QML may be wrong or even malicious.
+
+Data lives in two separate layers:
+
+- **Each app's own database** (`app.db`). The app has full control here, including creating and dropping tables. If something goes wrong, only that app is affected, and uninstalling it means deleting one file.
+- **The shared `system.db`**, with notes, tasks and the app registry. Apps never send SQL to it. They call bridge methods such as `Notes.add(text)`, and only if they have permission. That's what lets generated apps share data instead of being isolated toys.
+
+Apps are built from a library of around 40 ready-made components (`QanvasList`, `QanvasChart`, `QanvasDatePicker`, `QanvasStopwatch`, …) that all share one theme, so every generated app looks consistent without the agent having to style anything.
+
+The agent's system prompt works as a state machine (route → design → build, inspect → modify, fix, debug) with worked examples. A test extracts every example from the prompt and checks that it really loads. After each change the runtime gives the agent feedback: QML warnings, unused files, failed writes, and elements that don't fit on the screen. If something is left unresolved at the end of a turn, the runtime asks the agent to fix it.
+
+The agent can use OpenAI, OpenRouter or Claude. API keys are kept in the system's secure storage.
+
+## Building
+
+Qt 6, CMake and a C++20 compiler. Shared code comes from [app-libs](https://github.com/dpietruchowski/app-libs), included as a git submodule.
 
 ```bash
 git clone --recurse-submodules git@github.com:dpietruchowski/qanvas.git
-# or, in an existing clone:
-git submodule update --init --recursive
-```
-
-## Build — desktop
-
-```bash
+cd qanvas
 cmake -B build-desktop -DCMAKE_BUILD_TYPE=Debug
 cmake --build build-desktop -j$(nproc)
 ./build-desktop/src/appqanvas
 ```
 
-Sources and QML files are globbed at configure time: after adding or moving a file, run `cmake -B build-desktop` again.
+Source and QML files are collected when CMake configures, so after adding or moving a file run `cmake -B build-desktop` again.
+
+Android and AppImage builds use the scripts from app-libs, which read their settings from `app.env`. The Android build runs in Docker, so you don't need a local SDK or NDK.
+
+```bash
+./libs/scripts/build-android.sh debug apk
+./libs/scripts/build-android.sh release aab
+./libs/scripts/sign-apk.sh            # after running generate-keystore.sh once
+./libs/scripts/build-appimage.sh
+```
 
 ## Tests
 
 ```bash
 ctest --test-dir build-desktop
-python3 test/prompt_example.py   # needs the Debug build above
-```
-
-## Build — Android and AppImage
-
-Both come from the shared scripts, which read `app.env`. The Android build runs inside the Docker image from `libs/docker`, no local SDK/NDK needed.
-
-```bash
-./libs/scripts/build-android.sh debug apk     # build-android/
-./libs/scripts/build-android.sh release aab
-./libs/scripts/sign-apk.sh                    # after generate-keystore.sh once
-./libs/scripts/build-appimage.sh              # dist/
+python3 test/prompt_example.py   # runs the examples from the system prompt, needs the Debug build
 ```
 
 ## UI automation
 
-Debug builds link `app_automation`, a localhost TCP server that drives the app by `objectName`. `.ui_automation.json` names the binary, the port and the env var (`APP_AUTOMATION_PORT`).
+Debug builds include a small TCP server that lets scripts drive the app by `objectName`:
 
 ```bash
 python3 libs/tools/ui_session.py start --platform offscreen
-python3 libs/tools/ui_driver.py find ""
 python3 libs/tools/ui_driver.py click navApp
 python3 libs/tools/ui_driver.py screenshot tmp/app.png
 python3 libs/tools/ui_session.py stop
@@ -68,12 +65,6 @@ python3 libs/tools/ui_session.py stop
 ## Formatting
 
 ```bash
-cmake --build build-desktop --target format        # apply clang-format to src/
-cmake --build build-desktop --target format_check  # verify only
+cmake --build build-desktop --target format         # apply clang-format to src/
+cmake --build build-desktop --target format_check   # check only
 ```
-
-The style is `libs/.clang-format`; the root `.clang-format` is a symlink to it.
-
-## Version bump
-
-`VERSION_NAME` and `VERSION_CODE` live in `app.env`. `./libs/scripts/build-android.sh … official` bumps, commits and tags on its own.
